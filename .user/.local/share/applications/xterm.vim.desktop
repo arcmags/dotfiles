@@ -1,0 +1,16 @@
+## ~/.local/share/applications/xterm.vim.desktop ::
+
+[Desktop Entry]
+Type=Application
+Name=Vim
+Icon=gvim
+GenericName=Text Editor
+Comment=Edit text files
+TryExec=vim
+TryExec=xterm
+Terminal=false
+Exec=xterm -T xterm_float -e vim %F
+Categories=Utility;TextEditor;
+Keywords=Text;editor;
+StartupNotify=false
+MimeType=application/atom+xml;application/json;application/octet-stream;application/x-httpd-php3;application/x-httpd-php4;application/x-httpd-php5;application/x-php;application/x-shellscript;application/x-zerosize;application/xml;text/css;text/english;text/html;text/plain;text/x-c;text/x-c++;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-diff;text/x-dsrc;text/x-java;text/x-log;text/x-makefile;text/x-matlab;text/x-moc;text/x-pascal;text/x-perl;text/x-python;text/x-rst;text/x-sql;text/x-tcl;text/x-tex;text/xml;

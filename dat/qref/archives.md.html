@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Archive and Compression Formats</title>
+<link rel="stylesheet" href="css/main.css">
+<link rel="icon" href="data:,">
+</head>
+
+<body>
+
+<p>This document details a bunch of common archive and compression formats and
+gives actual commands to compress/decompress them.</p>
+<h1 id="archive">Archive</h1>
+<p>Archive only formats don't compress data at all (sometimes they actually use
+more disk space). Rather they are used to combine a bunch of files/directories
+into a single archive file. This archive is then usually compressed by one of
+any number of separate compression algorithms. This is why you commonly see
+files like <em>name.tar.gz</em>; this is a <em>tar</em> archive that was compressed by
+<em>gzip</em>. Some tools (bsdtar, tar) may call the compression program all in one
+step.</p>
+<table>
+<thead>
+<tr>
+<th>ext</th>
+<th>name</th>
+<th><code>file -b</code></th>
+<th>tools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.a .ar</td>
+<td><a href="https://en.wikipedia.org/wiki/Ar_(Unix)" target="_blank">unix archiver</a></td>
+<td>?</td>
+<td><a href="https://man7.org/linux/man-pages/man1/ar.1.html" target="_blank">ar</a></td>
+</tr>
+<tr>
+<td>.cpio</td>
+<td><a href="https://en.wikipedia.org/wiki/Cpio" target="_blank">cpio</a></td>
+<td>ASCII cpio archive</td>
+<td><a href="https://man.freebsd.org/cgi/man.cgi?query=bsdtar" target="_blank">bsdtar</a> <a href="https://man.freebsd.org/cgi/man.cgi?query=bsdcpio" target="_blank">bsdcpio</a></td>
+</tr>
+<tr>
+<td>.shar</td>
+<td>shell archive</td>
+<td>?</td>
+<td>?</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cpio">cpio</h2>
+<ul>
+<li>file: ASCII cpio archive</li>
+<li>extension: .cpio</li>
+</ul>
+<p>Create:</p>
+<pre><code><span class="prompt">$ </span>bsdtar caf &lt;NAME&gt;.cpio &lt;FILE...&gt;
+</pre></code>
+<p>Extract:</p>
+<pre><code><span class="prompt">$ </span>bsdtar xf &lt;FILE&gt; [-f FILE]...
+<span class="prompt">$ </span>bsdcpio -i -F &lt;FILE&gt; [-F FILE]...
+</pre></code>
+<h1 id="compress">Compress</h1>
+<h2 id="zstd">zstd</h2>
+<ul>
+<li>file: Zstandard compressed data</li>
+<li>extension: .zst</li>
+</ul>
+<p>Create:</p>
+<pre><code><span class="prompt">$ </span>bsdtar --zstd:compression-level=19 -caf &lt;NAME&gt;.tar.zst &lt;FILE...&gt;
+<span class="prompt">$ </span>bsdtar c &lt;FILE...&gt; | zstd -19 -o &lt;NAME&gt;.tar.zst
+</pre></code>
+<p>Extract:</p>
+<pre><code><span class="prompt">$ </span>bsdtar xf &lt;FILE&gt; [-f FILE]...
+<span class="prompt">$ </span>zstd -c -d &lt;FILE&gt; | bsdtar x
+<span class="prompt">$ </span>zstd -d &lt;FILE...&gt;
+</pre></code>
+<hr />
+<h2 id="7-zip">7-zip</h2>
+<ul>
+<li>file: 7-zip archive data</li>
+<li>extensions: 7z</li>
+</ul>
+<p>Create:</p>
+<pre><code><span class="prompt">$ </span>bsdtar caf &lt;NAME&gt;.7z &lt;FILE...&gt;
+<span class="prompt">$ </span>7z a &lt;NAME&gt;.7z &lt;FILE...&gt;
+</pre></code>
+<p>Extract:</p>
+<pre><code><span class="prompt">$ </span>bsdtar xf &lt;ARCHIVE&gt;
+<span class="prompt">$ </span>7z x &lt;ARCHIVE&gt;
+</pre></code>
+<h2 id="lz4">lz4</h2>
+<ul>
+<li>file: LZ4 compressed data</li>
+<li>extensions: lz4</li>
+<li>single-file</li>
+<li>requires: lz4</li>
+</ul>
+<p>Create:</p>
+<pre><code><span class="prompt">$ </span>bsdtar caf &lt;NAME&gt;.lz4 &lt;FILE...&gt;
+</pre></code>
+<p>Extract:</p>
+<pre><code><span class="prompt">$ </span>bsdtar xf &lt;ARCHIVE&gt;
+<span class="prompt">$ </span>7z x &lt;ARCHIVE&gt;
+</pre></code>
+<h2 id="lzo">lzo</h2>
+<ul>
+<li>file: lzop compressed data</li>
+<li>extensions: lzo</li>
+<li>requires: lzop</li>
+</ul>
+<p>Create:</p>
+<pre><code><span class="prompt">$ </span>bsdtar caf &lt;NAME&gt;.lzo &lt;FILE...&gt;
+</pre></code>
+<p>Extract:</p>
+<pre><code><span class="prompt">$ </span>bsdtar xf &lt;ARCHIVE&gt;
+</pre></code>
+<hr />
+<h2 id="lrzip">lrzip</h2>
+<ul>
+<li>file: LRZIP compressed data</li>
+<li>extensions: zpaq, lrz</li>
+</ul>
+<p>Create:</p>
+<pre><code><span class="prompt">$ </span>bsdtar caf &lt;NAME&gt;.lzo &lt;FILE...&gt;
+</pre></code>
+<p>Extract:</p>
+<pre><code><span class="prompt">$ </span>bsdtar xf &lt;ARCHIVE&gt;
+</pre></code>
+<h1 id="iso">iso</h1>
+<p>ISO 9660 CD-ROM filesystem data</p>
+<h2 id="bsdtar-xf">bsdtar xf</h2>
+<ul>
+<li>7-zip archive data</li>
+<li>ISO 9660 CD-ROM filesystem data</li>
+<li>LZMA compressed data</li>
+<li>POSIX tar archive</li>
+<li>XZ compressed data</li>
+<li>Zstandard compressed data</li>
+<li>bzip2 compressed data</li>
+<li>gzip compressed data</li>
+<li>uuencoded text</li>
+<li>zip archive data</li>
+<li>Microsoft Cabinet archive data</li>
+<li>LRZIP compressed data</li>
+<li>lzop compressed data</li>
+<li>ASCII cpio archive</li>
+</ul>
+<h2 id="7z-x">7z x</h2>
+<ul>
+<li>7-zip archive data</li>
+<li>ARJ archive data</li>
+<li>ISO 9660 CD-ROM filesystem data</li>
+<li>LZMA compressed data</li>
+<li>POSIX tar archive</li>
+<li>Windows imaging (WIM) image</li>
+<li>XZ compressed data</li>
+<li>Zstandard compressed data</li>
+<li>bzip2 compressed data</li>
+<li>gzip compressed data</li>
+<li>zip archive data</li>
+<li>Microsoft Cabinet archive data</li>
+</ul>
+<h2 id="bsdcpio">bsdcpio</h2>
+<ul>
+<li>ASCII cpio archive</li>
+</ul>
+<h2 id="unzip">unzip</h2>
+<ul>
+<li>zip archive data</li>
+</ul>
+<h2 id="unrar">unrar</h2>
+<h2 id="lrzip-1">lrzip</h2>
+<h1 id="extraction">Extraction</h1>
+<h1 id="summary">Summary</h1>
+<p>bsdtar is pretty much the only extraction program needed. It can extract 95% of
+common archive types.</p>
+<p>Archive creation is a little more tricky. For most uses, <em>.tar.zst</em> is going
+to be the best archive format; this is easily created with bsdtar. The
+creation of some less popular archive formats require external programs in
+conjunction with bsdtar, or the direct use of external programs themselves
+(e.g. <em>.lzo</em> archive can be created with bsdtar as long as <code>/usr/bin/lzop</code> is
+available).</p>
+<p><a href="https://en.wikipedia.org/wiki/List_of_archive_formats" target="_blank">wikipedia</a></p>
+<!-- vim: set ft=markdown: -->
+
+</body>
+</html>

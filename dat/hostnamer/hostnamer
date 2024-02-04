@@ -1,0 +1,53 @@
+#!/bin/bash
+
+char_rnd() {
+    cat /dev/urandom | tr -dc "${1:-A-Za-z0-9}" | head -c1
+}
+
+# set host from mac address:
+if [ -f /etc/hostnamer.d/mac-host.conf ]; then
+    mac="$(ip link show eth0 | grep -Po 'link/ether\s+\K[^\s]+')"
+    host="$(grep -Po "^\s*${mac}\s+\K[^\s]+" \
+        /etc/hostnamer.d/mac-host.conf)"
+fi
+
+# get random hostname:
+if [ -z "$host" ]; then
+    if [ -f /etc/hostnamer.d/rnd-host.conf ]; then
+        host="$(grep -P '^[^\s#]' \
+            /etc/hostnamer.d/rnd-host.conf | sort -R | head -n1)"
+    else
+        host='android-%x%x%x%x%x%x%x%x'
+    fi
+fi
+
+# parse hostname:
+while (grep -P '%[AaHhNnXxZz]' <<<"$host" &>/dev/null); do
+    host="$(sed -Ee "s/%A/$(char_rnd 'A-Z')/" \
+        -e "s/%a/$(char_rnd 'a-z')/" \
+        -e "s/%H/$(char_rnd 'A-F0-9')/" \
+        -e "s/%h/$(char_rnd 'a-f0-9')/" \
+        -e "s/%[Nn]/$(char_rnd '0-9')/" \
+        -e "s/%X/$(char_rnd 'A-Z0-9')/" \
+        -e "s/%x/$(char_rnd 'a-z0-9')/" \
+        -e "s/%[Zz]/$(char_rnd)/" <<<"$host")"
+done
+
+# remove invalid characters:
+host="$(tr -dc 'A-Za-z0-9-' <<<"$host")"
+
+# backup original /etc/hostname:
+if [ ! -f '/etc/hostname-' ]; then
+    cp /etc/hostname '/etc/hostname-'
+fi
+
+# change /etc/hostname:
+printf '%s\n' "$host" > /etc/hostname
+
+# change /etc/hosts:
+regex='\([A-Za-z0-9\.:]\+\)\s\+\([A-Za-z0-9_-]\+\)\.localdomain\s\+\2'
+sed -i "s/$regex/\1    $host.localdomain    $host/g" \
+    /etc/hosts
+
+# change hostname:
+hostnamectl set-hostname "$host"

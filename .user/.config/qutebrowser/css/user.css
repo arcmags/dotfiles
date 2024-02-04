@@ -1,0 +1,28 @@
+/* ~/.config/qutebrowser/css/user.css */
+
+::selection {
+    background: #50507a !important;
+    color: #f5f5ff !important;
+    text-shadow: none !important;
+}
+
+::-webkit-scrollbar {
+    width: 16px !important;
+    height: 16px !important;
+    border: none !important;
+}
+
+::-webkit-scrollbar-corner, ::-webkit-scrollbar-track {
+    background: #30305a !important;
+    border: none !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #50507a !important;
+    border: none !important;
+    -webkit-border-radius: 0px !important;
+}
+
+:focus {
+    outline: #4dffff auto 1px !important;
+}

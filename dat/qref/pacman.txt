@@ -1,0 +1,70 @@
+======================
+pacman Quick Reference
+======================
+
+Update system::
+
+    # pacman -Syu
+
+Install
+=======
+
+Install packages::
+
+    # pacman -S <PACKAGES>
+
+Install package from specific repo::
+
+    # pacman -S <REPO>/<PACKAGE>
+
+Remove
+======
+
+Remove package, package files, and unrequired dependencies::
+
+    # pacman -Rns <PACKAGES>
+
+Clear cache::
+
+    # pacman -Scc
+
+List
+====
+
+List installed packages::
+
+    $ pacman -Q [PACKAGES]
+
+Show package information::
+
+    $ pacman -Qi [PACKAGES]
+
+List pacakge files::
+
+    $ pacman -Ql [PACKAGES]
+
+List packages and descriptions in all repos::
+
+    $ pacman -Ss
+
+List all packages in all repos::
+
+    $ pacman -Ssq
+
+List all package groups in all repos::
+
+    $ pacman -Sgq
+
+List packages in group::
+
+    $ pacman -Sgq [GROUP]
+
+List packages in repo::
+
+    $ pacman -Sl [REPOS]
+
+List orphans::
+
+   $ pacman -Qdtq
+
+..  vim:ft=rst

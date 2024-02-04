@@ -1,0 +1,19 @@
+#!/bin/bash
+
+## display-swap ::
+# Swap left/right displays.
+
+if (xset q &>/dev/null); then
+    mapfile -t displays < <(xrandr | \
+      sed -E 's/^([^ ]+) connected[^0-9]+[0-9x]+\+([0-9]+).*/\1 \2/;t;d')
+    if [ ${#displays[@]} -eq 2 ]; then
+        if [ "${displays[0]#* }" -gt "${displays[1]#* }" ]; then
+            xrandr --output "${displays[1]% *}"  --right-of "${displays[0]% *}"
+        else
+            xrandr --output "${displays[0]% *}"  --right-of "${displays[1]% *}"
+        fi
+        [ -f "$HOME/.fehbg" ] && "$HOME/.fehbg"
+    fi
+fi
+
+# vim:ft=bash

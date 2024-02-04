@@ -1,0 +1,11 @@
+# i3bar
+set $cmd-bar-script ~/arc/.user/.config/i3/bin/i3-bar_base.sh
+# wallpaper
+set $img-wallpaper  ~/arc/.user/wallpaper/plants_1920x1080.jpg
+# cropgui
+for_window [class="Cropgtk.py"] $win-float
+# gaps:
+gaps inner 0
+gaps outer 0
+smart_gaps on
+bindsym Mod4+shift+equal gaps inner current toggle 12

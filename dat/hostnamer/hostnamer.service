@@ -1,0 +1,12 @@
+[Unit]
+Description=Hostname Setting Service
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/hostnamer
+
+[Install]
+WantedBy=multi-user.target

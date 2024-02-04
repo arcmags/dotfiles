@@ -1,0 +1,20 @@
+/*/* ~/.mozilla/firefox/default/chrome/atheme.css ::*/
+
+:root {
+    --a:            #00b0ff;
+    --a-hover:      #00d0ff;
+    --a-visited:    #0090ef;
+    --background:   #303030;
+    --background2:  #202020;
+    --background3:  #101010;
+    --border:       #009090;
+    --color:        #f0f0f0;
+    --color2:       #d0d0d0;
+    --color3:       #c0c0c0;
+    --font-family:  Hack, monospace;
+    --font-family2: times;
+    --font-size:    10pt;
+    --heading:      #60a0f0;
+    --hilite:       #b0d0f0;
+    scrollbar-color: #50507a #30305a !important;
+}

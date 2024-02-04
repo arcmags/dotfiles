@@ -1,0 +1,27 @@
+## ~/.config/feh/themes ::
+
+feh \
+  --auto-zoom \
+  --bg trans \
+  --cache-size 64 \
+  --draw-tinted \
+  --font 'Hack-Regular/10' \
+  --fontpath /usr/share/fonts/TTF \
+  --geometry 1800x1000 \
+  --image-bg '#20204a' \
+  --info 'echo " %n | %wx%h | $(du -h %F | cut -f1) | $(sed -E "s/0*\.//" <<<%z)%% | [%u/%l] "' \
+  --limit-width 1800 \
+  --no-menus \
+  --scale-down \
+  --stretch \
+  --thumb-height 160 \
+  --thumb-width 220 \
+  --zoom-step 4 \
+  --action1 ';i3-msg fullscreen toggle >/dev/null' \
+  --action2 ';i3-msg fullscreen disable >/dev/null; imv %F' \
+  --action3 ';identify -format "%%f  %%wx%%h  %%b  %%kc\n" %F' \
+  --action4 ";pkill --signal SIGUSR1 '^feh$'" \
+  --action5 ";pkill --signal SIGUSR2 '^feh$'" \
+  --action6 ";pkill --signal KILL '^feh$'"
+
+# vim: set ft=sh:

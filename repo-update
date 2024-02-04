@@ -1,0 +1,196 @@
+#!/bin/bash
+
+## repo-update ::
+# Copy files listed in $files_src from $dir_src to script directory.
+
+flag_gitpush=false
+dir_src="$UDIR"
+files_src=(
+    bin/
+    dat/bash/
+    dat/c/
+    dat/cpp/
+    dat/css/
+    dat/gdnsd/
+    dat/hostnamer/
+    dat/html/
+    dat/minecraft/datapacks/
+    dat/python/
+    dat/qmk/layouts.txt
+    dat/qmk/layouts/
+    dat/qref/
+    dat/text/Apology.txt
+    dat/text/Meditations.txt
+    dat/text/TheCommunistManifesto.txt
+    dat/text/words.txt
+    dat/vim/
+    lib/
+    .root/etc/X11/
+    .root/etc/modprobe.d/
+    .root/etc/udev/
+    .root/etc/fonts/local.conf
+    .root/etc/pacman.conf
+    .root/etc/vconsole.conf
+    .root/etc/vconsole.map
+    .user/.asciidoc/
+    .user/.config/edir-flags.conf
+    .user/.config/feh/
+    .user/.config/fontconfig/
+    .user/.config/fzf/
+    .user/.config/i3/
+    .user/.config/i3status/
+    .user/.config/imv/
+    .user/.config/menus/xfce-applications.menu
+    .user/.config/mimeapps.list
+    .user/.config/mpv/input.conf
+    .user/.config/mpv/mpv.conf
+    .user/.config/nvim/
+    .user/.config/pacman/
+    .user/.config/picom.conf
+    .user/.config/pycodestyle
+    .user/.config/qmk/qmk.ini
+    .user/.config/qt5ct/
+    .user/.config/qt6ct/
+    .user/.config/qutebrowser/config.py
+    .user/.config/qutebrowser/config_default.py
+    .user/.config/qutebrowser/css/
+    .user/.config/qutebrowser/greasemonkey/
+    .user/.config/qutebrowser/userscripts/
+    .user/.config/ranger/
+    .user/.config/ttyper/
+    .user/.config/wal/
+    .user/.config/xfce4/helpers.rc
+    .user/.config/yt-dlp/
+    .user/.config/zathura/
+    .user/.gnupg/gpg_public.txt
+    .user/.ipython/profile_default/ipython_config.py
+    .user/.ipython/profile_default/startup/ipythonrc.py
+    .user/.irssi/config
+    .user/.irssi/scripts/
+    .user/.irssi/utheme.theme
+    .user/.local/share/applications/
+    .user/.local/share/fonts/
+    .user/.local/share/xfce4/
+    .user/.moc/config
+    .user/.moc/keymap.conf
+    .user/.moc/themes/
+    .user/.mozilla/firefox/default/chrome/
+    .user/.themes/
+    .user/.vim/after/
+    .user/.vim/colors/utheme.vim
+    .user/.vim/vimrc
+    .user/.w3m/config
+    .user/.w3m/keymap
+    .user/.Xmodmap
+    .user/.Xresources
+    .user/.Xtheme
+    .user/.bash_profile
+    .user/.bashrc
+    .user/.gdbinit
+    .user/.gitconfig
+    .user/.infokey
+    .user/.inputrc
+    .user/.lesskey
+    .user/.lscolors
+    .user/.minirc.dfl
+    .user/.nanorc
+    .user/.pinforc
+    .user/.profile
+    .user/.pythonrc
+    .user/.rg.conf
+    .user/.shellcheckrc
+    .user/.sqliterc
+    .user/.stylelintrc.yml
+    .user/.tidyrc
+    .user/.tmux.conf
+    .user/.xinitrc
+    .user/.xprofile
+)
+patterns_exclude=(
+    nvim/lazy-lock.json
+    .ccls-cache
+    .git
+    __pycache__
+    .venv
+)
+
+## internal control ::
+dir_script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+file_script="$(basename "$0")"
+files=()
+args_rsync=(-a --delete --mkpath --info=copy1,del1,name1)
+
+## functions ::
+msg() {
+	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg_error() {
+	printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+msg_warn() {
+	printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+## main ::
+while (($#)); do case "$1" in
+    push)  flag_gitpush=true ;;
+    *)     msg_error "unknown option: $1"; exit 5 ;;
+esac; shift; done
+
+# check dependencies:
+if ! command -v rsync &>/dev/null; then
+    msg_error 'rsync not found'
+    exit 4
+fi
+if ! command -v git &>/dev/null; then
+    msg_error 'git not found'
+    exit 4
+fi
+
+# check source directory:
+if [ ! -d "$dir_src" ]; then
+    msg_error "source directory not found: $dir_src"
+    exit 3
+fi
+
+# build rsync exclude args:
+for pattern in "${patterns_exclude[@]}"; do
+    args_rsync+=(--exclude "$pattern")
+done
+
+# update files:
+msg "pulling from $dir_src ..."
+cd "$dir_script"
+for file in "${files_src[@]}"; do
+    if [ ! -e "$dir_src/$file" ]; then
+        if [ -e "$file" ]; then
+            printf '\e[1;38;5;9m  - \e[0;38;5;15m%s\e[0m\n' "$file"
+            rm -r "$file"
+        else
+            printf '\e[1;38;5;11m  ~ \e[0;38;5;15m%s\e[0m\n' "$file"
+        fi
+        continue
+    fi
+    if [ -d "$dir_src/$file" ] && [ "${file: -1}" != '/' ]; then
+        file="$file/"
+    fi
+    rsync "${args_rsync[@]}" "$dir_src/$file" "$file" | sed -E -e '/^.*\/$/d' \
+        -e '/^created /d' \
+        -e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
+        -e '/  - /! s/^/\o033[38;5;10m  + \o033[38;5;15m/'
+done
+
+# push to remote git repo:
+if [ "$flag_gitpush" = 'true' ]; then
+    if [ "$(git -C "$dir_script" rev-parse --git-dir 2>/dev/null)" != '.git' ]; then
+        msg_warn 'not a git repo'
+    else
+        git -C "$dir_script" add --all
+        git -C "$dir_script" commit -S -m "repo-update $(date +'%F %R')"
+        git -C "$dir_script" push -v
+    fi
+fi
+
+# vim:ft=bash

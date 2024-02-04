@@ -1,0 +1,49 @@
+#!/bin/bash
+## .anonrc ::
+
+## ADIR ::
+export ADIR="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
+export ADIR_REALPATH="$(realpath "$ADIR")"
+export HOME_REALPATH="$(realpath "$HOME")"
+
+apwd() {
+    local pwd_realpath="$(realpath .)"
+    if [[ "$PWD" =~ ^("$ADIR"|"$ADIR_REALPATH")(.*) ]] || [[ "$pwd_realpath" =~ ^("$ADIR"|"$ADIR_REALPATH")(.*) ]]; then
+        printf '%s' "-${BASH_REMATCH[2]}"
+    elif [[ "$PWD" =~ ^("$HOME"|"$HOME_REALPATH")(.*) ]] || [[ "$pwd_realpath" =~ ^("$HOME"|"$HOME_REALPATH")(.*) ]]; then
+        printf '%s' "~${BASH_REMATCH[2]}"
+    else
+        printf '%s' "$PWD"
+    fi
+}
+
+## utils ::
+path_add() {
+    case ":$PATH:" in
+        *:"$1":*)
+            ;;
+        *)
+            export PATH="$1${PATH:+:$PATH}" ;;
+    esac
+}
+
+## path ::
+path_add "$ADIR/bin"
+
+## env ::
+export PS1='\[\e[1;38;5;13m\]$(apwd)\[\e[38;5;10m\]\$\[\e[0m\] '
+
+## aliases ::
+cda() { cd "$ADIR"; }
+
+## commands ::
+reload() {
+    cd "$ADIR"
+    . .anonrc
+    cd - &>/dev/null
+}
+
+## source ::
+[ -f "$UDIR/dat/bash/img-tools.bash" ] && . "$UDIR/dat/bash/img-tools.bash"
+
+# vim:ft=bash

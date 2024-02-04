@@ -1,0 +1,40 @@
+#!/bin/bash
+
+## showcolors ::
+# Print terminal colors.
+
+block=$'\u2588'
+if [ "$1" = '--all' ] || [ "$1" = '--256' ] || [ "$1" = '-A' ]; then
+    printf '        '
+    for ((j=0;j<4;j++)); do
+        printf "\e[38;5;${j}m$block$block$block$block"
+    done
+    printf '          '
+    for ((j=0;j<4;j++)); do
+        printf "\e[0;38;5;${j}m%03d " $j
+    done
+    printf '\n'
+    for ((i=1;i<43;i++)); do
+        for ((j=i*6-2;j<(i+1)*6-2;j++)); do
+            printf "\e[38;5;${j}m$block$block$block$block"
+        done
+        printf '  '
+        for ((j=i*6-2;j<(i+1)*6-2;j++)); do
+            printf "\e[0;38;5;${j}m%03d " $j
+        done
+        printf '\n'
+    done
+else
+    for ((i=0;i<2;i++)); do
+        for ((j=i*8;j<(i+1)*8;j++)); do
+            printf "\e[38;5;${j}m$block$block$block"
+        done
+        printf '\e[0m  '
+        for ((j=i*8;j<(i+1)*8;j++)); do
+            printf "\e[0;38;5;${j}m%02d " $j
+        done
+        printf '\n'
+    done
+fi
+
+# vim:ft=bash

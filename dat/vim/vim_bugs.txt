@@ -1,0 +1,34 @@
+========
+vim bugs
+========
+
+listed help buffer numbers
+==========================
+
+If numbers are set globally, and a listed help buffer has local numbers *off*,
+local numbers for that buffer are reset to *on* every time the buffer is entered.
+
+How to repeat in ``vim --clean <somefile>``::
+
+   :set number
+   :help help
+   <c-w>o
+   :setlocal buflisted
+   :bnext
+   :bnext
+   :setlocal nonumber
+   :bnext
+   :bnext
+
+Every time you return to the help buffer, numbers are magically re-enabled. I
+looked at */usr/share/vim/vim90/ftplugin/help.vim* but nothing there is turning
+numbers back on. I looked at all active autocommands and nothing appeared to be
+setting line numbers there.
+
+readonly warning in vim9script functions
+========================================
+
+:bnext vs :bnext!
+=================
+
+..  vim:ft=rst

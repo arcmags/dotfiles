@@ -1,0 +1,9 @@
+# i3bar script
+set $cmd-bar-script ~/arc/.user/.config/i3/bin/i3-bar_usb.sh
+# wallpaper
+set $img-wallpaper  ~/arc/.user/wallpaper/w08.jpg
+# gaps:
+gaps inner 0
+gaps outer 0
+smart_gaps on
+bindsym Mod4+shift+equal gaps inner current toggle 12

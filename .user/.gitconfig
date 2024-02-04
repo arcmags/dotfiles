@@ -1,0 +1,34 @@
+[user]
+    name = arcmags
+    email = c.magyar.ec@gmail.com
+	signingkey = 4742C8240A64DA01
+
+[color]
+    ui = auto
+
+[pager]
+	branch = false
+
+[push]
+    default = matching
+
+[pull]
+	rebase = false
+
+[url "https://github.com/"]
+    insteadOf = "github:"
+[url "git@github.com:"]
+    pushInsteadOf = "github:"
+
+[url "https://gitlab.com/"]
+    insteadOf = "gitlab:"
+[url "git@gitlab.com:"]
+    pushInsteadOf = "gitlab:"
+
+[url "https://gitlab.archlinux.org/archlinux/packaging/packages/"]
+    insteadOf = "archlinux:"
+
+[url "https://aur.archlinux.org/"]
+    insteadOf = "aur:"
+[url "ssh+git://aur@aur.archlinux.org/"]
+    pushInsteadOf = "aur:"

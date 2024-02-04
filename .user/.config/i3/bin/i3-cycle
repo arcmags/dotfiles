@@ -1,0 +1,20 @@
+#!/bin/bash
+## i3-cycle ::
+
+n=1
+if [ "$1" = 'prev' ]; then
+    n=-1
+fi
+
+json="$(i3-msg -t get_tree)"
+id=$(jq '..|objects|select(.focused==true)|.id' <<<"$json")
+ids=($(jq '.nodes[].nodes[].nodes[]|select(..|objects|select(.focused==true))|
+    ..|objects|select(.window!=null)|.id' <<<"$json"))
+
+i=0
+while [ $i -lt ${ids[i]} ] && [ "${ids[i]}" != "$id" ]; do
+    ((i++))
+done
+i=$(((i+n)%${#ids[@]}))
+
+i3-msg "[con_id=${ids[i]}] focus" &>/dev/null

@@ -1,0 +1,71 @@
+## ~/.config/imv/config ::
+# default: /etc/imv_config
+
+[options]
+suppress_default_binds = true
+width = 1800
+height = 1000
+background = 20204a
+overlay = true
+overlay_position_bottom = true
+overlay_font = Hack:10
+overlay_background_alpha = 80
+overlay_text = " ${imv_current_file##*/} | ${imv_width}x${imv_height} | $(du -h $imv_current_file | cut -f1) | $imv_scale% | -$imv_scaling_mode- [$imv_current_index/$imv_file_count] "
+overlay_text_color = 59F176
+
+[aliases]
+
+[binds]
+q = quit
+
+# interface:
+D = overlay
+
+# navigate:
+p = prev
+n = next
+g = goto 1
+
+# pan:
+j = pan 0 -40
+k = pan 0 40
+h = pan 40 0
+l = pan -40 0
+<Shift+J> = pan 0 -200
+<Shift+K> = pan 0 200
+<Shift+H> = pan 200 0
+<Shift+L> = pan -200 0
+
+# scale/zoom:
+0 = scaling none
+<Ctrl+l> = reset
+<Shift+A> = upscaling next
+<Shift+I> = zoom 5
+<Shift+O> = zoom -5
+e = scaling none
+i = zoom 1
+o = zoom -1
+r = scaling full
+s = scaling next
+w = scaling crop
+
+# transform:
+<Shift+greater> = rotate by 90
+<Shift+less> = rotate by -90
+<Shift+bar> = flip horizontal
+<Shift+underscore> = flip vertical
+
+# close/delete:
+<Ctrl+x> = exec rm $imv_current_file && imv-msg $imv_pid close && imv-msg $imv_pid next
+x = close
+f = fullscreen
+
+# gifs:
+<period> = next_frame
+<space> = toggle_playing
+
+# slideshow:
+t = slideshow +1
+<Shift+T> = slideshow -1
+
+# vim: set ft=config:

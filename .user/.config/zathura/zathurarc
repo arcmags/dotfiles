@@ -1,0 +1,25 @@
+## ~/home/.config/zathurarc/zathurarc ::
+
+include zathura.colors
+set font "Hack normal 10"
+
+set selection-clipboard clipboard
+set window-title-basename true
+set statusbar-home-tilde true
+set show-hidden true
+set scroll-step 64
+set page-cache-size 32
+set zoom-step 4
+set recolor true
+
+map ;s toggle_statusbar
+map < rotate rotate-ccw
+map <C-j> navigate next
+map <C-k> navigate previous
+map <C-l> reload
+map > rotate rotate-cw
+map O focus_inputbar ':open '
+map i zoom in
+map o zoom out
+map w zoom width
+unmap r

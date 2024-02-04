@@ -1,0 +1,92 @@
+## ~/.inputrc ::
+
+set bell-style none
+set colored-stats on
+set keyseq-timeout 10
+set mark-symlinked-directories on
+set show-mode-in-prompt on
+set emacs-mode-string \1\e[1;38;5;10m\2~\1\e[0m\2
+set vi-ins-mode-string \1\e[1;38;5;10m\2:\1\e[0m\2
+set vi-cmd-mode-string \1\e[1;38;5;10m\2-\1\e[0m\2
+set editing-mode vi
+
+set keymap vi-command
+"\C-l": clear-display
+"\ev": edit-and-execute-command
+# move:
+"\C-?": backward-char
+"\C-a": beginning-of-line
+"\C-b": backward-char
+"\C-e": end-of-line
+"\C-f": forward-char
+"\eB": shell-backward-word
+"\eF": shell-forward-word
+"\eW": shell-forward-word
+"\eb": backward-word
+"\ef": forward-word
+"\eh": backward-char
+"\el": forward-char
+"\ew": forward-word
+# delete:
+"\C-d": delete-char
+"\C-h": backward-delete-char
+"\eR": unix-word-rubout
+"\eX": shell-kill-word
+"\er": backward-kill-word
+"\et": unix-line-discard
+"\ex": kill-word
+"\ey": kill-line
+# modify:
+"\e~": tilde-expand
+# complete:
+"\C-n": menu-complete
+"\C-p": menu-complete-backward
+Tab: complete
+# history:
+"\C-j": next-history
+"\C-k": previous-history
+"\eJ": end-of-history
+"\eK": beginning-of-history
+"\ej": next-history
+"\ek": previous-history
+# macros:
+"()": "A)\eI $(\eI"
+
+set keymap vi-insert
+"\C-l": clear-display
+"\ev": edit-and-execute-command
+# move:
+"\C-a": beginning-of-line
+"\C-b": backward-char
+"\C-e": end-of-line
+"\C-f": forward-char
+"\eB": shell-backward-word
+"\eF": shell-forward-word
+"\eW": shell-forward-word
+"\eb": backward-word
+"\ef": forward-word
+"\eh": backward-char
+"\el": forward-char
+"\ew": forward-word
+# delete:
+"\C-d": delete-char
+"\C-h": backward-delete-char
+"\eR": unix-word-rubout
+"\eX": shell-kill-word
+"\er": backward-kill-word
+"\et": unix-line-discard
+"\ex": kill-word
+"\ey": kill-line
+# modify:
+"\e~": tilde-expand
+# complete:
+"\C-n": menu-complete
+"\C-p": menu-complete-backward
+Tab: complete
+# history:
+"\C-j": next-history
+"\C-k": previous-history
+"\eJ": end-of-history
+"\eK": beginning-of-history
+"\ej": next-history
+"\ek": previous-history

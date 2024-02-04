@@ -1,0 +1,17 @@
+## ~/.config/feh/buttons ::
+
+blur
+next_img
+prev_img
+toggle_menu
+zoom
+rotate
+
+rotate C-1
+next_img 9
+prev_img 8
+zoom_fit 2
+zoom_in  4
+zoom_out 5
+
+# vim: set ft=config:

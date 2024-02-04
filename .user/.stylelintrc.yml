@@ -1,0 +1,6 @@
+---
+extends: stylelint-config-standard
+rules:
+  rule-empty-line-before: true
+  comment-whitespace-inside:
+  comment-empty-line-before:

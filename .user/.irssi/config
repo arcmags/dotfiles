@@ -1,0 +1,364 @@
+## ~/.irssi/config ::
+
+servers = (
+  {
+    address = "irc.libera.chat";
+    chatnet = "Libera";
+    port = "6697";
+    use_tls = "yes";
+    tls_verify = "yes";
+    tls_cert = "~/.irssi/certs/libera.pem";
+    autoconnect = "yes";
+  },
+  {
+    address = "ircs.overthewire.org";
+    chatnet = "OverTheWire";
+    port = "6697";
+    use_tls = "yes";
+    tls_verify = "yes";
+    tls_cert = "~/.irssi/certs/libera.pem";
+    autoconnect = "no";
+  },
+  {
+    address = "irc.wechall.net";
+    chatnet = "WeChall";
+    port = "6697";
+    use_tls = "yes";
+    tls_verify = "yes";
+    tls_cert = "~/.irssi/certs/libera.pem";
+    autoconnect = "no";
+  },
+  {
+    address = "irc.w3challs.com";
+    chatnet = "W3Challs";
+    port = "6697";
+    use_tls = "yes";
+    tls_verify = "no";
+    tls_cert = "~/.irssi/certs/libera.pem";
+    autoconnect = "no";
+  },
+  {
+    address = "localhost";
+    chatnet = "Discord";
+    port = "6667";
+    use_tls = "no";
+    tls_verify = "yes";
+    autoconnect = "yes";
+  }
+);
+
+chatnets = {
+  Libera = {
+    type = "IRC";
+    max_kicks = "1";
+    max_msgs = "4";
+    max_whois = "1";
+    sasl_mechanism = "EXTERNAL";
+    sasl_password = "";
+  };
+  OverTheWire = {
+    type = "IRC";
+    max_kicks = "1";
+    max_msgs = "4";
+    max_whois = "1";
+  };
+  WeChall = {
+    type = "IRC";
+    max_kicks = "1";
+    max_msgs = "4";
+    max_whois = "1";
+  };
+  W3Challs = {
+    type = "IRC";
+    max_kicks = "1";
+    max_msgs = "4";
+    max_whois = "1";
+  };
+  Discord = {
+    type = "IRC";
+    sasl_mechanism = "PLAIN";
+    sasl_password = "mags";
+    sasl_username = "mags";
+  };
+};
+
+channels = (
+  { chatnet = "libera"; name = "#archlinux"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#archlinuxarm"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#archlinux-aur"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#archlinux-offtopic"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#archlinux-security"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#archlinuxarm"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#bash"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#bitcoin"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#c"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#c++"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "##chat"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#css"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#debian"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#fedora"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#firefox"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#git"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "##hardware"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#i3"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#irssi"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#javascript"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#latex"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#libera"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#linux"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#linux-offtopic"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "##math"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "##math-offtopic"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#mechboards"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#monero"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#monero-community"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#monero-dev"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#monero-markets"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#monero-offtopic"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#neovim"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#networking"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#nginx"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#node.js"; autojoin = "no"; },
+  { chatnet = "libera"; name = "##philosophy"; autojoin = "no"; },
+  { chatnet = "libera"; name = "##physics"; autojoin = "no"; },
+  { chatnet = "libera"; name = "##politics"; autojoin = "no"; },
+  { chatnet = "libera"; name = "##posix"; autojoin = "no"; },
+  { chatnet = "libera"; name = "##programming"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#python"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#qemu"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#qutebrowser"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#raspberrypi"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#ruby"; autojoin = "no"; },
+  { chatnet = "libera"; name = "##science"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#security"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#systemd"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#thelounge"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#thelounge-offtopic"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#tmux"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#tridactyl"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#ubuntu"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#vim"; autojoin = "yes"; },
+  { chatnet = "libera"; name = "#web"; autojoin = "no"; },
+  { chatnet = "OverTheWire"; name = "#social"; autojoin = "no"; },
+  { chatnet = "OverTheWire"; name = "#wargames"; autojoin = "no"; },
+  { chatnet = "W3Challs"; name = "#w3challs"; autojoin = "no"; },
+  { chatnet = "WeChall"; name = "#wechall"; autojoin = "no"; }
+);
+
+aliases = {
+  ATAG = "WINDOW SERVER";
+  B = "BAN";
+  BACK = "AWAY";
+  BANS = "BAN";
+  BYE = "QUIT";
+  C = "CLEAR";
+  CALC = "EXEC - printf '%s=' '$*'\\; echo '$*' | bc -l";
+  CHAT = "DCC CHAT";
+  DATE = "TIME";
+  DEHIGHLIGHT = "DEHILIGHT";
+  DESCRIBE = "ACTION";
+  DHL = "DEHILIGHT";
+  EXEMPTLIST = "MODE $C +e";
+  EXIT = "QUIT";
+  GOTO = "SCROLLBACK GOTO";
+  HIGHLIGHT = "HILIGHT";
+  HL = "HILIGHT";
+  HOST = "USERHOST";
+  INVITELIST = "MODE $C +I";
+  J = "JOIN";
+  K = "KICK";
+  KB = "KICKBAN";
+  KN = "KNOCKOUT";
+  LAST = "LASTLOG";
+  LEAVE = "PART";
+  M = "MSG";
+  MUB = "UNBAN *";
+  N = "NAMES";
+  NMSG = "^MSG";
+  P = "PART";
+  Q = "QUERY";
+  RESET = "SET -default";
+  RUN = "SCRIPT LOAD";
+  SAY = "MSG *";
+  SB = "SCROLLBACK";
+  SBAR = "STATUSBAR";
+  SIGNOFF = "QUIT";
+  T = "TOPIC";
+  UB = "UNBAN";
+  UMODE = "MODE $N";
+  UNSET = "SET -clear";
+  WII = "WHOIS $0 $0";
+  WI = "WHOIS";
+  W = "WHO";
+  WW = "WHOWAS";
+  WC = "WINDOW CLOSE";
+  WG = "WINDOW GOTO";
+  WH = "WINDOW HIDE";
+  WJOIN = "JOIN -window";
+  WLIST = "WINDOW LIST";
+  WU = "WINDOW MOVE UP";
+  WD = "WINDOW MOVE DOWN";
+  WL = "WINDOW MOVE LEFT";
+  WR = "WINDOW MOVE RIGHT";
+  WN = "WINDOW NEW HIDDEN";
+  WQUERY = "QUERY -window";
+  WS = "WINDOW SHOW";
+  READ = "script exec \\$_->activity(0) for Irssi::windows";
+  NAMES = "run names.pl";
+};
+
+statusbar = {
+  items = {
+    act = "{sb_act $0-}";
+    barend = "{sbend}";
+    barstart = "{sbstart}";
+    lag = "{sb Lag>$0-}";
+    more = "{sb_more -more-}";
+    prompt = "{prompt $winref $itemname}";
+    prompt_empty = "{prompt $winref $winname}";
+    server = "{sb_server $tag}";
+    time = "";
+    topic = "{sb_topic $winref $itemname}";
+    topic_empty = "{sb_topic $winref {sbservertag $tag}}";
+    topicbarend = "{topicsbend}";
+    topicbarstart = "{topicsbstart}";
+    user = "{sb_user $N {sbmode $usermode}{sbaway $A}}";
+    window = "{sb_topic $winref $tag/$itemname{sbmode $M}}";
+    window_empty = "{sb_topic $winref {sbservertag $tag}}";
+    window_title = "{sb_topic $winref $itemname}";
+  };
+  default = {
+    window_active = {
+      disabled = "no";
+      type = "window";
+      placement = "bottom";
+      position = "0";
+      visible = "active";
+      items = {
+        barstart = { priority = "100"; };
+        topic = { priority = "100"; };
+        topic_empty = { priority = "100"; };
+        server = { priority = "100"; };
+        user = { priority = "100"; };
+        more = { priority = "100"; };
+        awl_shared = { priority = "10"; alignment = "right"; };
+        barend = { priority = "100"; alignment = "right"; };
+      };
+    };
+    window_inactive = {
+      disabled = "no";
+      type = "window";
+      placement = "bottom";
+      position = "0";
+      visible = "inactive";
+      items = {
+        barstart = { priority = "100"; };
+        topic= { priority = "100"; };
+        topic_empty= { priority = "100"; };
+        server= { priority = "100"; };
+        user= { priority = "100"; };
+        more = { priority = "100"; };
+        awl_shared = { priority = "10"; alignment = "right"; };
+        barend = { priority = "100"; alignment = "right"; };
+      };
+    };
+    topic = {
+      disabled = "yes";
+      type = "window";
+      placement = "bottom";
+      position = "0";
+      visible = "always";
+      items = {
+        topicbarstart = { priority = "100"; };
+        topic = { };
+        topic_empty = { };
+        topicbarend = { priority = "100"; alignment = "right"; };
+      };
+    };
+    awl = {
+      disabled = "yes";
+      type = "root";
+      placement = "top";
+      position = "99";
+      visible = "always";
+      items = { awl_shared = { priority = "10"; }; act = { }; };
+    };
+    window = { disabled = "yes"; };
+    window_inact = { disabled = "yes"; };
+    prompt = {
+      items = {
+        prompt = { priority = "-1"; };
+        prompt_empty = { priority = "-1"; };
+        input = { priority = "10"; };
+      };
+      position = "100";
+    };
+  };
+};
+
+settings = {
+  core = {
+    real_name = "Unknown";
+    user_name = "mags";
+    nick = "mags";
+    settings_autosave = "no";
+  };
+  "fe-text" = {
+    actlist_sort = "refnum";
+    scrollback_lines = "5000";
+    autostick_split_windows = "no";
+  };
+  "fe-common/core" = {
+    theme = "utheme";
+    names_max_columns = "0";
+    show_nickmode_empty = "no";
+    autoclose_query = "0";
+    show_names_on_join = "no";
+    autoclose_windows = "no";
+    autolog_path = "~/log/irc/$tag/$0/$0_%Y-%m-%d.log";
+    autolog = "yes";
+  };
+  "perl/core/scripts" = {
+    awl_shared_sbar = "44<0";
+    awl_viewer = "no";
+    fancy_abbrev = "head";
+    awl_block = "12";
+  };
+};
+
+ignores = (
+  { level = "JOINS MODES PARTS QUITS"; },
+  { level = "NO_ACT NICKS"; },
+  { mask = "tehbot"; level = "NO_ACT ALL"; servertag = "WeChall"; },
+  { mask = "Lamb3"; level = "NO_ACT ALL"; servertag = "WeChall"; }
+);
+
+keyboard = (
+  { key = "^B"; id = "backward_character"; data = ""; },
+  { key = "^F"; id = "forward_character"; data = ""; },
+  { key = "^H"; id = "backspace"; data = ""; },
+  { key = "^J"; id = "forward_history"; data = ""; },
+  { key = "^K"; id = "backward_history"; data = ""; },
+  { key = "^O"; id = "active_window"; data = ""; },
+  { key = "^U"; id = "erase_to_beg_of_line"; data = ""; },
+  { key = "^V"; id = "escape_char"; data = ""; },
+  { key = "meta-B"; id = "backward_to_space"; data = ""; },
+  #{ key = "meta-D"; id = "delete_to_next_space"; data = ""; },
+  { key = "meta-d"; id = "scroll_forward"; data = ""; },
+  { key = "meta-u"; id = "scroll_backward"; data = ""; },
+  { key = "meta-X"; id = "delete_to_next_space"; data = ""; },
+  { key = "meta-x"; id = "delete_next_word"; data = ""; },
+  { key = "meta-D"; id = "scroll_end"; data = ""; },
+  { key = "meta-U"; id = "scroll_start"; data = ""; },
+  { key = "meta-R"; id = "delete_to_previous_space"; data = ""; },
+  { key = "meta-W"; id = "forward_to_space"; data = ""; },
+  { key = "meta-h"; id = "backward_character"; data = ""; },
+  { key = "meta-j"; id = "forward_history"; data = ""; },
+  { key = "meta-k"; id = "backward_history"; data = ""; },
+  { key = "meta-l"; id = "forward_character"; data = ""; },
+  { key = "meta-r"; id = "delete_previous_word"; data = ""; },
+  { key = "meta-y"; id = "erase_to_end_of_line"; data = ""; },
+  { key = "meta-w"; id = "forward_word"; data = ""; }
+);
+
+# vim:ft=config:sw=2:ts=2

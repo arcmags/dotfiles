@@ -1,0 +1,7 @@
+!! ~/.Xmodmap ::
+
+remove Lock = Caps_Lock
+keysym Caps_Lock = Escape
+keysym Menu = Super_R
+
+! vim:ft=xmodmap

@@ -1,0 +1,17 @@
+## ~/.local/share/applications/xterm.nvpn.desktop ::
+
+[Desktop Entry]
+Type=Application
+Name=nvpn
+GenericName=VPN
+Comment=Connect to Nord VPN services
+TryExec=jq
+TryExec=nvpn
+TryExec=openvpn
+TryExec=sudo
+TryExec=xterm
+Terminal=false
+Exec=xterm -e nvpn
+Categories=Utility;System;ConsoleOnly;
+Keywords=vpn;nord;
+StartupNotify=false

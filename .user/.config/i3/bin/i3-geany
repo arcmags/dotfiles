@@ -1,0 +1,40 @@
+#!/bin/bash
+##=============================  geany  ==============================##
+# check for geany:
+if [ -f /usr/bin/geany ]; then
+    # i3:
+    if [ -f /usr/bin/wmctl ] && \
+    (wmctl -m | grep 'Name: i3' &>/dev/null); then
+        # get i3 workspace:
+        workspace="$(i3-msg -t get_workspaces | \
+            grep -Po '.*(},|\[)\K{.*?"focused":true.*?(?=(,{|\]))' | \
+            grep -Po '.*"name":"\K[0-9]+(?=:)')"
+        # generate random geany socket name:
+        instance=$((RANDOM % 998 + 1))
+        socket="$(printf '/tmp/geany-%02d-%03d' $workspace $instance)"
+        # no args: new workspace socket:
+        if [ ! -n "$1" ]; then
+            while [ -f "$socket" ]; do
+                instance=$(((instance + 1) % 998 + 1))
+                socket="$(printf '/tmp/geany-%02d-%03d' \
+                    $workspace $instance)"
+            done
+        # args: use existing workspace socket:
+        else
+            mapfile -t sockets < <(ls /tmp | \
+                grep -P "geany\-$(printf '%02d' "$workspace")+\-[0-9]+")
+
+            if [ -n "${sockets[0]}" ]; then
+                socket="/tmp/${sockets[0]}"
+            fi
+        fi
+        # launch geany:
+        /usr/bin/geany --socket-file="$socket" "$@" &
+    # other window manager:
+    else
+        # launch geany:
+        /usr/bin/geany "$@" &
+    fi
+fi
+
+

@@ -1,0 +1,37 @@
+======================
+Nspawn Quick Reference
+======================
+
+Basic Container
+===============
+
+Create a new container::
+
+    # mkdir <MyContainer>
+    # pacstrap -c <MyContainer> base base-devel git sudo vim
+
+Setup user and passwords::
+
+    # systemd-nspawn -D <MyContainer>
+    # passwd
+    # useradd -m <user>
+    # passwd <user>
+    # groupadd sudo
+    # usermod -aG sudo <user>
+    # echo '%sudo ALL=(ALL) ALL' > /etc/sudoers.d/10-sudo
+    # echo 'pts/0' >> /etc/securetty
+    # logout
+
+Boot container::
+
+    # systemd-nspawn -b -D <MyContainer>
+
+machinctl
+=========
+
+Container must be located in (or symlinked from) */var/lib/machines/*.
+
+options
+=======
+
+..  vim:ft=rst

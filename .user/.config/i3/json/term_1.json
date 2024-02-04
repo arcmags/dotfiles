@@ -1,0 +1,39 @@
+{
+  "layout": "splith",
+  "percent": 0.666666666666666,
+  "swallows": [
+    {"class": "^URxvt$"},
+    {"class": "^Xfce4-terminal$"},
+    {"class": "^XTerm$"}
+  ]
+}
+{
+  "layout": "splitv",
+  "percent": 0.3,
+  "nodes": [
+    {
+      "percent": 0.333333333333333,
+      "swallows": [
+        {"class": "^URxvt$"},
+        {"class": "^Xfce4-terminal$"},
+        {"class": "^XTerm$"}
+      ]
+    },
+    {
+      "percent": 0.333333333333333,
+      "swallows": [
+        {"class": "^URxvt$"},
+        {"class": "^Xfce4-terminal$"},
+        {"class": "^XTerm$"}
+      ]
+    },
+    {
+      "percent": 0.333333333333333,
+      "swallows": [
+        {"class": "^URxvt$"},
+        {"class": "^Xfce4-terminal$"},
+        {"class": "^XTerm$"}
+      ]
+    }
+  ]
+}

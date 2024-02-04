@@ -1,2 +1,3 @@
 # dotfiles
-dotfiles, scripts, and data
+
+Configs, scripts, and data.

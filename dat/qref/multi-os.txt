@@ -1,0 +1,321 @@
+===================================
+Multi-OS Installation on Bare-metal
+===================================
+
+These are some notes/instructions I made while installing multiple
+operating systems to my x86_64 desktop workstation.
+
+
+General Scheme
+==============
+
+hardware
+--------
+
+Lenovo Thinkstation E31:
+
++ i7-3770 quad core
++ 16GB RAM
++ RX 560 GPU
++ 1TB SSD
++ 1TB SSD
++ 2TB HDD
+
+
+partitioning
+------------
+
+I use UEFI booting whenever possible but still always install a BIOS
+bootloader as a fallback option.  This means at least one drive will
+need to have an MBR/BIOS partition at the beginning of the disk.
+I'll be partitioning one SSD up for UEFI/BIOS booting, several
+operating systems, and shared storage.  The other SSD will be
+dedicated entirely to Windows.  The 2TB HDD will be a single
+shared storage partition::
+
+    sda1   10M   EF02  BIOS
+    sda2   500M  EF00  EFI
+    sda3   640G  8300  share
+    sda4   32G   8300  Arch
+    sda5   32G   8300  Debian
+    sda6   32G   8300  Fedora
+    sdb1   1T    0700  Windows
+    sdc1   2T    8300  share
+
+
+bootloader
+----------
+
+It's best if the bootloader is installed and managed by only one
+operating system.  *grub* is good choice here because it's compatible
+with both BIOS and UEFI, and it can read files from most file systems.
+This allows every OS to manage its own kernel and init images without
+the possibility of overwriting another operating system's files.
+Arch Linux will be managing the bootloader.
+
+
+Arch Linux
+==========
+
+Bootstrap Arch Linux from a bootable USB with the following mount
+scheme::
+
+    /dev/sda4  ext4  /
+    /dev/sda2  vfat  /efi
+    /dev/sda3  ext4  /mnt/ssd
+    /dev/sdc1  ext4  /mnt/hdd
+
+Configure the base system.
+
+Install *grub* and generate an initial configuration::
+
+    # pacman -S grub efibootmgr os-prober
+    # grub-install --target=i386-pc --boot-directory /boot /dev/sda
+    # grub-install --target=x86_64-efi --boot-directory /boot --efi-directory /efi
+    # grub-mkconfig -o /boot/grub/grub.cfg
+
+Install packages::
+
+    # pacman -Syu <PACKAGES...>
+
+Download dotfiles to new system.  Copy system wide config files.
+Link/copy user config files.
+
+
+Debian
+======
+
+Boot from *Debian-nonfree-<VERSION>-amd64-netinst.iso*.
+
+Select *Advanced options* then *Expert install* from the boot menu.
+Carefully go through the installation menu configuring the system.
+No additional components need to be loaded from the install media.
+
+In *Partition disks* select *Manual*::
+
+    /dev/sda5  ext4  /
+    /dev/sda3  ext4  /mnt/hdd
+    /dev/sdc1  ext4  /mnt/hdd
+
+Enable nonfree software.  Enable backported software.
+
+In *Software selection*, select only *standard system utilities*.
+Do not install grub, instead select *Continue without boot loader*.
+
+Finish the installation and shutdown the computer.
+
+
+bootloader
+----------
+
+Boot into Arch and generate a grub_ menu entry for Debian.
+
+
+post install
+------------
+
+Boot into Debian.
+
+Install nonfree firmware::
+
+    # apt install firmware-linux-nonfree firmware-misc-nonfree
+
+Link shutdown commands for regular users::
+
+    # ln -s /usr/sbin/poweroff /usr/local/bin/poweroff
+    # ln -s /usr/sbin/reboot /usr/local/bin/reboot
+
+Clear login message::
+
+    # > /etc/motd
+
+Install packages::
+
+    # apt update
+    # apt upgrade
+    # apt install <PACKAGES...>
+
+If *compton* is installed, create *picom* links to it::
+
+    # ln -s /usr/bin/compton /usr/local/bin/picom
+    # ln -s /usr/bin/compton-trans /usr/local/bin/picom-trans
+    $ ln -s /home/<USER>/.comfig/picom.conf /home/<USER>/.config/compton.conf
+
+Download dotfiles to new system.  Copy system wide config files.
+Link/copy user config files.
+
+
+Fedora
+======
+
+Boot from *Fedora-Server-dvd-x86_64-<VERSION>cd.iso* in legacy mode.
+
+Select *advanced custom* partitioning::
+
+    /dev/sda6  ext4  /
+    /dev/sda3  ext4  /mnt/ssd
+    /dev/sdc1  ext4  /mnd/hdd
+
+In *Software Selection* choose only the *Standard* additional software.
+Finish the installation and shutdown the computer.
+
+
+bootloader
+----------
+
+Boot onto an Arch USB mode to repair the bootloader.
+
+First remove the *pmbr_boot* disk flag::
+
+    # parted -s /dev/vda disk_set pmbr_boot off
+
+Then recreate a uefi boot option::
+
+    # efibootmgr --create --disk /dev/sda --part 2 --loader /EFI/arch/grubx64.efi --label "grub" --verbose
+
+Shutdown the computer.
+
+Boot into Arch and generate a grub_ menu entry for Fedora.
+
+
+post install
+------------
+
+Boot into Fedora.
+
+Create symlinks to the latest kernel::
+
+    # ln -s /boot/vmlinuz-<VERSION> /boot/vmlinuz
+    # ln -s /boot/initramfs-<VERSION>.img /boot/initramfs.img
+
+Create a post kernel-install script to recreate latest symlinks::
+
+    # mkdir -p /etc/kernel/postinst.d
+    # cat <<'HEREDOC' > /etc/kernel/postinst.d/10-symlink
+    #!/bin/bash
+    KERNEL_VERSION="$1"
+    KERNEL_IMAGE="$2"
+    ln -sf "$KERNEL_IMAGE" /boot/vmlinuz
+    ln -sf "/boot/initramfs-$KERNEL_VERSION.img" /boot/initramfs.img
+    HEREDOC
+
+Shutdown the computer.
+
+
+bootloader
+----------
+
+Boot into Arch and generate a new grub_ menu entry for Fedora.
+(This time pointing to the newly created sylinks.)
+
+
+post install
+------------
+
+Boot into Fedora.
+
+Enable `RPM Fusion`_::
+
+    # dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+Install packages::
+
+    # yum update
+    # yum install <PACKAGES...>
+
+If *compton* is installed, create *picom* links to it::
+
+    # ln -s /usr/bin/compton /usr/local/bin/picom
+    # ln -s /usr/bin/compton-trans /usr/local/bin/picom-trans
+    $ ln -s /home/<USER>/.comfig/picom.conf /home/<USER>/.config/compton.conf
+
+Install *font-hack*::
+
+    # cd /tmp
+    # git clone https://github.com/source-foundry/Hack.git
+    # mkdir -p /usr/local/share/fonts
+    # cp Hack/build/ttf/Hack* /usr/local/share/fonts
+    # cp Hack/config/fontconfig/45-Hack.conf /etc/fonts/conf.d
+    # fc-cache -f -v
+
+
+Download dotfiles to new system.  Copy system wide config files.
+Link/copy user config files.
+
+
+Windows
+=======
+
+Install from *Win10_<VERSION>_English_x64.iso*.
+
+Choose *advanced install* and select the second SSD for installation.
+Continue through the graphical installer (the computer may reboot
+several times).
+
+Disable all of Microsoft's spyware that you can in the installer.
+Skip device customization.  Don't link Android device to Windows.
+Don't sync data with OneDrive.  Don't sign up for a Microsoft
+365 trial.  Don't let Cortana access personal information.
+
+Finish installation.
+
+Disable `fast startup`_.
+
+Disable hibernation_.
+
+Emable  UTC_.
+
+Shutdown computer.
+
+
+bootloader
+----------
+
+Boot onto an Arch USB mode to repair the bootloader.
+
+Change the UEFI boot order (ensure grub is first)::
+
+    # efibootmgr -o <BOOT_ORDER>
+
+Shutdown the computer.
+
+Boot into Arch and generate a grub_ menu entry for Windows.
+
+
+post install
+------------
+
+Boot into Windows.
+
+Uninstall as much bloat/spyware as possible.
+
+Install winget_.  Install sharpkeys_.
+Use sharpkeys to map *CapsLock* to *Escape*.
+
+
+Grub
+====
+
+Boot into Arch to add additional bootloader entries.
+
+Use *grub-mkconfig* to generate a temporary grub config::
+
+    # chmod +x /etc/grub.d/10_linux /etc/grub.d/30_*
+    # grub-mkconfig -o /tmp/grub_tmp.cfg
+
+Examine */tmp/grub_tmp.cfg* and copy desired entries
+to */etc/grub.d/40_custom*.
+
+Generate a new *grub.cfg*::
+
+    # chmod -x /etc/grub.d/10_linux /etc/grub.d/30_*
+    # grub-mkconfig -o /boot/grub/grub.cfg
+
+..  _`RPM Fusion`: https://rpmfusion.org/
+..  _`fast startup`: https://www.tenforums.com/tutorials/4189-turn-off-fast-startup-windows-10-a.html
+..  _hibernation: https://docs.microsoft.com/en-us/troubleshoot/windows-client/deployment/disable-and-re-enable-hibernation
+..  _UTC: https://wiki.archlinux.org/index.php/System_time#UTC_in_Windows
+..  _winget: https://github.com/microsoft/winget-cli
+..  _sharpkeys: https://github.com/randyrants/sharpkeys
+
+..  vim:ft=rst

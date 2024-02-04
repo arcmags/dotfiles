@@ -1,0 +1,34 @@
+#!/bin/sh
+## ~/.xprofile ::
+
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
+[ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
+[ -f "$HOME/.Xmodmap" ] && xmodmap "$HOME/.Xmodmap"
+[ -f "$HOME/.xhost" ] && . "$HOME/.xhost"
+
+# browser:
+is_bin qutebrowser && export BROWSER='qutebrowser'
+
+# beep:
+xset -b
+
+# numlock:
+xdotool key --clearmodifiers Num_Lock
+
+# screen blank:
+xset s on s blank s 1200 1200 +dpms dpms 2400 2400 2400
+
+# terminal:
+export TERMINAL=xterm
+
+# theme:
+[ -d "$HOME/.themes/utheme" ] && export GTK_THEME=utheme:dark
+export QT_QPA_PLATFORMTHEME='qt5ct'
+
+# thunar:
+if command -v thunar >/dev/null 2>&1 && command -v xfconf-query >/dev/null 2>&1; then
+    xfconf-query -c thunar -n -p '/misc-full-path-in-title' -t bool -s true
+    xfconf-query -c thunar -n -p '/misc-small-toolbar-icons' -t bool -s true
+fi
+
+# vim:ft=sh

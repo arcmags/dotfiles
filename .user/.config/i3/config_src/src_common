@@ -1,0 +1,188 @@
+# i3wm config ::
+# depends: feh, hack, i3lock, imagemagick, picom
+
+
+# SETTINGS ::
+exec --no-startup-id [ -f ~/.config/i3/config.sh ] && ~/.config/i3/config.sh 
+
+# bar:
+bar {
+    colors {
+        # colors:          border  fill    text
+        background                 #000000
+        focused_workspace  #5555ff #5555ff #fcfcfc
+        active_workspace   #0000aa #0000aa #888888
+        inactive_workspace #424242 #424242 #888888
+        urgent_workspace   #00dddd #00dddd #000000
+    }
+    font pango:Hack 10
+    i3bar_command i3bar
+    position top
+    status_command ~/arc/.user/.config/i3/bin/i3-bar_base.sh
+    strip_workspace_numbers yes
+}
+
+# borders:
+default_border pixel 3
+default_floating_border pixel 3
+for_window [class=".*"] title_format " <b>%title</b>"
+
+# colors:               border  fill    text    marked  child
+client.focused          #5555ff #5555ff #fcfcfc #5555ff #5555ff
+client.focused_inactive #303030 #303030 #666666 #303030 #303030
+client.unfocused        #303030 #303030 #666666 #303030 #303030
+client.urgent           #00dddd #00dddd #000000 #00dddd #00dddd
+
+# compositor:
+exec --no-startup-id picom -b
+
+# font:
+font pango:Hack 10
+
+# mouse:
+floating_modifier Mod4
+focus_follows_mouse no
+
+# wallpaper:
+exec --no-startup-id feh --no-xinerama --bg-fill ~/arc/img/outrun/outrun_01.jpg
+
+# windows:
+for_window [class=".*mpv$"] floating enable, move position center
+for_window [class="Cropgtk.py"] floating enable
+for_window [class="Eog"] floating enable
+for_window [class="File-roller"] floating enable
+for_window [class="Firefox" title="^Please select a valid*"] resize set 1000 500
+for_window [class="Pinentry"] floating enable, move position center
+for_window [class="Thunar" title="New Empty File..."] floating enable
+for_window [class="Thunar" title="^Rename Mult.*"] resize set 700 500
+for_window [class="^feh.*"] floating enable
+for_window [title="Save As*"] floating enable
+
+
+# MAPPINGS ::
+bindsym Mod4+t exec --no-startup-id xfce4-terminal --working-directory=~/arc
+bindsym Mod4+w exec --no-startup-id firefox
+
+# container: mode:
+bindsym Mod4+minus split v
+bindsym Mod4+backslash split h
+bindsym Mod4+equal layout toggle tabbed split
+
+# dmenu: execute:
+bindsym Mod4+Return exec --no-startup-id \
+    cmd=$(dmenu_path | dmenu -nb '#000000' \
+    -sb '#5555ff' -sf '#fcfcfc' -fn Hack-11 -nf '#888888' -p '>') && $cmd
+
+# dmenu: exit, lock, poweroff, reboot:
+bindsym Mod4+Control+q exec --no-startup-id \
+    "cmd=$(printf 'exit\nlock\npoweroff\nreboot' | dmenu -nb '#000000' \
+    -sb '#5555ff' -sf '#fcfcfc' -fn Hack-11 -nf '#888888' -i -p '>'); \
+    if [ $cmd = exit ]; then i3-msg exit; \
+    elif [ $cmd = lock ]; then import -window root /tmp/lock.png && \
+        convert /tmp/lock.png -scale 25% -scale 400% /tmp/lock.png && \
+        i3lock -u -i /tmp/lock.png && rm /tmp/lock.png; \
+    elif [ $cmd = poweroff ]; then i3-msg exit; poweroff; \
+    elif [ $cmd = reboot ]; then i3-msg exit; reboot; fi"
+
+# window: border:
+bindsym Mod4+bracketright exec --no-startup-id \
+    "if [ `i3-msg -t get_tree | \
+    grep -Po '.*(},|\[)\K{.*?\\"focused\\":true.*?}(?=(,{|\]))' | grep -Po \
+    'current_border_width\\":\K[0-9]+'` -eq 0 ]; then i3-msg border pixel 3; \
+    else i3-msg border none; fi"
+
+# window: float:
+bindsym Mod4+apostrophe floating toggle
+bindsym Mod4+semicolon focus mode_toggle
+
+# window: focus:
+bindsym Mod4+h focus left
+bindsym Mod4+j focus down
+bindsym Mod4+k focus up
+bindsym Mod4+l focus right
+bindsym Mod4+a focus parent
+bindsym Mod4+z focus child
+
+# window: fullscreen:
+bindsym Mod4+f fullscreen toggle
+bindsym Mod4+F11 fullscreen toggle
+
+# window: kill:
+bindsym Mod4+q kill
+
+# window: move:
+bindsym Mod4+Shift+h move left 64
+bindsym Mod4+Shift+j move down 64
+bindsym Mod4+Shift+k move up 64
+bindsym Mod4+Shift+l move right 64
+
+# window: workspace:
+bindsym Mod4+Shift+1 move container to workspace 1:1
+bindsym Mod4+Shift+2 move container to workspace 2:2
+bindsym Mod4+Shift+3 move container to workspace 3:3
+bindsym Mod4+Shift+4 move container to workspace 4:4
+bindsym Mod4+Shift+5 move container to workspace 5:5
+bindsym Mod4+Shift+6 move container to workspace 6:6
+bindsym Mod4+Shift+7 move container to workspace 7:7
+bindsym Mod4+Shift+8 move container to workspace 8:8
+bindsym Mod4+Shift+9 move container to workspace 9:9
+bindsym Mod4+Shift+0 move container to workspace 10:0
+
+# workspace: focus:
+bindsym Mod4+1 workspace 1:1
+bindsym Mod4+2 workspace 2:2
+bindsym Mod4+3 workspace 3:3
+bindsym Mod4+4 workspace 4:4
+bindsym Mod4+5 workspace 5:5
+bindsym Mod4+6 workspace 6:6
+bindsym Mod4+7 workspace 7:7
+bindsym Mod4+8 workspace 8:8
+bindsym Mod4+9 workspace 9:9
+bindsym Mod4+0 workspace 10:0
+
+# workspace: move:
+bindsym Mod4+grave move workspace to output right, move workspace to output down
+
+# MODE: window: size:
+bindsym Mod4+Control+r mode "resize"
+mode "resize" {
+    bindsym h resize shrink width 16 px
+    bindsym j resize shrink height 16 px
+    bindsym k resize grow height 16 px
+    bindsym l resize grow width 16 px
+    bindsym Shift+h resize shrink width 64 px
+    bindsym Shift+j resize shrink height 64 px
+    bindsym Shift+k resize grow height 64 px
+    bindsym Shift+l resize grow width 64 px
+   # window: focus:
+    bindsym Mod4+h focus left
+    bindsym Mod4+j focus down
+    bindsym Mod4+k focus up
+    bindsym Mod4+l focus right
+    # exit:
+    bindsym Escape mode "default"
+}
+
+# MODE: widow: transparency:
+bindsym Mod4+Control+t mode "transparency"
+mode "transparency" {
+    bindsym grave exec --no-startup-id picom-trans -c 50
+    bindsym 1 exec --no-startup-id picom-trans -c 55
+    bindsym 2 exec --no-startup-id picom-trans -c 60
+    bindsym 3 exec --no-startup-id picom-trans -c 65
+    bindsym 4 exec --no-startup-id picom-trans -c 70
+    bindsym 5 exec --no-startup-id picom-trans -c 75
+    bindsym 6 exec --no-startup-id picom-trans -c 80
+    bindsym 7 exec --no-startup-id picom-trans -c 85
+    bindsym 8 exec --no-startup-id picom-trans -c 90
+    bindsym 9 exec --no-startup-id picom-trans -c 95
+    bindsym 0 exec --no-startup-id picom-trans -c 100
+   # window: focus:
+    bindsym Mod4+h focus left
+    bindsym Mod4+j focus down
+    bindsym Mod4+k focus up
+    bindsym Mod4+l focus right
+    # exit:
+    bindsym Escape mode "default"
+}
+

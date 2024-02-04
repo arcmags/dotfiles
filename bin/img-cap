@@ -1,0 +1,462 @@
+#!/bin/bash
+
+## img-cap ::
+# > img-cap [OPTIONS] -i <IMAGE> [OPTIONS] -t <CAPTION> ...
+# Add captions to images using imagemagick.
+# Can handle multiple captions with different options for each.
+# Old and hacky but works well. Might refactor someday.
+
+## config ::
+flag_autowrap=true
+flag_full=false
+flag_print=false
+flag_verbose=false
+opt_img_in=
+opt_img_out=
+opt_bg_alpha=75
+opt_cap_pos='nw'
+opt_cap_align=
+opt_cap_w=100
+opt_cap_x=0
+opt_cap_y=0
+opt_font_color='DodgerBlue'
+opt_font_name='ComicBook-Bold'
+opt_font_size=32
+opt_stroke_color='blue4'
+opt_stroke_w=48
+opt_text=
+
+## internal ::
+cap_x_last=0
+cap_y_last=0
+cap_h_last=0
+cap_pos='west'
+convert_args=()
+img_w=
+img_h=
+c=0
+dir_temp=$(mktemp -d)
+
+# basic colors:
+black=$'\e[0;30m'
+blue=$'\e[0;38;5;27m'
+blue_b=$'\e[1;38;5;27m'
+cyan=$'\e[0;38;5;14m'
+cyan_b=$'\e[1;36m'
+green=$'\e[0;38;5;46m'
+green_b=$'\e[1;38;5;46m'
+red=$'\e[0;38;5;196m'
+red_b=$'\e[1;38;5;196m'
+magenta=$'\e[0;38;5;13m'
+magenta_b=$'\e[1;35m'
+yellow=$'\e[0;38;5;11m'
+yellow_b=$'\e[1;33m'
+white=$'\e[0;38;5;15m'
+white_b=$'\e[1;37m'
+gray=$'\e[0;37m'
+
+args_parse() {
+# parse all input arguments, call make_caption for each opt_text:
+    local a=0 args=("$@") arg="${args[a]}"
+    while [ -n "$arg" ]; do case "$arg" in
+        # flag args:
+        -A|--auto-wrap|--autowrap)
+            if [ "$flag_autowrap" = false ]; then
+                flag_autowrap=true
+            else
+                flag_autowrap=false
+            fi
+            ((count_flags++)); arg="${args[((++a))]}" ;;
+        -F|--full|--fit)
+            flag_full=true
+            ((count_flags++)); arg="${args[((++a))]}" ;;
+        -P|--print|--print-caption|--print-captions)
+            flag_print=true
+            ((count_flags++)); arg="${args[((++a))]}" ;;
+        -V|--verbose)
+            flag_verbose=true
+            ((count_flags++)); arg="${args[((++a))]}" ;;
+        # option args:
+        -a|--align)
+            opt_cap_align="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -b|--bg-darkness)
+            opt_bg_alpha="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -c|--color|--font-color)
+            opt_font_color="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -f|--font|--font-name)
+            opt_font_name="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -i|--input)
+            opt_img_in="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            img_w="$(identify -format '%w %h' "$opt_img_in")"
+            img_h="${img_w#* }"
+            img_w="${img_w% *}"
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -o|--out)
+            opt_img_out="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -p|--position)
+            opt_cap_pos="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -s|--size|--font-size)
+            opt_font_size="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -t|--text)
+            opt_text="${args[((++a))]}"
+            make_caption
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -w|--width|--width-percent|--w-percent)
+            opt_cap_w="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -x|--x-offset-percent|--x-offset|--x-off)
+            opt_cap_x="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        -y|--y-offset-percent|--y-offset|--y-off)
+            opt_cap_y="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        --stroke|--stroke-color)
+            opt_stroke_color="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        --stroke-width)
+            opt_stroke_w="${args[((++a))]}"
+            [ -z "${args[a]}" ] && msg_error "no input: $arg" && exit 2
+            ((count_opts++)); arg="${args[((++a))]}" ;;
+        # help:
+        -H|--help)
+            print_help; exit 0 ;;
+        # all flags:
+        -[APV]*)
+            # all flags and options:
+            if [[ "${arg:2:1}" =~ [APVabcfiopstwxy] ]]; then
+                args[((a--))]="-${arg:2}"
+                arg="${arg:0:2}"
+            else
+                msg_error "unknown: ${arg:2:1}"; exit 2
+            fi ;;
+        # all options:
+        -[abcfiopstwxy]*)
+            args[$a]="${arg:2}"
+            arg="${arg:0:2}"
+            ((a--)) ;;
+        # parms:
+        --)
+            ((a++))
+            break ;;
+        *)
+            break ;;
+    esac; done
+    # get parms:
+    parms=("${args[@]:a}")
+    count_parms=${#parms[@]}
+}
+
+msg() {
+    local msg="$(fmt -w $(tput cols) <<<"    $1")"
+    printf '%s==>%s %s%s\n' "$green_b" "$white_b" "${msg:4}" "$gray"
+}
+
+msg_ask() {
+    local msg="$(fmt -w $(tput cols) <<<"   $1")"
+    printf '%s::%s %s%s ' "$blue_b" "$white_b" "${msg:3}" "$gray"
+}
+
+msg_error() {
+    local msg="$(fmt -w $(tput cols) <<<"    $1")"
+    printf '%s==> %s%s%s%s\n' "$red_b" "${2:-ERROR: }" \
+        "$white_b" "${msg:4}" "$gray" 1>&2
+}
+
+msg_sh() {
+    local arg prompt='$' msg="$1"
+    if [ $EUID -eq 0 ]; then
+        prompt='#'
+    fi
+    if [ -n "$2" ]; then
+        msg=
+        for arg in "$@"; do if [ "${arg// /}" = "$arg" ]; then
+            msg+=" $arg"
+        else
+            msg+=" \"$arg\""
+        fi; done
+        msg="${msg:1}"
+    fi
+    msg="$(fmt -w $(tput cols) <<<"    $msg")"
+    printf '%s [%s%s %s%s\n' "$green_b" "$prompt" "$white" \
+        "${msg:4}" "$gray"
+}
+
+msg_warn() {
+    local msg="$(fmt -w $(tput cols) <<<"    $1")"
+    printf '%s==> %s%s%s%s\n' "$yellow_b" "${2:-WARNING: }" \
+        "$white_b" "${msg:4}" "$gray"
+}
+
+cmd_exec() {
+    if [ "$flag_verbose" = true ]; then
+        msg_sh "$@"
+    fi
+    "$@"
+}
+
+make_caption() {
+# make caption_image, add to convert_args array:
+    local cap_align cap_box cap_box2 cap_file cap_h cap_h_target \
+        cap_pad cap_w cap_w_t cmd_exec_convert cap_x cap_y \
+        cmd_exec_convert_auto font_size stroke_w
+    cmd_exec_convert() {
+        cmd_exec convert -gravity "$cap_align" -background '#00000000' \
+            -font "$opt_font_name" -fill "$opt_font_color" \
+            -pointsize $font_size \
+            -interline-spacing -$((font_size*3/8)) \
+            -strokewidth $stroke_w -stroke "$opt_stroke_color" \
+            -size "$cap_w"x4000 caption:"$opt_text" -trim "$cap_file"
+    }
+    cmd_exec_convert_auto() {
+        cmd_exec convert -gravity "$cap_align" -background '#00000000' \
+            -font "$opt_font_name" -fill "$opt_font_color" \
+            -strokewidth $stroke_w -stroke "$opt_stroke_color" \
+            -size "$cap_w"x4000 label:"$opt_text" -trim "$cap_file"
+    }
+    # FAIL: no input image:
+    if [[ ! -n "$opt_img_in" ]] || [[ ! -f "$opt_img_in" ]]; then
+        msg_error 'no input image'
+        exit 2
+    fi
+    # print caption:
+    if [ "$flag_print" = true ]; then
+        msg "$opt_text"
+    fi
+    # dir_temp:
+    if [ ! -d "$dir_temp" ]; then
+        cmd_exec mkdir -p "$dir_temp"
+    fi
+    # cap_file:
+    ((c++))
+    cap_file=$(printf '%s/caption_%02d.png' "$dir_temp" $c)
+    # cap_pad, cap_w:
+    cap_pad=$((img_w/100))
+    cap_w=$((img_w*opt_cap_w/100-cap_pad*2))
+    # cap_align:
+    cap_align='west'
+    if [[ "${opt_cap_pos,,}" =~ ^(n|north|s|south|c|center)$ ]]; then
+        cap_align='center'
+    fi
+    case "${opt_cap_align,,}" in
+        c|center|m|middle)
+            cap_align='center' ;;
+        l|left|w|west)
+            cap_align='west' ;;
+        r|right|e|east)
+            cap_align='east' ;;
+    esac
+    # flag_full:
+    if [ "$flag_full" = 'true' ]; then
+        cap_w=$((img_w-cap_pad*2))
+        opt_cap_pos='nw'
+        font_size=16
+        stroke_w=$(((font_size-12)*100*opt_stroke_w/48/100/32+1))
+        # make initial cap_file:
+        cmd_exec_convert
+        cap_h=$(identify -format '%h' "$cap_file")
+        # full:
+        while [ $cap_h -lt $img_h ]; do
+            font_size=$((font_size+16))
+            stroke_w=$(((font_size-12)*100*opt_stroke_w/48/100/32+1))
+            cmd_exec_convert
+            cap_h=$(identify -format '%h' "$cap_file")
+        done
+        while [ $cap_h -gt $img_h ]; do
+            font_size=$((font_size-1))
+            stroke_w=$(((font_size-12)*100*opt_stroke_w/48/100/32+1))
+            cmd_exec_convert
+            cap_h=$(identify -format '%h' "$cap_file")
+        done
+    # opt_font_size:
+    elif [[ "$opt_font_size" =~ ^[1-9][0-9]*$ ]]; then
+        # font_size:
+        if [ $img_w -gt $img_h ]; then
+            font_size=$((img_h*opt_font_size/1100))
+        else
+            font_size=$((img_h*opt_font_size/1300))
+        fi
+        # stroke_w:
+        #stroke_w=$(((font_size-12)/32+1))
+        stroke_w=$(((font_size-12)*100*opt_stroke_w/48/100/32+1))
+        if [ $opt_stroke_w -eq 0 ]; then
+            stroke_w=0
+        fi
+        # make cap_file:
+        cmd_exec_convert
+        cap_h=$(identify -format '%h' "$cap_file")
+        # auto wrap:
+        if [ "$flag_autowrap" = 'true' ] && \
+        [[ "$opt_text" =~ ' ' ]] && \
+        [ $((cap_h-font_size*3/2)) -ge 0 ]; then
+            cap_w_t=$opt_cap_w
+            cap_h_target=$cap_h
+            while [ $((cap_h_target-cap_h+font_size/2)) -ge 0 ] \
+            && [ $cap_w_t -gt 5 ]; do
+                cap_w_t=$((cap_w_t-5))
+                cap_w=$((img_w*cap_w_t/100-cap_pad*2))
+                cmd_exec_convert
+                cap_h=$(identify -format '%h' "$cap_file")
+            done
+            while [ $((cap_h_target-cap_h+font_size/2)) -lt 0 ]; do
+                ((cap_w_t++))
+                cap_w=$((img_w*cap_w_t/100-cap_pad*2))
+                cmd_exec_convert
+                cap_h=$(identify -format '%h' "$cap_file")
+            done
+            if [ ${#opt_text} -le 32 ]; then
+                if [ ${#opt_text} -le 16 ]; then
+                    ((cap_w_t++))
+                fi
+                if [ ${#opt_text} -le 24 ]; then
+                    ((cap_w_t++))
+                fi
+                if [ ${#opt_text} -le 32 ]; then
+                    ((cap_w_t++))
+                fi
+                cap_w=$((img_w*cap_w_t/100-cap_pad*2))
+                cmd_exec_convert
+            fi
+        fi
+    # auto font size:
+    else
+        # set stroke_w:
+        stroke_w=1
+        cmd_exec_convert_auto
+        stroke_w=$(($(identify -format '%h' "$cap_file")/40+1))
+        # make cap_file:
+        cmd_exec_convert_auto
+    fi
+    # cap_w, cap_h:
+    cap_w=$(identify -format '%w' "$cap_file")
+    cap_h=$(identify -format '%h' "$cap_file")
+    # opt_bg_alpha:
+    if [ $opt_bg_alpha -ne 0 ]; then
+        cap_pad=$((img_w/250))
+        cap_w=$((cap_w+cap_pad*2))
+        cap_h=$((cap_h+cap_pad*2))
+        cap_box="roundrectangle 0,0,$cap_w,$cap_h,"
+        cap_box+="$((cap_pad*2)),$((cap_pad*2))"
+        cap_box2="roundrectangle 50,50,$((cap_w+50)),"
+        cap_box2+="$((cap_h+50)),$((cap_pad*2)),$((cap_pad*2))"
+        cmd_exec convert -size ${cap_w}x${cap_h} -alpha set \
+            -channel Alpha -evaluate set $opt_bg_alpha% \
+            xc:black "$dir_temp/tmp1.png"
+        cmd_exec convert "$dir_temp/tmp1.png" -set colorspace sRGB \
+            "$cap_file" -geometry +$cap_pad+$cap_pad \
+            -composite "$cap_file"
+        cmd_exec convert -size ${cap_w}x${cap_h} \
+            xc:none -draw "$cap_box" "$dir_temp/tmp2.png"
+        cmd_exec convert "$cap_file" -matte "$dir_temp/tmp2.png" \
+            -compose DstIn -composite "$cap_file"
+        cmd_exec convert -size $((cap_w+100))x$((cap_h+100)) \
+            xc:none "$dir_temp/tmp3.png"
+        cmd_exec convert "$dir_temp/tmp3.png" -set colorspace sRGB \
+             "$cap_file" -geometry +50+50 -composite "$cap_file"
+        cmd_exec convert -size $((cap_w+100))x$((cap_h+100)) \
+            xc:none -fill none -stroke "$opt_stroke_color" \
+            -strokewidth $((stroke_w*2)) -draw "$cap_box2" \
+            -fill none -stroke "$opt_font_color" \
+            -strokewidth $((stroke_w*1)) -draw "$cap_box2" \
+            "$dir_temp/tmp4.png"
+        cmd_exec convert "$cap_file" -set colorspace sRGB \
+             "$dir_temp/tmp4.png" -composite -trim "$cap_file"
+        cap_w=$(identify -format '%w' "$cap_file")
+        cap_h=$(identify -format '%h' "$cap_file")
+    fi
+    # cap_x, cap_y:
+    case "${opt_cap_pos,,}" in
+        northwest|nw)
+            cap_y=$((cap_pad+img_h*opt_cap_y/100))
+            cap_pos=west ;;
+        northeast|ne)
+            cap_y=$((cap_pad+img_h*opt_cap_y/100))
+            cap_pos=east ;;
+        southwest|sw)
+            cap_y=$((img_h-cap_h-cap_pad-img_h*opt_cap_y/100))
+            cap_pos=west ;;
+        southeast|se)
+            cap_y=$((img_h-cap_h-cap_pad-img_h*opt_cap_y/100))
+            cap_pos=east ;;
+        west|w)
+            cap_y=$(((img_h-cap_h)/2+img_h*opt_cap_y/100))
+            cap_pos=west ;;
+        east|e)
+            cap_y=$(((img_h-cap_h)/2+img_h*opt_cap_y/100))
+            cap_pos=east ;;
+        north|n)
+            cap_y=$((cap_pad+img_h*opt_cap_y/100))
+            cap_pos=center ;;
+        south|s)
+            cap_y=$((img_h-cap_h-cap_pad-img_h*opt_cap_y/100))
+            cap_pos=center ;;
+        center|c)
+            cap_y=$(((img_h-cap_h)/2+img_h*opt_cap_y/100))
+            cap_pos=west ;;
+        before|b)
+            cap_y=$((cap_y_last-cap_h-cap_pad)) ;;
+        next-west|next-w|nextwest|nextw|n-w)
+            cap_y=$((cap_y_last+cap_h_last+cap_pad+img_h*opt_cap_y/100))
+            cap_pos=west ;;
+        next-east|next-e|nexteast|nexte|n-e)
+            cap_y=$((cap_y_last+cap_h_last+cap_pad+img_h*opt_cap_y/100))
+            cap_pos=east ;;
+        next|*)
+            cap_y=$((cap_y_last+cap_h_last+cap_pad+img_h*opt_cap_y/100)) ;;
+    esac
+    case "${cap_pos}" in
+        center)
+            cap_x=$(((img_w-cap_w)/2)) ;;
+        west)
+            cap_x=$((cap_pad+img_w*opt_cap_x/100)) ;;
+        east)
+            cap_x=$((img_w-cap_w-cap_pad-img_w*opt_cap_x/100)) ;;
+    esac
+    # reset opt_cap_pos, opt_cap_x, opt_cap_y:
+    opt_cap_pos=
+    opt_cap_x=0
+    opt_cap_y=0
+    # add cap_file to convert_args:
+    convert_args+=("$cap_file" '-geometry')
+    convert_args+=("+$cap_x+$cap_y" '-composite')
+    # set position:
+    cap_x_last=$cap_x
+    cap_y_last=$cap_y
+    cap_h_last=$cap_h
+}
+
+## main ::
+args_parse "$@"
+
+if [[ -n "${convert_args[0]}" ]]; then
+    # opt_img_out:
+    if [[ ! -n "$opt_img_out" ]]; then
+        opt_img_out="${opt_img_in%.*}_cap.${opt_img_in##*.}"
+    fi
+    # make opt_img_out:
+    cmd_exec convert "$opt_img_in" -set colorspace sRGB \
+        "${convert_args[@]}" "$opt_img_out"
+    # remove dir_temp:
+    cmd_exec rm -rf "$dir_temp"
+fi
+
+# vim:ft=bash

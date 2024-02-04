@@ -1,0 +1,13 @@
+## ~/.moc/config ::
+# default: /usr/share/doc/moc/config.example
+
+MusicDir = "/home/mags/user/local/music"
+StartInMusicDir = yes
+FormatString = "%(a:%a - :)%(A:%A - :)%(n:%n - :)%(t:%t:)"
+ShowTime = yes
+Theme = outrun
+Layout1 = directory(0,0,35%,100%):playlist(35%,0,FILL,100%)
+Layout2 = playlist(0,0,100%,100%)
+Keymap = keymap.conf
+ShowFormat = no
+PlaylistFullPaths = no

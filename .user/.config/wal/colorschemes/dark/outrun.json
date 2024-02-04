@@ -1,0 +1,32 @@
+{
+    "name": "outrun",
+    "special": {
+        "background": "#00002A",
+        "foreground": "#D0D0FA",
+        "cursor": "#D0D0FA",
+        "gui0": "#477BB3",
+        "gui1": "#66B0FF"
+    },
+    "colors": {
+        "color0": "#00002A",
+        "color1": "#B32E2E",
+        "color2": "#3DA651",
+        "color3": "#FC8D28",
+        "color4": "#30305A",
+        "color5": "#20204A",
+        "color6": "#32A6A6",
+        "color7": "#D0D0FA",
+        "color8": "#50507A",
+        "color9": "#FF4242",
+        "color10": "#59F176",
+        "color11": "#F3E877",
+        "color12": "#66B0FF",
+        "color13": "#FC4CB8",
+        "color14": "#4DFFFF",
+        "color15": "#F5F5FF",
+        "blue0": "#477BB3",
+        "magenta0": "#B03580",
+        "orange0": "#B3641C",
+        "yellow0": "#A69E51"
+    }
+}

@@ -1,0 +1,75 @@
+#!/bin/bash
+
+## nvpn ::
+# Establish tcp vpn connection with a random top-ranked nordvpn server.
+
+# settings:
+auth="/etc/openvpn/client/auth.txt"
+
+# internal control:
+config=
+ip=
+server=
+url_api='https://api.nordvpn.com/v1'
+url_configs='https://downloads.nordcdn.com/configs'
+
+## functions ::
+msg() {
+	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg2() {
+	printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg_error() {
+	printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+## main ::
+if [ "$(id -u)" -ne 0 ] && ! command -v sudo &>/dev/null; then
+    msg_error 'sudo not installed'
+    exit 2
+elif ! command -v jq &>/dev/null; then
+    msg_error 'jq not installed'
+    exit 2
+elif ! command -v openvpn &>/dev/null; then
+    msg_error 'openvpn not installed'
+    exit 2
+elif ! ping -q -c1 -W4 google.com &>/dev/null; then
+    msg_error 'no internet connection'
+    exit 1
+else
+    server="$(curl --silent "$url_api/servers/recommendations?limit=20" | \
+        jq --raw-output '.[].hostname' | sort -R | head -n1)"
+    if [ -z "$server" ]; then
+        msg_error 'unable to download server list'
+        exit 1
+    else
+        config="${TMPDIR:-/tmp}/$server.opvn"
+        rm -f "$config"
+        curl -s -o "$config" "$url_configs/files/ovpn_tcp/servers/$server.tcp.ovpn"
+        ip="$(grep -Po '^remote \K[^ ]+' "$config")"
+        if [ -z "$ip" ]; then
+            msg_error 'unable to download server config'
+            exit 1
+        fi
+    fi
+fi
+printf 'auth-user-pass %s\n' "$auth" >> "$config"
+printf 'user nobody\ngroup nobody\n' >> "$config"
+chmod go+r "$config"
+
+msg "Connecting to $server [$ip] ..."
+
+if [ "$(id -u)" -eq 0 ]; then
+    chown nobody:nobody "$config"
+    openvpn "$config"
+else
+    sudo -K
+    sudo openvpn "$config"
+fi
+
+rm -f "$config"
+
+# vim:ft=bash

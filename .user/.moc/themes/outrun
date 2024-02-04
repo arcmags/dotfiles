@@ -1,0 +1,57 @@
+## outrun ::
+# moc color theme file.
+
+# object = foreground background attribute:
+
+# window:
+background = default default
+frame = blue default bold
+window_title = green default bold
+
+# files:
+directory = blue default bold
+selected_directory = blue blue bold
+file = white default bold
+marked_file = green default bold
+selected_file = white blue bold
+marked_selected_file = green blue bold
+
+# file info:
+info = blue default bold
+marked_info = magenta default bold
+selected_info = blue blue bold
+marked_selected_info = magenta blue bold
+
+# playlist:
+playlist = white default bold
+selected_playlist = white blue bold
+plist_time = green default bold
+
+# status message:
+status = green default bold
+
+# state indicator:
+state = green default bold
+
+# current song
+title = green default bold
+current_time = blue default bold
+time_left = blue default bold
+total_time = green default bold
+time_total_frames = blue default bold
+sound_parameters = blue default bold
+legend = blue default bold
+
+# option indicators:
+disabled = cyan default
+enabled = cyan default bold
+
+empty_mixer_bar = magenta default dim
+filled_mixer_bar = magenta blue dim
+empty_time_bar = default default
+filled_time_bar = default blue
+entry = default default
+entry_title = white blue bold
+
+error = red default bold
+message = green default bold

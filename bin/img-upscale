@@ -1,0 +1,121 @@
+#!/bin/bash
+
+## img-upscale ::
+# Upscale images. Wrapper for waifu2x-ncnn-vulkan.
+
+opt_model=
+opt_type=
+opt_output=
+flag_quiet=false
+scale=2
+scales=(2)
+model='cunet'
+noise=0
+noises=(0)
+jpg_quality=90
+img=
+ext=
+img_out_png=
+img_out_jpg=
+
+msg() {
+	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg2() {
+	printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg_error() {
+	printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+## main ::
+if ! command -v waifu2x-ncnn-vulkan &>/dev/null; then
+   msg_error 'waifu2x-ncnn-vulkan is not installed'
+   exit 3
+elif ! command -v convert &>/dev/null; then
+   msg_error 'convert is not installed'
+   exit 3
+fi
+
+while (($#)); do
+    case "$1" in
+        -J|--jpg)
+            opt_type='jpg' ;;
+        -P|--png)
+            opt_type='png' ;;
+        -Q|--quiet)
+            flag_quiet='true' ;;
+        -s|--scale)
+            shift
+            mapfile -t -d ',' scales < <(printf '%s' "$1") ;;
+        -s*)
+            mapfile -t -d ',' scales < <(printf '%s' "${1:2}") ;;
+        -n|--noise)
+            shift
+            mapfile -t -d ',' noises < <(printf '%s' "$1") ;;
+        -n*)
+            mapfile -t -d ',' noises < <(printf '%s' "${1:2}") ;;
+        -m|--model)
+            shift
+            opt_model="$1" ;;
+        -m*)
+            opt_model="${1:2}" ;;
+        -o|--output)
+            shift
+            opt_output="$1" ;;
+        -o*)
+            opt_output="${1:2}" ;;
+        *)
+            break ;;
+    esac
+    shift
+done
+
+if [ "${opt_model,,}" = 'photo' ]; then
+    model='upconv_7_photo'
+fi
+
+if [ -n "$opt_output" ] && [ -n "$2" ]; then
+    msg_error 'only one file allowed'
+    exit 4
+fi
+
+for img in "$@"; do
+    if [ -n "$opt_output" ]; then
+        ext="${opt_output##*.}"
+        ext="${ext,,}"
+    elif [ -n "$opt_type" ]; then
+        ext="$opt_type"
+    else
+        ext="${img##*.}"
+        ext="${ext,,}"
+        if [ -z "$ext" ] || [ "$ext" = 'jpeg' ]; then
+            ext='jpg'
+        fi
+    fi
+    for scale in "${scales[@]}"; do
+        for noise in "${noises[@]}"; do
+            img_out="${opt_output:-"${img%.*}_u${scale}${noise}.${ext}"}"
+            img_tmp="$(mktemp --tmpdir XXX.png)"
+            [ "$flag_quiet" = 'false' ] && \
+              printf '\e[1;38;5;12m==> \e[0;38;5;15m%s \e[1;38;5;12m-> \e[0;38;5;15m%s\n' \
+                "$img" "${img_out}"
+            waifu2x-ncnn-vulkan -m "/usr/share/waifu2x-ncnn-vulkan/models-$model/" \
+                -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}" &>/dev/null
+            if [ $? -ne 0 ] || [ ! -f "${img_tmp}" ]; then
+                [ "$flag_quiet" = 'false' ] && printf '\e[1;38;5;9m -> \e[0;38;5;15merror\n'
+                continue
+            fi
+            if [ "$ext" = 'jpg' ]; then
+                convert "$img_tmp" -quality "$jpg_quality" "$img_out"
+            else
+                cp "$img_tmp" "$img_out"
+            fi
+            rm "$img_tmp"
+        done
+    done
+done
+
+# vim:ft=bash

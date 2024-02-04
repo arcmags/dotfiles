@@ -1,0 +1,32 @@
+#!/bin/sh
+
+## tirc ::
+# - ssh into remote host
+# - start bitlbee daemon
+# - attach/create tmux session
+# - run irssi
+
+## config ::
+remote='arch-pi'
+tmux='irc'
+
+## main ::
+set -e
+
+if [ "$(hostname)" != "$remote" ]; then
+    exec ssh -t "$remote" 'bash -li -c tirc'
+fi
+
+if ! pidof -q bitlbee; then
+    sudo -u bitlbee bitlbee -D && sleep 4
+fi
+
+if tmux -L "$tmux" has-session >/dev/null 2>&1; then
+    exec tmux -L "$tmux" attach-session
+else
+    exec tmux -L "$tmux" new-session -s "$tmux" \
+      'tmux set -g status off \; set -g pane-border-status off
+      printf "\033]0;irssi\007"; irssi'
+fi
+
+# vim:ft=sh

@@ -1,0 +1,7 @@
+## ~/.config/pycodestyle ::
+
+[pycodestyle]
+ignore = E265,E501,E301,E302,E226,E231,W391
+format = %(path)s[%(row)02d:%(col)02d> %(code)s %(text)s
+
+# vim: set ft=config:

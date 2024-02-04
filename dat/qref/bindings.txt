@@ -1,0 +1,37 @@
+========
+Bindings
+========
+
+The search for a uniform set of (vim-like) bindings across all apps is a never
+ending battle.
+
+Applications
+============
+
+- bash
+- firefox
+- i3
+- ipython
+- irssi
+- mocp
+- newsboat
+- qutebrowser
+- tmux
+- vim
+- w3m
+- xterm
+- zathura
+- mpv
+- qmk
+
+Ideas and Goals
+===============
+
+- uniform readline editing bindings
+- keep as many defaults as possible while not be limited by them
+- d, u as scroll down, up (i.e. c-d, c-u or m-d, m-u)
+- n, p as next, previous buffer, tab, screen, etc...
+- c-j, c-k as history next, previous
+- c-n, c-p as autocomplete next, previous
+
+..  vim:ft=rst

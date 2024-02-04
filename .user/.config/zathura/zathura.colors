@@ -1,0 +1,38 @@
+## ~/home/.config/zathura/zathura.colors ::
+
+set default-bg "#20204a"
+set default-fg "#d0d0fa"
+
+set recolor-darkcolor "#d0d0fa"
+set recolor-lightcolor "#20204a"
+
+set statusbar-bg "#30305a"
+set statusbar-fg "#59f176"
+
+set inputbar-bg "#00002a"
+set inputbar-fg "#d0d0fa"
+
+set highlight-color "#f3e877"
+set highlight-active-color "#fc8d28"
+
+set completion-bg "#20204a"
+set completion-fg "#d0d0fa"
+set completion-group-bg "#20204a"
+set completion-group-fg "#66b0ff"
+set completion-highlight-bg "#30305a"
+set completion-highlight-fg "#59f176"
+
+set notification-bg "#30305a"
+set notification-fg "#59f176"
+set notification-error-bg "#30305a"
+set notification-error-fg "#ff4242"
+set notification-warning-bg "#30305a"
+set notification-warning-fg "#f3e877"
+
+set index-bg "#00002a"
+set index-fg "#59f176"
+set index-active-bg "#20204a"
+set index-active-fg "#59f176"
+
+set render-loading-bg "#00002a"
+set render-loading-fg "#d0d0fa"

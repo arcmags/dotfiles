@@ -1,0 +1,12 @@
+[Unit]
+Description=GoDaddy DNS Update Service
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gdnsd
+
+[Install]
+WantedBy=multi-user.target
+
+; vim:ft=systemd

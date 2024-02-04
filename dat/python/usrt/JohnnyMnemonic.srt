@@ -1,0 +1,30 @@
+﻿1
+00:00:05,000 --> 00:00:15,000
+Greetings from Martin's Movies
+
+2
+00:01:59,734 --> 00:02:01,485
+- Good morning.
+- This is your wake-up call.
+
+3
+00:02:01,653 --> 00:02:04,279
+Thank you for staying
+at the New Darwin Inn.
+
+4
+00:02:04,447 --> 00:02:07,157
+The time is 10:30 a.m.
+
+5
+00:02:12,372 --> 00:02:14,665
+You have no new messages.
+
+6
+00:02:19,379 --> 00:02:20,963
+Johnny?
+
+7
+00:02:22,382 --> 00:02:24,383
+Yeah?
+Never mind.

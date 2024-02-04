@@ -1,0 +1,10 @@
+## ~/.lesskey ::
+
+#command
+;\  undo-hilite
+^N  next-file
+^P  prev-file
+^X  remove-file
+;tn toggle-option N
+;tw toggle-option S
+\40 forw-scroll

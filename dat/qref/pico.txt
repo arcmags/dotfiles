@@ -1,0 +1,30 @@
+=====================
+RPi Pico Quickrefence
+=====================
+
+Add user to uucp group to allow device access without using sudo.
+
+Reset/Flash
+===========
+
+Hold down BOOTSEL button and plug in. Mount device and copy .uf2 files to it.
+Device will reset.
+
+Micropython
+===========
+
+main.py is the entrypoint every boot.
+
+Use minicom and/or rshell to copy files to device and/or use the REPL.
+
+Circuitpython
+=============
+
+code.py is the entrypoint every boot.
+
+Device functions as mass memory device. Whenever files are changed, device
+resets and runs new code.
+
+Use minicom and/or rshell to use the REPL.
+
+..  vim:ft=rst

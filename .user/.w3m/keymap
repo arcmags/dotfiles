@@ -1,0 +1,35 @@
+## ~/.w3m/keymap ::
+# default: /usr/share/doc/w3m/keymap.default
+
+keymap  C-e DOWN
+keymap  C-y UP
+keymap	C-n	NEXT_LINK
+keymap	C-p	PREV_LINK
+
+keymap  C-c CLOSE_TAB
+keymap  C-t NEW_TAB
+keymap  M-t TAB_MENU
+keymap  M-w SELECT_MENU
+
+keymap  H   PREV
+keymap  M-h HELP
+keymap  L   NEXT
+
+keymap  J   NEXT_TAB
+keymap  K   PREV_TAB
+
+keymap  C-f NEXT_PAGE
+keymap  C-b PREV_PAGE
+keymap  d   NEXT_HALF_PAGE
+keymap  C-d NEXT_HALF_PAGE
+keymap  u   PREV_HALF_PAGE
+keymap  C-u PREV_HALF_PAGE
+keymap  ]   NEXT_LINK
+keymap  [   PREV_LINK
+keymap  C-] GOTO_LINK
+keymap  C-o BACK
+keymap  t   NEW_TAB
+keymap  T   TAB_LINK
+keymap  x   CLOSE_TAB
+
+# vim: set ft=config:

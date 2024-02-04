@@ -1,0 +1,51 @@
+#! MOC theme config file
+##===========================  cyanodark  ============================##
+## OBJECT               TEXT      BACKGROUND    ATTRIBUTE
+background            = default   default
+# frame
+frame                 = cyan      default       bold
+window_title          = cyan      default       bold
+# directory
+directory             = blue      default       bold
+selected_directory    = blue      cyan          bold
+# file
+file                  = white     default       bold
+marked_file           = green     default       bold
+selected_file         = white     cyan          bold
+marked_selected_file  = green     cyan          bold
+# file info
+info                  = blue      default       bold
+marked_info           = yellow    default       bold
+selected_info         = blue      cyan          bold
+marked_selected_info  = yellow    cyan          bold
+# playlist
+playlist              = white     default       bold
+selected_playlist     = white     cyan          bold
+# status (bottom of left pane)
+status                = cyan      default       bold
+# playlist time (bottom of right pane)
+plist_time            = cyan      default       bold
+# player state (paused|stopped|playing)
+state                 = blue      default       bold
+# current song
+title                 = green     default       bold
+current_time          = green     default       bold
+time_left             = yellow    default       bold
+total_time            = cyan      default       bold
+time_total_frames     = cyan      default       bold
+sound_parameters      = blue      default       bold
+legend                = blue      default       bold
+# option button indicators
+disabled              = yellow    default       dim
+enabled               = green     default       bold
+#
+empty_mixer_bar       = white     default       bold
+filled_mixer_bar      = black     cyan
+empty_time_bar        = white     default
+filled_time_bar       = black     cyan
+entry                 = white     default
+entry_title           = black     cyan
+#
+error                 = red       default       bold
+message               = green     default       bold
+

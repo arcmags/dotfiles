@@ -1,0 +1,20 @@
+## ~/.config/ttyper/config.toml ::
+
+[theme]
+title = 'white;bold'
+input_border = 'lightblue;bold'
+prompt_border = 'lightblue;bold'
+prompt_correct = 'lightgreen'
+prompt_incorrect = 'lightred'
+prompt_untyped = 'white'
+prompt_current_correct = 'lightgreen'
+prompt_current_incorrect = 'lightred'
+prompt_current_untyped = 'white'
+results_overview = 'lightblue;bold'
+results_overview_border = 'lightblue;bold'
+results_worst_keys = 'yellow;bold'
+results_worst_keys_border = 'yellow;bold'
+results_chart = 'lightblue;bold'
+results_chart_x = 'white;bold'
+results_chart_y = 'white;bold'
+results_restart_prompt = 'lightgreen;bold'

@@ -1,0 +1,17 @@
+#!/bin/bash
+##===========================  update-i3  ============================##
+dir_config="$UDIR/.user/.config/i3"
+dir_src="$dir_config/config_src"
+
+# generate i3 config files from sources in $dir_src:
+mapfile -t sources < <(ls "$dir_src" | grep -P '^src_[^(common)]')
+if [ -f "$dir_src/src_common" ] && [ ${#sources[@]} -gt 0 ]; then
+for src in ${sources[@]}; do
+    { printf '#! i3 config file\n'
+    geany-text :t "config_${src##src_}"
+    cat "$dir_src/$src"
+    printf '\n'
+    cat "$dir_src/src_common" ;} > "$dir_config/config_${src##src_}"
+done; fi
+# reload i3 config:
+i3-msg restart

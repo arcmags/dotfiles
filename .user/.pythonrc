@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+## ~/.pythonrc ::
+
+import sys
+sys.ps1 = '\033[1;38;5;10m>>> \033[0m'
+sys.ps2 = '\033[1;38;5;10m... \033[0m'

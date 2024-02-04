@@ -1,0 +1,11 @@
+## ~/.nanorc ::
+
+include "/usr/share/nano/*.nanorc"
+
+set mouse
+set tabsize 4
+set tabstospaces
+set titlecolor brightcyan
+set statuscolor brightcyan
+set keycolor brightblue
+set functioncolor brightcyan

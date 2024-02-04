@@ -1,0 +1,65 @@
+## ~/.config/feh/keys ::
+
+## clear ::
+action_0
+quit
+save_filelist
+save_image
+size_to_image
+toggle_filenames
+toggle_fixed_geometry
+toggle_fullscreen
+toggle_info
+toggle_pointer
+prev_dir
+next_dir
+
+## mappings ::
+close q
+action_6 Q
+action_1 f
+action_2 backslash
+action_3 question
+
+# interface:
+toggle_info D
+
+# navigate:
+next_img n
+prev_img p
+action_4 N bracketright
+action_5 P bracketleft
+
+# pan:
+scroll_down j
+scroll_down_page J
+scroll_left h
+scroll_left_page H
+scroll_right l
+scroll_right_page L
+scroll_up k
+scroll_up_page K
+
+# remove/delete:
+delete C-x Delete
+remove x
+
+jump_back Prior
+jump_first g
+jump_fwd Next
+jump_last G
+jump_random m
+reload_image C-l
+render Return
+save_image C-s
+size_to_image W
+toggle_aliasing A
+toggle_keep_vp V
+toggle_pause space
+zoom_default 0 e
+zoom_fill w
+zoom_fit r
+zoom_in i
+zoom_out o
+
+# vim: set ft=config:

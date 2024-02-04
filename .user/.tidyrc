@@ -1,0 +1,9 @@
+## ~/.tidyrc ::
+
+anchor-as-name: false
+drop-empty-elements: false
+gnu-emacs: true
+quiet: true
+tab-size: 4
+tidy-mark: false
+wrap: 80

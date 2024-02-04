@@ -1,0 +1,8 @@
+=====
+Irssi
+=====
+
+Bindings
+========
+
+..  vim:ft=rst

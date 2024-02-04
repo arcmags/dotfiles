@@ -1,0 +1,26 @@
+#!/bin/bash
+
+img="$UDIR/dat/img/Hyrule_2.png"
+img_scale=4
+
+if [ -f "$img" ]; then
+    screen_width=$(xrandr | grep -Po 'current \K[0-9]+')
+    screen_height=$(xrandr | grep -Po 'current [0-9]+ x \K[0-9]+')
+    img_xoffset=$((RANDOM % ($(identify -format %w "$img")-
+        (screen_width/img_scale)-1)))
+    img_yoffset=$((RANDOM % ($(identify -format %h "$img")-
+        (screen_height/img_scale)-1)))
+    img_width=$((screen_width/img_scale+1))
+    img_height=$((screen_height/img_scale+1))
+    convert "$img" -crop \
+        "${img_width}x${img_height}+${img_xoffset}+${img_yoffset}" \
+        -scale "${img_scale}00%" +repage \
+        -crop "${screen_width}x${screen_height}+0+0" \
+        /tmp/i3-lock.png
+else
+    import -window root /tmp/lock.png
+    convert -scale 25% -scale 400% /tmp/lock.png /tmp/i3-lock.png
+fi
+
+i3lock -u -i /tmp/i3-lock.png
+rm /tmp/i3-lock.png

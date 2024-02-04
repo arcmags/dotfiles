@@ -1,0 +1,24 @@
+/*/* ~/.mozilla/firefox/default/chrome/userChrome.css ::*/
+
+:root {
+    --background:   #888888;
+    --color:        #fcfcfc;
+    --font-family:  Hack, monospace;
+    --font-size:    10pt;
+}
+* {
+    font-family: var(--font-family) !important;
+    font-size: var(--font-size) !important;
+    text-shadow: none !important;
+}
+/* display: none: */
+#fullscr-toggler,
+.autocomplete-history-dropmarker,
+.tab-close-button,
+.tab-icon-image,
+.tab-icon-image:not([pinned]),
+.tabs-newtab-button,
+.tab-throbber,
+.urlbar-history-dropmarker {
+    display: none !important;
+}

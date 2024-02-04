@@ -1,0 +1,241 @@
+#!/bin/bash
+
+## gdnsd ::
+# (C) 2023 Chris Magyar
+# GNU General Public License v3
+
+# TODO: command line args
+# TODO: allow running as non-root
+
+print_help() {
+printf '\e[0;38;5;15m'
+cat <<'HELPDOC'
+NAME
+    gdnsd - GoDaddy DNS update daemon
+
+SYNOPSIS
+    gdnsd [OPTIONS]
+
+DESCRIPTION
+    gdnsd is a daemon script for updating GoDaddy DNS records.  GoDaddy
+    domain name, API key, and API secret are read from the config file
+    /etc/gdnsd/gdnsd.json.  gdnsd may be launched from the command line
+    or via a systemd unit.
+
+OPTIONS
+    -C, --config
+        If not launched by systemd, print template config file and exit.
+
+    -H, --help
+        If not launched by systemd, print this help and exit.
+
+    -U, --unit
+        If not launched by systemd, print systemd unit file and exit.
+
+FILES
+    /etc/gdnsd/gdnsd.json
+        JSON config file.  Must contain values for: domain, key, and secret.
+
+    /etc/systemd/system/gdnsd.service
+        Systemd unit file, launched via: systemctl start gdnsd.service
+
+    /usr/local/bin
+        Main script file.
+
+REQUIREMENTS
+    jq is required for parsing json data.
+HELPDOC
+}
+
+print_config() {
+printf '\e[0;38;5;15m'
+cat <<'CONFIG'
+{
+    "domain": null,
+    "key": null,
+    "secret": null
+}
+CONFIG
+}
+
+print_unit() {
+printf '\e[0;38;5;15m'
+cat <<'UNIT'
+[Unit]
+Description=GoDaddy DNS Update Service
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gdnsd
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+}
+
+# internal control:
+domain=
+key=
+secret=
+headers=
+ip=
+ip_dns=
+name='@'
+port=80
+ttl=600
+ttl_dns=
+url_api=
+wait=300
+data_conf=
+data_const='"priority":0,"protocol":"string","service":"string","weight":0'
+data_dns=
+is_startup=true
+is_systemd=false
+is_root=false
+
+
+## functions ::
+msg() {
+    if [ $PPID -eq 1 ]; then
+        logger -p 5 --id=$$ -t gdnsd "$1"
+    else
+        printf '\e[1;38;5;12m==> \e[0;38;5;15m%s\e[0m\n' "$1"
+    fi
+}
+
+msg_error() {
+    if [ $PPID -eq 1 ]; then
+        logger -p 3 --id=$$ -t gdnsd "$1"
+    else
+        printf '\e[1;38;5;9m==> ERROR: \e[0;38;5;15m%s\e[0m\n' "$1" >&2
+    fi
+}
+
+msg_warn() {
+    if [ $PPID -eq 1 ]; then
+        logger -p 4 --id=$$ -t gdnsd "$1"
+    else
+        printf '\e[1;38;5;11m==> WARNING: \e[0;38;5;15m%s\e[0m\n' "$1" >&2
+    fi
+}
+
+## main() ::
+[ "$EUID" -eq 0 ] && is_root=true
+[ $PPID -eq 1 ] && is_systemd=true
+
+for arg in "$@"; do
+    case "$arg" in
+        -C|--config)
+            [ $PPID -ne 1 ] && print_config
+            exit 0 ;;
+        -H|--help)
+            [ $PPID -ne 1 ] && print_help
+            exit 0 ;;
+        -U|--unit)
+            [ $PPID -ne 1 ] && print_unit
+            exit 0 ;;
+        *)
+            msg_error "unknown option: $arg"
+            exit 4 ;;
+    esac
+done
+
+# ERROR: must be run as root:
+if [ "$EUID" -ne 0 ]; then
+    msg_error 'must be run as root'
+    exit 9
+fi
+
+# ERROR: missing jq:
+if ! command -v jq &>/dev/null; then
+    msg_error 'package required: jq'
+    exit 2
+fi
+
+# ERROR: no config:
+if [ ! -f /etc/gdnsd/gdnsd.json ]; then
+    msg_error 'no config: /etc/gdnsd/gdnsd.json'
+    exit 3
+fi
+
+# ERROR: invalid json:
+if ! jq < /etc/gdnsd/gdnsd.json &>/dev/null; then
+    msg_error 'invalid json: /etc/gdnsd/gdnsd.json'
+    exit 4
+fi
+
+# get domain, key, secret:
+data_conf="$(</etc/gdnsd/gdnsd.json)"
+domain="$(jq -r .domain <<<"$data_conf")"
+key="$(jq -r .key <<<"$data_conf")"
+secret="$(jq -r .secret <<<"$data_conf")"
+
+# ERROR: invalid config:
+if [ -z "$domain" ] || [ "$domain" = null ] || \
+[ -z "$key" ] || [ "$key" = null ] || \
+[ -z "$secret" ] || [ "$secret" = null ]; then
+    msg_error 'invalid config: /etc/gdnsd/gdnsd.json'
+    exit 5
+fi
+
+# set url and headers:
+url_api="https://api.godaddy.com/v1/domains/$domain/records/A/$name"
+headers="Authorization: sso-key $key:$secret"
+
+# wait for internet connection:
+while ! { ping -q -c1 -W4 google.com &>/dev/null || \
+ping -q -c1 -W4 archlinux.org &>/dev/null ;}; do
+    #msg_warn 'no internet connection'
+    sleep 30
+done
+
+# get DNS record data:
+while [ -z "$ip_dns" ] || [ -z "$ttl_dns" ]; do
+    data_dns="$(curl -s -X GET -H "$headers" "$url_api")"
+    if [ -z "$data_dns" ]; then
+        #msg_warn 'unable to get dns data'
+        sleep 30
+        continue
+    # ERROR: unknown domain:
+    elif ! jq .[].data <<<"$data_dns" &>/dev/null; then
+        msg_error 'unknown domain'
+        exit 1
+    fi
+    ip_dns="$(jq -r .[].data <<<"$data_dns")"
+    ttl_dns="$(jq -r .[].ttl <<<"$data_dns")"
+done
+
+# daemon loop:
+while true; do
+    # get IP address:
+    ip="$(curl -s -4 icanhazip.com || curl -s -4 api.ipify.org)"
+    if [ -z "$ip" ]; then
+        #msg_warn 'unable to get IP address'
+        sleep 60
+        continue
+    fi
+    # update DNS record:
+    if [ "$ip" != "$ip_dns" ] || [ "$ttl" != "$ttl_dns" ]; then
+        if curl -s -X PUT "$url_api" -H "accept: application/json" \
+        -H "Content-Type: application/json"  -H "$headers" \
+        -d "[{\"data\":\"$ip\",\"port\":$port,\"ttl\":$ttl,$data_const}]"; then
+            msg 'dns record updated'
+            ip_dns="$ip"
+            ttl_dns="$ttl"
+            is_startup=false
+        else
+            msg_warn 'unable to update dns record'
+            sleep 60
+            continue
+        fi
+    fi
+    # up to date:
+    if $is_startup; then
+        msg 'dns record up to date'
+        is_startup=false
+    fi
+    sleep $wait
+done
+
+# vim:ft=bash

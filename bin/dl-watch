@@ -1,0 +1,203 @@
+#!/bin/bash
+
+## dl-watch ::
+print_help() {
+cat <<'HELPDOC'
+NAME
+    dl-watch - rename/move newly written files in watched directory
+
+SYNOPSIS
+    uln [-i <DIRECTORY>] [-o <DIRECTORY>]
+
+DESCRIPTION
+    dl-watch is an inotify wrapper script to rename/move newly written
+    files created in the input directory. Files are renamed to the form
+    X000.ext, where X is a single letter prefix based upon filetype, and
+    000 is a zero padded incremental number. Duplicate files are removed.
+
+OPTIONS
+    -i, --in <DIRECTORY>
+        Watch DIRECTORY for newly written files to rename/move. Defaults to
+        current directory.
+
+    -I, --imv
+        Launch and keep imv updated to display most recently downloaded image.
+
+    -o, --out <DIRECTORY>
+        Move renamed files to  DIRECTORY. Defaults to input-directory/dl-watch.
+
+    -H, --help
+        Display this help.
+
+FILES
+    index.txt
+        This file is created in the output directory. It contains the
+        checksums of all renamed files.
+
+REQUIREMENTS
+    inotifywait
+HELPDOC
+}
+
+# arguments:
+flag_imv=false
+opt_in=
+opt_out=
+
+# internal control:
+dir_in=
+dir_out=
+i=
+md5=
+m=
+file_in=
+file_out=
+ext=
+pid_imv=
+
+## functions ::
+msg() {
+	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg_error() {
+	printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+msg2() {
+	[ "$flag_quiet" = 'true' ] && return
+	printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg2_error() {
+	printf "\e[1;38;5;9m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+msg2_warn() {
+	printf "\e[1;38;5;11m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+## main ::
+while (($#)); do
+    case "$1" in
+        -i|--in|--input)
+            shift
+            opt_in="$1" ;;
+        -I|--imv)
+            flag_imv=true ;;
+        -o|--out|--output)
+            shift
+            opt_out="$1" ;;
+        -H|--help)
+            print_help
+            exit 0 ;;
+        *)
+            msg_error 'unknown option: %s' "$1"
+            exit 4 ;;
+    esac
+    shift
+done
+
+# ERROR: missing inotifywait:
+if ! command -v inotifywait &>/dev/null; then
+    msg_error 'missing: inotifywait'
+    exit 7
+fi
+
+if [ -z "$opt_in" ]; then
+    dir_in="$PWD"
+else
+    if [ -d "$opt_in" ]; then
+        dir_in="${opt_in%/}"
+        if [ "$dir_in" = '' ]; then
+            dir_in='/'
+        fi
+    # ERROR: input directory does not exist:
+    else
+        msg_error 'input directory does not exist: %s' "$opt_in"
+        exit 2
+    fi
+fi
+
+if [ -z "$opt_out" ]; then
+    dir_out="$dir_in/dl-watch"
+else
+    dir_out="$opt_out"
+    if [ "$dir_in" = '' ]; then
+        dir_in='/'
+    fi
+    # ERROR: dir out cannout be dir in:
+    if [ "$dir_in" = "$dir_out"]; then
+        msg_error 'input and output directories cannot be the same'
+        exit 3
+    fi
+fi
+mkdir -p "$dir_out"
+
+if [ ! -f "$dir_out/index.txt" ]; then
+    touch "$dir_out/index.txt"
+fi
+
+i=$({ ls "$dir_out"; cut -c35- <"$dir_out/index.txt"; } | grep -Po '^0*\K[0-9]+' | sort -n | tail -n1)
+i="${i:-0}"
+
+cd "$dir_out"
+msg 'watching directory: %s' "$dir_in"
+inotifywait -m -e close_write --format '%f' "$dir_in" 2>/dev/null | \
+while read file_in; do
+    ext="${file_in##*.}"
+    ext="${ext,,}"
+    if [ "$ext" = 'part' ]; then
+        continue
+    elif [ "$ext" = 'jpeg' ]; then
+        ext='jpg'
+    fi
+    sleep 0.25
+    while [ -f "$dir_in/$file_in"*.part ] || [ -f "$dir_in/${file_in%.*}(1).$ext" ]; do
+        sleep 0.25
+    done
+    sleep 0.5
+    if [ -f "$dir_in/$file_in" ]; then
+        md5=$(md5sum "$dir_in/$file_in" | cut -c1-32)
+        m=0
+        while [ "$m" -lt 8 ] && [ "$md5" = 'd41d8cd98f00b204e9800998ecf8427e' ]; do
+            sleep 0.25
+            md5=$(md5sum "$dir_in/$file_in" | cut -c1-32)
+            ((m++))
+        done
+        if [ "$m" -ge 8 ]; then
+            msg2_error '%s: md5 error' "$file_in"
+            continue
+        fi
+    else
+        msg2_warn '%s: file error' "$file_in"
+        continue
+    fi
+    if [ "$md5" != 'd41d8cd98f00b204e9800998ecf8427e' ] && grep -q "$md5" "$dir_out/index.txt"; then
+        file_out=$(grep -Pom1 "$md5"' +\K.*' "$dir_out/index.txt")
+        msg2_warn "$file_out"
+        if [ -f "$dir_in/${file_in%.*}(1).$ext" ]; then
+            rm -f "$dir_in/${file_in%.*}(1).$ext"
+        elif [ -f "$dir_in/$file_in" ]; then
+            rm "$dir_in/$file_in"
+        fi
+    else
+        ((i++))
+        file_out=$(printf '%04d.%s' "$i" "$ext")
+        msg2 "$file_out"
+        mv "$dir_in/$file_in" "$dir_out/$file_out"
+        printf '%s  %s\n' "$md5" "$file_out" >> "$dir_out/index.txt"
+        if [ "$flag_imv" = 'true' ] && [[ "$ext" =~ jpg|png|webp|gif ]]; then
+            if ps --pid "$pid_imv" &>/dev/null; then
+                imv-msg "$pid_imv" open "$file_out"
+                imv-msg "$pid_imv" goto -1
+            else
+                imv "$file_out" &>/dev/null &
+                pid_imv="$!"
+            fi
+
+        fi
+    fi
+done
+
+# vim:ft=bash

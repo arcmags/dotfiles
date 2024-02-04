@@ -1,0 +1,274 @@
+#!/bin/bash
+
+## img-ls ::
+# Display image thumbnails in sixel compatible terminals.
+# [unfinished]
+
+print_help() {
+cat <<'HELPDOC'
+NAME
+    img-ls - display images in terminal via sixel graphics
+
+SYNOPSIS
+    img-ls [OPTIONS] [FILE...]
+
+DESCRIPTION
+
+OPTIONS
+    -L, --long
+        List image dimensions.
+
+    -H, --help
+        Display this help.
+
+    -V, --verbose
+
+REQUIREMENTS
+HELPDOC
+}
+
+# arguments:
+flag_long=false
+flag_verbose=false
+flag_sixel=false
+args=()
+
+# internal control:
+files=()
+args_convert=('-auto-orient')
+
+numcolors=16     # Default number of colors in the palette.
+background=white # Default montage background.
+foreground=black # Default text color.
+width=800	 # Default width of screen in pixels.
+
+tilesize=150	       # Width and height of each tile in the montage.
+tilewidth=$tilesize    # (or specify separately, if you prefer)
+tileheight=$tilesize
+tileheight=$tilesize
+
+# You can list fonts available using `convert -list font`.
+fontfamily='Hack-Regular'
+font='Hack-Regular'
+
+# Default font size is based on width of each tile in montage.
+#fontsize=$((tilewidth/10))
+fontsize=12
+
+timeout=0.25		    # How long to wait for terminal to respond
+			    # to a control sequence (in seconds).
+
+
+## functions ::
+msg() {
+	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg_error() {
+	printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+msg_warn() {
+	printf "\e[1;38;5;11m==> WARNING: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+msg_cmd() {
+    local arg str=$'\e[1;38;5;10m'' -$'$'\e[0;38;5;15m'
+    if [ $EUID -eq 0 ]; then
+        str=$'\e[1;38;5;9m'' -#'$'\e[0;38;5;15m'
+    fi
+    for arg in "$@"; do
+        str+=" $(printf '%q' "$arg")"
+    done
+    printf '%s\e[0m\n' "$str"
+}
+
+processlabel() {
+    # This routine is all about appeasing ImageMagick.
+    # 1. Remove silly [0] suffix and : prefix.
+    # 2. Quote percent backslash, and at sign.
+    # 3. Replace control characters with question marks.
+    # 4. If a filename is too long, remove extension (.jpg).
+    # 5. Split long filenames with newlines (recursively)
+    span=15			# filenames longer than span will be split
+    echo -n "$1" |
+	sed 's|^:||; s|\[0]$||;' | tr '[:cntrl:]' '?' |
+	awk -v span=$span -v ORS=""  '
+	function halve(s,      l,h) {	# l and h are locals
+	    l=length(s);  h=int(l/2);
+	    if (l <= span) { return s; }
+	    return halve(substr(s, 1, h))  "\n"  halve(substr(s, h+1));
+	}
+	{
+	  if ( length($0) > span ) gsub(/\..?.?.?.?$/, "");
+	  print halve($0);
+	}
+	' |
+	sed 's|%|%%|g; s|\\|\\\\|g; s|@|\\@|g;'
+}
+
+
+## main ::
+while (($#)); do
+    case "$1" in
+        -L|-l|--long)
+            flag_long=true ;;
+        -V|--verbose)
+            flag_verbose=true ;;
+        -H|--help)
+            print_help
+            exit 0 ;;
+        *)
+            break ;;
+    esac
+    shift
+done
+args=("$@")
+files=("$@")
+
+if ! command -v montage >/dev/null; then
+    msg_error 'missing required package: imagemagick'
+    exit 1
+fi
+
+
+cleanup() {
+    echo -n $'\e\\'		# Escape sequence to stop SIXEL.
+    stty echo			# Reset terminal to show characters.
+    exit 0
+}
+trap cleanup SIGINT SIGHUP SIGABRT EXIT
+
+
+# Various terminal automatic configuration routines.
+
+# Don't show escape sequences the terminal doesn't understand.
+stty -echo			# Hush-a Mandara Ni Pari
+
+# IS TERMINAL SIXEL CAPABLE?		# Send Device Attributes
+IFS=';?c' read -a REPLY -s -t 1 -d c -p $'\e[c' >&2
+for code in "${REPLY[@]}"; do if [ "$code" = '4' ]; then
+    hassixel=yup
+    flag_sixel=true
+    break
+fi; done
+
+# TERMINAL COLOR AUTODETECTION.
+# Find out how many color registers the terminal has
+IFS=';' read -a REPLY -s -t "$timeout" -d S -p $'\e[?1;1;0S' >&2
+[ "${REPLY[1]}" = '0' ] && numcolors="${REPLY[2]}"
+
+# Increase colors, if needed
+if [[ $numcolors -lt 256 ]]; then
+    # Attempt to set the number of colors to 256.
+    # This will work for xterm, but fail on a real vt340.
+    IFS=';' read -a REPLY -s -t "$timeout" -d S -p $'\e[?1;3;256S' >&2
+    [ "${REPLY[1]}" = '0' ] && numcolors="${REPLY[2]}"
+fi
+
+# Query the terminal background and foreground colors.
+IFS=';:/' read -a REPLY -r -s -t "$timeout" -d '\\' -p $'\e]11;?\e\\' >&2
+if [[ ${REPLY[1]} =~ ^rgb ]]; then
+    # Return value format: $'\e]11;rgb:ffff/0000/ffff\e\\'.
+    # ImageMagick wants colors formatted as #ffff0000ffff.
+    background='#'${REPLY[2]}${REPLY[3]}${REPLY[4]%%$'\e'*}
+    IFS=';:/' read -a REPLY -r -s -t "$timeout" -d '\\' -p $'\e]10;?\e\\' >&2
+    if [[ ${REPLY[1]} =~ ^rgb ]]; then
+        foreground='#'${REPLY[2]}${REPLY[3]}${REPLY[4]%%$'\e'*}
+        # Check for "Reverse Video" (DECSCNM screen mode).
+        IFS=';?$' read -a REPLY -s -t "$timeout" -d y -p $'\e[?5$p'
+        if [[ ${REPLY[2]} == 1 || ${REPLY[2]} == 3 ]]; then
+            temp="$foreground"
+            foreground="$background"
+            background="$temp"
+        fi
+    fi
+fi
+
+# Send control sequence to query the sixel graphics geometry to
+# find out how large of a sixel image can be shown.
+IFS=';' read -a REPLY -s -t "$timeout" -d S -p $'\e[?2;1;0S' >&2
+if [ ${REPLY[2]} -gt 0 ]; then
+    width="${REPLY[2]}"
+else
+    # Nope. Fall back to dtterm WindowOps to approximate sixel geometry.
+    IFS=";" read -a REPLY -s -t "$timeout" -d t -p $'\e[14t' >&2
+    if [[ $? == 0 && ${REPLY[2]} -gt 0 ]]; then
+        width="${REPLY[2]}"
+    fi
+fi
+
+# BUG WORKAROUND: XTerm cannot show images wider than 1000px.
+# Remove this hack once XTerm gets fixed. Last checked: XTerm(377)
+if [[ $TERM =~ xterm && $width -ge 1000 ]]; then
+    width=1000
+fi
+
+# Space on either side of each tile is less than 0.5% of total screen width
+tilexspace=$((fontsize * 5 / 17))
+tileyspace=$tilexspace
+# Figure out how many tiles we can fit per row. ("+ 1" is for -shadow).
+
+numtiles=$((width/(tilewidth + 2*tilexspace + 1)))
+
+
+
+if [[ $# == 0 ]]; then
+    # No command line args? Use a sorted list of image files in CWD.
+    shopt -s nullglob nocaseglob nocasematch
+    set -- *{jpg,jpeg,png,gif,webp,tiff,tif,p?m,x[pb]m,bmp,ico,svg,eps}
+    [[ $# != 0 ]] || exit
+    readarray -t < <(printf "%s\n" "$@" | sort)
+
+    # Only show first frame of animated GIFs if filename not specified.
+    for x in ${!MAPFILE[@]}; do
+        if [[ ${MAPFILE[$x]} =~ gif$ ]]; then
+            MAPFILE[$x]="${MAPFILE[$x]}[0]"
+        fi
+    done
+    set -- "${MAPFILE[@]}"
+else
+
+    # Command line args specified. Check for directories.
+    lsix=$(realpath "$0")
+    for arg; do
+        if [ -d "$arg" ]; then
+            echo Recursing on $arg
+            (cd "$arg"; $lsix)
+        else
+            nodirs+=("$arg")
+        fi
+    done
+    set -- "${nodirs[@]}"
+fi
+
+args_convert+=('-tile' "${numtiles}x1")
+args_convert+=('-geometry' "${tilewidth}x${tileheight}>+${tilexspace}+${tileyspace}")
+args_convert+=('-background' "$background" '-fill' "$foreground")
+args_convert+=('-pointsize' "$fontsize")
+# TODO: check for font:
+[[ "$fontfamily" ]] && args_convert+=('-font' "$fontfamily")
+
+# Create and display montages one row at a time.
+while [ $# -gt 0 ]; do
+    # While we still have images to process...
+    onerow=()
+    goal=$(($# - numtiles)) # How many tiles left after this row
+    while [ $# -gt 0  -a  $# -gt $goal ]; do
+        len=${#onerow[@]}
+        onerow[len++]="-label"
+        onerow[len++]=$(processlabel "$1")
+        onerow[len++]="file://$1"
+        shift
+    done
+
+    if [ "$flag_verbose" = true ]; then
+        printf "montage ${onerow[*]} ${args_convert[*]} -colors $numcolors sixel:-\n"
+    fi
+    montage "${onerow[@]}" "${args_convert[@]}" -colors $numcolors sixel:- 2>/dev/null
+    printf '\n'
+done
+
+read -s -t 60 -d "c" -p $'\e[c' >&2
+
+# vim:ft=bash

@@ -1,0 +1,5 @@
+## ~/.shellcheckrc ::
+
+disable=SC1091,SC2155,SC2164
+
+# vim: set ft=config:

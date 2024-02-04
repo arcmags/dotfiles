@@ -1,0 +1,40 @@
+##=============  window colors  ==============##
+# f=focused; i=inactive; u=unfocused; m=marked
+# B=border; F=fill; T=text
+# focused:
+set $fB-win         #00aaaa
+set $fF-win         #00aaaa
+set $fT-win         #fcfcfc
+# inactive:
+set $iB-win         #303030
+set $iF-win         #303030
+set $iT-win         #666666
+# unfocused:
+set $uB-win         #303030
+set $uF-win         #303030
+set $uT-win         #666666
+# marked:
+set $mB-win         #00dddd
+set $mF-win         #00dddd
+set $mT-win         #000000
+##==============  i3bar colors  ==============##
+# f=focused; a=active; i=inactive; m=marked
+# B=border; F=fill; T=text
+# bar fill:
+set $F-bar          #303030aa
+# focused:
+set $fB-bar         #00aaaa
+set $fF-bar         #00aaaa
+set $fT-bar         #fcfcfc
+# active:
+set $aB-bar         #006666
+set $aF-bar         #006666
+set $aT-bar         #888888
+# inactive:
+set $iB-bar         #424242
+set $iF-bar         #424242
+set $iT-bar         #888888
+# marked(urgent):
+set $mB-bar         #00dddd
+set $mF-bar         #00dddd
+set $mT-bar         #000000

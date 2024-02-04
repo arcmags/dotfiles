@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>Python Virtual Environments</title>
+<meta name="author" content="Chris Magyar">
+<meta name="description" content="Python virtual environments and pipx quick reference tips.">
+<meta name="keywords" content="python, venv, pipx">
+<link rel="stylesheet" href="css/main.css">
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<meta name="viewport" content="width=device-width">
+<link rel="icon" href="data:,">
+</head>
+
+<body>
+<p>A Python virtual environment (<a href="https://docs.python.org/3/library/venv.html" target="_blank">venv</a>) is a self contained Python interpreter and
+libraries, isolated from the system-wide Python. Python includes the <code>venv</code> tool
+to work with virtual environments.</p>
+<h1 id="Virtual Environments">Virtual Environments</h1>
+<p>Create a virtual environment:</p>
+<pre><code><span class="prompt">$ </span>python -m venv &lt;DIR&gt;
+</pre></code>
+<p>Activate virtual environment:</p>
+<pre><code><span class="prompt">$ </span>cd &lt;DIR&gt;
+<span class="prompt">$ </span>source bin/activate
+</pre></code>
+<p>Deactive virual environment:</p>
+<pre><code><span class="prompt">$ </span>deactivate
+</pre></code>
+<h1 id="pipx">pipx</h1>
+<p>Install in clean virtual environment, add any entrypoints to ~/.local/bin:</p>
+<pre><code><span class="prompt">$ </span>pipx install &lt;PACKAGE&gt;
+</pre></code>
+<p>Install editable local package in clean virtual environment, add entrypoints:</p>
+<pre><code><span class="prompt">$ </span>pipx install -e &lt;PATH_TO_PACKAGE&gt;
+</pre></code>
+<h1 id="test.pypi">test.pypi</h1>
+<p>Install from testpypi:</p>
+<pre><code><span class="prompt">$ </span>pip install --index-url https://test.pypi.org/simple --extra-index-url https://pypi.org/simple &lt;PACKAGE&gt;
+</pre></code>
+<pre><code class="language-python">code = 99
+</code></pre>
+
+</body>
+</html>

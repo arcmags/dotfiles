@@ -1,0 +1,406 @@
+======================
+Arch Linux RPi4 Server
+======================
+
+..  contents::
+
+These are some notes/instructions I made for/while installing Arch Linux ARM on
+a Raspberry Pi 4 as a headless nginx server.
+
+
+General Scheme
+==============
+
+hardware
+--------
+
+- RPi4 with 4GB RAM
+- 32GB MicroSD card
+- 500GB SSD
+- 4TB HDD
+
+
+partitioning
+------------
+
+By default, the RPi4 boots off a MicroSD card.  The card will hold only the
+*/boot* directory, while */* root will be on the SSD.  The 4TB HDD will be a
+single storage partition::
+
+    sda1  500M  EF00  /boot
+    sdb1  32G   8300  /
+    sdb2  430G  8300  /home
+    sdc1  4T    8300  /mnt/hdd
+
+
+Arch Linux
+==========
+
+Follow the official `Arch Linux ARM`_ guide to bootstrap the latest image to the
+MSD card.
+
+Plug the MSD card into the RPi and boot it up.  Discover RPi IP address by
+pinging around in the 192.168.0.XXX range (or whatever your setup is).
+
+Connect to RPi as the default user::
+
+    $ ssh alarm@192.168.0.XXX
+
+
+accounts
+--------
+
+Change passwords::
+
+    $ passwd
+    # passwd
+
+Enable root ssh access::
+
+    # vi /etc/sshd_config
+    <hr>
+    ...
+    PermitRootLogin yes
+    ...
+
+Restart the ssh server::
+
+    # systemctl restart sshd.service
+
+Logout of default account::
+
+    # exit
+
+Connect to RPi as root::
+
+    $ ssh root@192.168.0.XXX
+
+Delete default user::
+
+    # userdel alarm
+    $ rm -r /home/alarm
+
+Create new user::
+
+    # useradd -m -U USER
+    # passwd USER
+
+Disable root ssh access::
+
+    # vi /etc/sshd_config
+
+    ...
+    PermitRootLogin no
+    ...
+
+Restart the ssh server::
+
+    # systemctl restart sshd.service
+
+Logout of root account.
+
+Connect to RPi as USER::
+
+    $ ssh USER@192.168.0.XXX
+
+
+base
+----
+
+Install base package set::
+
+    # pacman-key --init
+    # pacman-key --populate archlinuxarm
+    # pacman -Syu base-devel arch-install-scripts pacman-contrib
+    # pacman -Syu sudo polkit
+    # pacman -Syu gnupg python rsync tmux vim wget
+
+
+fstab
+-----
+
+Generate new */etc/fstab*::
+
+    # genfstab -U / > /etc/fstab
+
+Delete any excess entries::
+
+    # vim /etc/fstab
+
+
+locale
+------
+
+Link timezone::
+
+    # ln -sf /usr/share/zoneinfo/REGION/CITY /etc/localtime
+
+Uncomment language in */etc/locale.gen*::
+
+    # vim /etc/locale.gen
+
+    ...
+    en_US.UTF-8 UTF-8
+    ...
+
+Generate locale info::
+
+    # locale-gen
+
+Set LANG env variable in */etc/locale.conf*::
+
+    # echo 'LANG=en_US.UTF-8' > /etc/locale.conf
+
+
+hostname
+--------
+
+Change hostname::
+
+    # echo HOSTNAME > /etc/hostname
+
+Edit hosts::
+
+    # vim /etc/hosts
+
+    127.0.0.1  localhost
+    ::1        localhost
+    127.0.1.1  HOSTNAME.localdomain  HOSTNAME
+
+
+sudo
+----
+
+Install sudo::
+
+    # pacman -Syu sudo
+
+Enable sudo group::
+
+    # groupadd sudo
+    # echo '%sudo ALL=(ALL) ALL' > /etc/sudoers.d/10-sudo
+
+Add USER to sudo::
+
+    # usermod -aG sudo USER
+
+
+firmware
+--------
+
+Update firmware::
+
+    # pacman -Syu rpi-eeprom
+    # rpi-eeprom-update -d -a
+
+
+Power down::
+
+    # poweroff
+
+Unplug the RPi and remove the MSD card.
+
+
+SSD/HDD
+=======
+
+Plug the MSD card (*/dev/sdX*), the SSD (*/dev/sdY*), and the HDD (*/dev/sdZ*)
+into another machine.
+
+Partition::
+
+    # sgdisk -o -n 1:0:+32G -t 1:8300 -n 2:0:0 -t 2:8300 /dev/sdY
+    # sgdisk -o -n 1:0:0 -t 1:8300 /dev/sdZ
+
+Format::
+
+    # mkfs.ext4 /dev/sdY1
+    # mkfs.ext4 /dev/sdY2
+    # mkfs.ext4 /dev/sdZ2
+
+Copy::
+
+    # mkdir -p /tmp/mnt/sd
+    # mkdir /tmp/mnt/ssd
+    # mount /dev/sdX2 /tmp/mnt/sd
+    # mount /dev/sdY1 /tmp/mnt/ssd
+    # cp -a /tmp/mnt/sd/. /tmp/mnt/ssd
+    # sync
+
+Home::
+
+    # mkdir /tmp/mnt/home
+    # mount /dev/sdY2 /tmp/mnt/home
+    # cp -a /tmp/mnt/ssd/home/. /tmp/mnt/home
+    # rm -r /tmp/mnt/ssd/home/
+    # mkdir /tmp/mnt/ssd/home
+
+View UUIDs::
+
+    # lsblk -f /dev/sdX /dev/sdY /dev/sdZ
+
+Fstab::
+
+    # vim /tmp/mnt/ssd/etc/fstab
+
+    UUID=[UUID of /dev/sdY1]  /         ext4  rw,relatime      0 1
+    UUID=[UUID of /dev/sdY2]  /home     ext4  rw,relatime      0 1
+    UUID=[UUID of /dev/sdX1]  /boot     vfat  rw,relatime,...  0 1
+    UUID=[UUID of /dev/sdZ1]  /mnt/hdd  ext4  rw,relatime      0 2
+
+Bootloader::
+
+    # mkdir /tmp/mnt/boot
+    # mount /dev/sdY1 /tmp/mnt/boot
+
+    # vim /tmp/mnt/boot/cmdline.txt
+
+    root=UUID=[UUID of /dev/sdX1] rw ...
+
+Unmount and sync::
+
+    # umount /tmp/mnt/boot /tmp/mnt/home /tmp/mnt/sd /tmp/mnt/ssd
+    # sync
+
+Unplug the MSD card, SSD, and HDD.
+
+
+Networking
+==========
+
+Plug the MSD card, SSD, and HHD into the RPi and boot it up.  Discover RPi IP
+address again.
+
+Connect to RPi as USER::
+
+    $ ssh USER@192.168.0.XXX
+
+networkd
+--------
+
+Static IP::
+
+    # vim /etc/systemd/network/20-ethernet.network
+
+    [Match]
+    Name=eth*
+    Name=en*
+
+    [Network]
+    Address=192.168.0.XXX/24
+    Gateway=192.168.0.1
+
+Remove default::
+
+    # rm /etc/systemd/network/eth0.network
+
+Restart::
+
+    # systemctl restart networkd.service
+
+
+sshd
+----
+
+Switch port::
+
+    # vim /etc/ssh/sshd_config
+
+    ...
+    Port XXXXX
+    ...
+
+Increase logging::
+
+    # vim /etc/ssh/sshd_config
+
+    ...
+    LogLevel VERBOSE
+    ...
+
+Enable public key authentication::
+
+    # vim /etc/ssh/sshd_config
+
+    ...
+    PubkeyAuthentication yes
+    ...
+
+Add keys to *~/.ssh/authorized_keys*.
+
+Restart sshd.service::
+
+    # systemctl restart sshd.service
+
+Ensure public key authentication works by logging out and in again.
+
+Disable password authentication::
+
+    # vim /etc/ssh/sshd_config
+
+    ...
+    PasswordAuthentication no
+    ...
+
+Restart sshd.service::
+
+    # systemctl restart sshd.service
+
+Disable login message::
+
+    # rm /etc/motd
+    # touch /etc/motd
+
+
+ddclient
+--------
+
+Install ddclient::
+
+    # pacman -Syu ddclient
+
+Edit */etc/ddclient/ddclient.conf*::
+
+    # vim /etc/ddclient/ddclient.conf
+
+Enable ddclient.service::
+
+    # systemctl enable ddclient.service
+    # systemctl start ddclient.service
+
+
+fail2ban
+--------
+
+Install fail2ban::
+
+    # pacman -Syu fail2ban
+
+Copy/edit configuration files in */etc/fail2ban/*.
+
+Enable fail2ban.service::
+
+    # systemctl enable fail2ban.service
+    # systemctl start fail2ban.service
+
+
+nginx
+-----
+
+Install nginx and certbot::
+
+    # pacman -Syu certbot certbot-nginx nginx-mainline
+
+Copy/edit configuration files in */etc/nginx/*.
+
+Enable nginx.service::
+
+    # systemctl enable nginx.service
+    # systemctl start nginx.service
+
+
+Last updated: 2023-01-11
+
+..  _`Arch Linux ARM`: https://archlinuxarm.org/platforms/armv8/broadcom/raspberry-pi-4
+
+..  vim:ft=rst

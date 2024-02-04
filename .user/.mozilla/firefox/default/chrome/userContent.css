@@ -1,0 +1,304 @@
+/*/* ~/.mozilla/firefox/default/chrome/userContent.css ::*/
+
+@import "utheme.css";
+
+/* @-moz-document regexp("^.*\\.(asc|css|json|md|py|rst|sh|txt)$") {
+    * {
+        background: var(--background3) !important;
+        color: var(--color) !important;
+        font-family: var(--font-family) !important;
+        font-size: var(--font-size) !important;
+    }
+} */
+
+/* accounts.google.com: */
+@-moz-document domain(accounts.google.com) {
+    /* tags: */
+    body, html {
+        background: var(--background) !important;
+    }
+    input {
+        background: var(--background) !important;
+        color: var(--color) !important;
+    }
+}
+
+/* coinmarketcap.com: */
+@-moz-document domain(coinmarketcap.com) {
+    /* display: none */
+    footer, .cmc-bottom-margin-2x, .cmc-nav-wrap,
+    .cmc-newsletter-signup, .cmc-platform-alert {
+        display: none !important;
+    }
+}
+
+/* crazyguyonabike.com: */
+@-moz-document domain(www.crazyguyonabike.com) {
+    body, td, tr {
+        background: var(--background) !important;
+        color: var(--color) !important;
+    }
+    table:not([bgcolor="Beige"],[bgcolor="gainsboro"]) {
+        background: var(--background) !important;
+        color: var(--color) !important;
+    }
+    table[bgcolor="Beige"],[bgcolor="gainsboro"]  {
+        background: var(--background2) !important;
+    }
+    a, a:active {
+        color: var(--a) !important;
+    }
+    a:visited {
+        color: var(--a-visited) !important;
+    }
+    a:hover {
+        color: var(--a-hover) !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--heading) !important;
+    }
+}
+
+/* leadertelegram.com: */
+@-moz-document domain(www.leadertelegram.com) {
+    * {
+        background: var(--background) !important;
+        color: var(--color) !important;
+    }
+    /* display: none: */
+    #asset-below, #main-bottom-container, #site-footer-container,
+    #site-header, #site-header-container, #tncms-region-article_bottom,
+    #tncms-region-front-full-top,
+    .fixed-col-right, .header-promo, .main-sidebar,
+    .modal-body, .nav-home, .not-logged-in, .paging-link,
+    .site-logo-container, .subscription-required, .tnt-photo-purchase {
+        display: none !important;
+    }
+    /* tags: */
+    a, a:active {
+        color: var(--a) !important;
+    }
+    a:visited {
+        color: var(--a-visited) !important;
+    }
+    a:hover {
+        color: var(--a-hover) !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        line-height: normal !important;
+    }
+    /* classes: */
+    .h1, .h2, .h3, .h4, .h5, .h6 {
+        line-height: normal !important;
+    }
+    .modal-header {
+        padding: 5px !important;
+        border: none !important;
+    }
+    .modal-title::before {
+        content: "Paywall removal by c-magyar. " !important;
+    }
+    .redacted-overlay {
+        background: none !important;
+    }
+    .subscriber-only {
+        display: inline !important;
+    }
+}
+
+/* overthewire.org: */
+@-moz-document domain(overthewire.org) {
+    /* display: none: */
+    #shortcuts {
+        display: none !important;
+    }
+    /* tags: */
+    html {
+        background: var(--background2) !important;
+    }
+    body {
+        background: transparent !important;
+        color: var(--color) !important;
+    }
+    a, a:active {
+        color: var(--a) !important;
+    }
+    a:visited {
+        color: var(--a-visited) !important;
+    }
+    a:hover {
+        color: var(--a-hover) !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--heading) !important;
+    }
+    sh {
+        color: var(--heading) !important;
+    }
+    /* ids: */
+    #content {
+        margin: 74px 0px 0px 208px !important;
+    }
+    #sidemenu {
+        background: var(--background3) !important;
+    }
+    #sshinfo {
+        border: 1px solid var(--heading) !important;
+    }
+    #sshinfo {
+        color: var(--heading) !important;
+    }
+    /* classes: */
+    .h2link, .titlelink {
+        color: var(--heading) !important;
+    }
+    .highlight {
+        background: var(--background3) !important;
+        font-family: var(--font-family) !important;
+    }
+}
+
+/* smbc-comics.com */
+@-moz-document domain(www.smbc-comics.com) {
+    /* display: none: */
+    #blogarea, #blogheader, #buythis, #comicright, #footer #header,
+    #ibar, #midleader, #navtop, #permalink, #sharebar {
+        display: none !important;
+    }
+    /* tags: */
+    body {
+        background: #000000 !important;
+    }
+    /* ids: */
+    #mainwrap, #wrapper {
+        background: #000000 !important;
+        width: 725px !important;
+    }
+    #mainwrap {
+        border: none !important;
+        padding: 0 !important;
+    }
+}
+
+/* tldp.org - bash-docs */
+@-moz-document regexp("^https://tldp\\.org/LDP/abs/html/.*$") {
+    /* tags: */
+    body {
+        background: var(--background) !important;
+        color: var(--color) !important;
+    }
+    a, a:active {
+        color: var(--a) !important;
+    }
+    a:visited {
+        color: var(--a) !important;
+    }
+    a:hover {
+        color: var(--a-hover) !important;
+    }
+    table, td, tr {
+        background: var(--background) !important;
+        border-color: var(--background) !important;
+        border-style: none !important;
+    }
+    pre {
+        background: var(--background2) !important;
+        color: var(--color2) !important;
+        font-family: var(--font-family) !important;
+        font-size: var(--font-size) !important;
+    }
+    /* classes: */
+    .COMPUTEROUTPUT, .FILENAME, .PROGRAMLISTING, .PROMPT,
+    .USERINPUT, .VARNAME {
+        color: var(--color2) !important;
+        font-family: var(--font-family) !important;
+        font-size: var(--font-size) !important;
+    }
+    .COMPUTEROUTPUT, .PROMPT {
+        background: var(--background2) !important;
+    }
+    .REPLACEABLE {
+        font-family: var(--font-family2) !important;
+        font-weight: bold !important;
+    }
+    .USERINPUT {
+        color: var(--hilite) !important;
+    }
+}
+
+/* vimhelp.org */
+@-moz-document domain(vimhelp.org) {
+    * {
+        background: #000000 !important;
+        color: #fcfcfc !important;
+        font-family: var(--font-family) !important;
+        font-size: var(--font-size) !important;
+        text-decoration: none !important;
+        font-weight: normal !important;
+    }
+    /* display: none: */
+    .gsc-control-cse {
+        display: none !important;
+    }
+    /* hidden links */
+    a.d:active, a.d:link, a.d:visited {
+        color: #f8f8f8 !important;
+    }
+    a.d:hover {
+        color: #d0d0d0 !important;
+    }
+    /* standard links */
+    a.l:active, a.l:link, a.u:active, a.u:link {
+        color: #0080ff !important;
+    }
+    a.l:visited, a.u:visited {
+        color: #0060ff !important;
+    }
+    a.l:hover, a.u:hover {
+        color: #00c0ff !important;
+    }
+    /* title */
+    .i {
+        color: #2080ff !important;
+    }
+    /* tag */
+    .t {
+        color: #f000f0 !important;
+    }
+    /* header */
+    .h {
+        color: #cf00ff !important;
+    }
+    /* keystroke */
+    .k {
+        color: #ffff55 !important;
+    }
+    /* example */
+    .e {
+        color: #00aa00 !important;
+    }
+    /* special (used for various) */
+    .s {
+        color: #ffff55 !important;
+    }
+    /* note */
+    .n {
+        color: #ff8020 !important;
+    }
+    /* option */
+    .o {
+        color: #55ffff !important;
+    }
+    /* section */
+    .c {
+        color: #cf00ff !important;
+    }
+}
+
+/* wechall.net */
+@-moz-document domain(www.wechall.net) {
+    /* tags: */
+    input, select {
+        color: var(--color3) !important;
+    }
+}

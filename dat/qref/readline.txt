@@ -1,0 +1,333 @@
+========
+Readline
+========
+
+Readline is responsible for reading input and handling basic line-editing in
+the interactive shell (bash). Readline is configured via the *~/.inputrc* file
+and/or the bind_ shell builtin command. See the readline manpage_ for a
+complete description of every variable/option and binding.
+
+View all readline variables and their current values::
+
+    $ bind -V
+
+View all readline functions, macros, and shell commands with their current
+bindings::
+
+    $ bind -PSX
+
+Set readline variables and bindings::
+
+    $ bind 'set <variable> <value>'
+    $ bind [-m keymap] '"<keys>": <readline-function>'
+    $ bind [-m keymap] '"<keys>": "<macro>"'
+    $ bind [-m keymap] -x '"<keys>": <shell-command>'
+
+Variables
+=========
+
+Disable terminal bell::
+
+    set bell-style none
+
+Use colors (from LS_COLORS) to indicate completion item file types::
+
+    set colored-stats on
+
+Append ``/`` to symbolic link completion items if they link to directories::
+
+    set mark-symlinked-directories on
+
+Readline defaults to emacs mode, use vi mode instead::
+
+    set editing-mode vi
+
+Enable a colored indicator of the current mode in the shell prompt::
+
+    set show-mode-in-prompt on
+    set emacs-mode-string \1\e[1;38;5;10m\2~\1\e[0m\2
+    set vi-ins-mode-string \1\e[1;38;5;10m\2:\1\e[0m\2
+    set vi-cmd-mode-string \1\e[1;38;5;10m\2-\1\e[0m\2
+
+Decrease wait time for input characters in ambiguous sequences; you probably
+want this this when mapping things to meta/alt key combinations to avoid
+excessive waiting for an escape::
+
+    set keyseq-timeout 10
+
+Bindings
+========
+
+``C-s`` and ``C-q`` are reserved by the terminal_ to suspend and restart
+terminal output. ``C-c`` sends a KILL signal. Nearly every other key sequence
+can be used freely in bindings.
+
+Generally, the alt/meta keys send an escape upon combination with another
+character (often, this can configured in termiall settings). To map something
+to ``M-x``, use an escape character: ``"\ec"``. Meta bindings can differentiate
+case while Control bindings usually cannot, that is ``M-x`` and ``M-X`` are
+different while ``C-x`` and ``C-X`` are not.
+
+vimacs
+------
+
+Vi mode doesn't make use of any Meta key bindings. Might as well use em if you
+got em! These are the bindings I've come to adopt for both *vi command* and *vi
+insert* modes (see `.inputrc`_). Default emacs or vi bindings are indicated
+respectively by an ``e`` or a ``v``.
+
+Move::
+
+    C-?     backward-char
+    C-a     beginning-of-line       e
+    C-b     backward-char           e
+    C-e     end-of-line             e
+    C-f     forward-char            e
+    M-B     shell-backward-word
+    M-F     shell-forward-word
+    M-W     shell-forward-word
+    M-b     backward-word           e
+    M-f     forward-word            e
+    M-h     backward-char
+    M-l     forward-char
+    M-w     forward-word
+
+Delete::
+
+    C-d     delete-char             e
+    C-h     backward-delete-char    e
+    C-u     unix-line-discard       e v
+    C-w     unix-word-rubout        e v
+    M-R     unix-word-rubout
+    M-X     shell-kill-word
+    M-r     backward-kill-word
+    M-t     unix-line-discard
+    M-x     kill-word
+    M-y     kill-line
+
+Modify::
+
+    M-~     tilde-expand            e
+
+Complete::
+
+    C-n     menu-complete
+    C-p     menu-complete-backward
+    Tab     complete
+
+History::
+
+    C-j     next-history
+    C-k     previous-history
+    M-J     end-of-history
+    M-K     beginning-of-history
+    M-j     next-history
+    M-k     previous-history
+
+Various::
+
+    C-v     quoted-insert           e v
+    C-l     clear-display
+    M-v     edit-and-execute-command
+
+fzf::
+
+    C-r     fzf history search
+    C-t     fzf insert
+    M-c     fzf cd
+
+Default Bindings
+================
+
+Emacs::
+
+    C-@     set-mark
+    C-a     beginning-of-line
+    C-b     backward-char
+    C-d     delete-char
+    C-e     end-of-line
+    C-f     forward-char
+    C-g     abort
+    C-h     backward-delete-char
+    C-i     complete
+    C-j     accept-line
+    C-k     kill-line
+    C-l     clear-screen
+    C-m     accept-line
+    C-n     next-history
+    C-p     previous-history
+    C-q     quoted-insert
+    C-r     reverse-search-history
+    C-s     forward-search-history
+    C-t     transpose-chars
+    C-u     unix-line-discard
+    C-v     quoted-insert
+    C-w     unix-word-rubout
+    C-y     yank
+    C-]     character-search
+    C-_     undo
+      to /  self-insert
+    0 to 9  self-insert
+    : to ~  self-insert
+    C-?     backward-delete-char
+    M-C-g   abort
+    M-C-h   backward-kill-word
+    M-C-i   tab-insert
+    M-C-j   vi-editing-mode
+    M-C-l   clear-display
+    M-C-m   vi-editing-mode
+    M-C-r   revert-line
+    M-C-y   yank-nth-arg
+    M-C-[   complete
+    M-C-]   character-search-backward
+    M-space set-mark
+    M-#     insert-comment
+    M-&     tilde-expand
+    M-*     insert-completions
+    M--     digit-argument
+    M-.     yank-last-arg
+    M-0     digit-argument
+    M-1     digit-argument
+    M-2     digit-argument
+    M-3     digit-argument
+    M-4     digit-argument
+    M-5     digit-argument
+    M-6     digit-argument
+    M-7     digit-argument
+    M-8     digit-argument
+    M-9     digit-argument
+    M-<     beginning-of-history
+    M-=     possible-completions
+    M->     end-of-history
+    M-?     possible-completions
+    M-b     backward-word
+    M-c     capitalize-word
+    M-d     kill-word
+    M-f     forward-word
+    M-l     downcase-word
+    M-n     non-incremental-forward-search-history
+    M-p     non-incremental-reverse-search-history
+    M-r     revert-line
+    M-t     transpose-words
+    M-u     upcase-word
+    M-y     yank-pop
+    M-\     delete-horizontal-space
+    M-~     tilde-expand
+    M-C-?   backward-kill-word
+    M-_     yank-last-arg
+    C-xC-g  abort
+    C-xC-r  re-read-init-file
+    C-xC-u  undo
+    C-xC-x  exchange-point-and-mark
+    C-x(    start-kbd-macro
+    C-x)    end-kbd-macro
+    C-xe    call-last-kbd-macro
+    C-xC-?  backward-kill-line
+
+Vi Insert::
+
+    C-d     vi-eof-maybe
+    C-h     backward-delete-char
+    C-i     complete
+    C-j     accept-line
+    C-m     accept-line
+    C-r     reverse-search-history
+    C-s     forward-search-history
+    C-t     transpose-chars
+    C-u     unix-line-discard
+    C-v     quoted-insert
+    C-w     unix-word-rubout
+    C-y     yank
+    C-[     vi-movement-mode
+    C-_     undo
+      to ~  self-insert
+    C-?     backward-delete-char
+
+Vi Command::
+
+    C-d     vi-eof-maybe
+    C-e     emacs-editing-mode
+    C-g     abort
+    C-h     backward-char
+    C-j     accept-line
+    C-k     kill-line
+    C-l     clear-screen
+    C-m     accept-line
+    C-n     next-history
+    C-p     previous-history
+    C-q     quoted-insert
+    C-r     reverse-search-history
+    C-s     forward-search-history
+    C-t     transpose-chars
+    C-u     unix-line-discard
+    C-v     quoted-insert
+    C-w     unix-word-rubout
+    C-y     yank
+    C-_     vi-undo
+            forward-char <space>
+    #       insert-comment
+    $       end-of-line
+    %       vi-match
+    &       vi-tilde-expand
+    *       vi-complete
+    +       next-history
+    ,       vi-char-search
+    -       previous-history
+    .       vi-redo
+    /       vi-search
+    0       beginning-of-line
+    1 to 9  vi-arg-digit
+    ;       vi-char-search
+    =       vi-complete
+    ?       vi-search
+    A       vi-append-eol
+    B       vi-prev-word
+    C       vi-change-to
+    D       vi-delete-to
+    E       vi-end-word
+    F       vi-char-search
+    G       vi-fetch-history
+    I       vi-insert-beg
+    N       vi-search-again
+    P       vi-put
+    R       vi-replace
+    S       vi-subst
+    T       vi-char-search
+    U       revert-line
+    W       vi-next-word
+    X       backward-delete-char
+    Y       vi-yank-to
+    \       vi-complete
+    ^       vi-first-print
+    _       vi-yank-arg
+    `       vi-goto-mark
+    a       vi-append-mode
+    b       vi-prev-word
+    c       vi-change-to
+    d       vi-delete-to
+    e       vi-end-word
+    f       vi-char-search
+    h       backward-char
+    i       vi-insertion-mode
+    j       next-history
+    k       prev-history
+    l       forward-char
+    m       vi-set-mark
+    n       vi-search-again
+    p       vi-put
+    r       vi-change-char
+    s       vi-subst
+    t       vi-char-search
+    u       vi-undo
+    w       vi-next-word
+    x       vi-delete
+    y       vi-yank-to
+    |       vi-column
+    ~       vi-change-case
+
+..  _`.inputrc`: https://github.com/arcmags/user/blob/main/.user/.inputrc
+..  _bind: https://man7.org/linux/man-pages/man1/bash.1.html#SHELL_BUILTIN_COMMANDS
+..  _manpage: https://man7.org/linux/man-pages/man3/readline.3.html
+..  _terminal: https://man7.org/linux/man-pages/man1/stty.1.html
+
+..  vim:ft=rst

@@ -1,0 +1,50 @@
+======
+Webcam
+======
+
+Query
+=====
+
+List usb devices::
+
+    $ lsusb
+
+List usb device details::
+
+    $ lsusb -s <BUS>:<DEV> -v
+
+List audio input devices (note CARD and DEV to be used for recording)::
+
+    $ arecord -L
+
+List webcam devices::
+
+    $ v4l2-ctl --list-devices
+
+List webcam controls/settings::
+
+    $ v4l2-ctl [-d DEVICE] -l
+
+Settings
+========
+
+Set control value::
+
+    $ v4l2-ctl [-d DEVICE] -c <CTRL>=<VALUE>
+
+Set resolution::
+
+    $ v4l2-ctl --set-fmt-video=width=<WIDTH>,height=<HEIGHT>
+
+View/Record
+===========
+
+View::
+
+    $ mpv av://v4l2:<DEVICE> --profile=low-latency --untimed
+
+Record::
+
+    $ ffmpeg -f alsa -i plughw:CARD=<CARD>,DEV=<DEV> -f video4linux2 -i /dev/video0 out.mp4
+
+..  vim:ft=rst

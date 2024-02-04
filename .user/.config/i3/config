@@ -1,0 +1,226 @@
+## ~/.config/i3/config ::
+
+## requirements ::
+# dmenu, feh, firefox, font-awesome, font-hack, i3lock, imagemagick, picom,
+# qutebrowser, xterm
+# ~/.config/i3/bin/i3-bar_base.sh, ~/.config/i3/bin/i3-cycle, ~/.config/i3/json/term_1.json
+# xrdg-query: color0, color7, color8, color10, color12, color15
+
+set $mod Mod4
+set $exec exec --no-startup-id
+set $exec_always exec_always --no-startup-id
+set $font Hack
+set $size 10
+set $border 4
+set $gaps 16
+set $xterm "cd \\"$UDIR\\"; xterm"
+set $xterm_float "cd \\"$UDIR\\"; xterm -title xterm_float"
+set_from_resource $bg0 i3wm.color0
+set_from_resource $bg1 i3wm.color4
+set_from_resource $fg0 i3wm.color7
+set_from_resource $fg1 i3wm.color15
+set_from_resource $ui0 i3wm.color12
+set_from_resource $ui1 i3wm.color10
+
+## setting ::
+$exec_always [ -f "$HOME/.config/i3/config.sh" ] && "$HOME/.config/i3/config.sh"
+
+# bar:
+bar {
+    colors {
+        # colors:          border   fill    text
+        background                  $bg0
+        focused_workspace  $bg0     $ui0    $fg1
+        active_workspace   $bg0     $bg1    $ui0
+        inactive_workspace $bg0     $bg1    $fg0
+        urgent_workspace   $fg1     $bg1    $ui1
+    }
+    font pango:$font $size
+    i3bar_command i3bar
+    position top
+    status_command ~/.config/i3/bin/i3-bar_base.sh
+    strip_workspace_numbers yes
+}
+
+# borders:
+default_border pixel $border
+default_floating_border pixel $border
+for_window [all] title_format " <b>%title</b>"
+
+# colors:               border  fill    text    marked  child
+client.focused          $bg1    $bg1    $ui1    $ui0    $ui0
+client.focused_inactive $bg1    $bg1    $ui1    $bg1    $bg1
+client.unfocused        $bg1    $bg1    $fg0    $bg1    $bg1
+client.urgent           $bg1    $ui0    $fg1    $ui0    $ui0
+
+# compositor:
+$exec picom -b
+
+# font:
+font pango:$font $size
+
+# mouse:
+floating_modifier $mod
+focus_follows_mouse no
+
+# windows:
+for_window [class="(?i)^(cropgtk.py|cropgui)$"] floating enable
+for_window [class=".*mpv$"] floating enable, move position center
+for_window [class="^File-roller$"] floating enable
+for_window [class="^Pinentry$"] floating enable, move position center
+for_window [class="^Thunar$" title="^New Empty File...$"] floating enable
+for_window [class="^Thunar$" title="^Rename Mult.*"] resize set 750 500
+for_window [class="^feh.*"] floating enable, resize set 96 ppt 96 ppt, move position center
+for_window [class="^feh.*"] floating enable, resize set 96 ppt 96 ppt, move position center
+for_window [class="^(feh|imv|Eog).*"] floating enable, resize set 96 ppt 96 ppt, move position center
+for_window [class="^qutebrowser$"] border pixel
+for_window [title="(?i)^save as*"] floating enable
+for_window [title="Sign in to Minecraft"] floating enable, resize set 750 500, move position center
+for_window [title="Welcome to Xbox"] floating enable, resize set 750 500, move position center
+for_window [title="^xterm_float$"] floating enable, resize set 960 720, move position center
+
+## mappings ::
+bindsym $mod+semicolon $exec $xterm
+bindsym $mod+apostrophe $exec $xterm_float
+bindsym $mod+backslash split h; append_layout ~/.config/i3/json/term_1.json; \
+    $exec $xterm; $exec $xterm; \
+    $exec $xterm; $exec $xterm
+
+# kill window:
+bindsym $mod+q kill
+
+# browser:
+bindsym $mod+e $exec qutebrowser >>/tmp/qutebrowser.log 2>&1
+bindsym $mod+shift+e $exec firefox
+
+# dmenu:
+bindsym $mod+Return $exec $(dmenu_path | dmenu -fn "$font"-"$size" \
+    -nb "$bg0" -nf "$fg0" -sb "$bg1" -sf "$ui1" -i)
+
+# exit, lock, reload:
+bindsym $mod+Control+q $exec \
+    "cmd=$(printf 'exit\nlock\nreload' | dmenu -fn \\"$font\\"-\\"$size\\" \
+        -nb \\"$bg0\\" -sb \\"$bg1\\" -sf \\"$ui1\\" -nf \\"$fg0\\" -i); \
+    if [ $cmd = exit ]; then \
+        i3-msg exit; \
+    elif [ $cmd = lock ]; then \
+        import -window root /tmp/lock.png && \
+        convert /tmp/lock.png -scale 25% -scale 400% /tmp/lock.png && \
+        i3lock -u -i /tmp/lock.png && rm /tmp/lock.png; \
+    elif [ $cmd = reload ]; then \
+        i3-msg restart; \
+    fi"
+
+# toggle i3bar:
+bindsym $mod+shift+t bar mode toggle
+
+# toggle workspace gaps:
+bindsym $mod+shift+g $exec \
+    "if (i3-msg -t get_tree | grep -q '\\"gaps\\":'); then \
+        i3-msg gaps inner current toggle \\"$gaps\\"; \
+    fi"
+
+# toggle window border:
+bindsym $mod+shift+b $exec \
+    "if [ `i3-msg -t get_tree | \
+    grep -Po '.*(},|\[)\K{.*?\\"focused\\":true.*?}(?=(,{|\]))' | \
+    grep -Po 'current_border_width\\":\K[0-9]+'` -eq 0 ]; then \
+        i3-msg border pixel \\"$border\\"; \
+    else \
+        i3-msg border none; \
+    fi"
+
+# toggle window float:
+bindsym $mod+y floating toggle
+
+# toggle window fullscreen:
+bindsym $mod+f fullscreen toggle
+
+# set container layout:
+bindsym $mod+s split v
+bindsym $mod+v split h
+bindsym $mod+t layout toggle tabbed split
+
+# toggle floating/tiled window focus:
+bindsym $mod+u focus mode_toggle
+
+# float window, resize to 96%, center on the workspace:
+bindsym $mod+Shift+y floating enable resize set 96 ppt 96 ppt, move position center
+
+# focus next output:
+bindsym $mod+m focus output right, focus output down
+
+# window focus:
+bindsym $mod+h focus left
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+l focus right
+bindsym $mod+a focus parent
+bindsym $mod+z focus child
+bindsym $mod+w $exec ~/.config/i3/bin/i3-cycle
+bindsym $mod+Shift+w $exec ~/.config/i3/bin/i3-cycle prev
+
+# window size:
+bindsym $mod+comma resize shrink width 16 px
+bindsym $mod+period resize grow width 16 px
+bindsym $mod+minus resize shrink height 16 px
+bindsym $mod+equal resize grow height 16 px
+bindsym $mod+Shift+comma resize shrink width 96 px
+bindsym $mod+Shift+period resize grow width 96 px
+bindsym $mod+Shift+minus resize shrink height 96 px
+bindsym $mod+Shift+equal resize grow height 96 px
+
+# window transparency:
+bindsym $mod+bracketleft $exec picom-trans -c -4
+bindsym $mod+bracketright $exec picom-trans -c +4
+bindsym $mod+Shift+bracketleft $exec picom-trans -c 84
+bindsym $mod+Shift+bracketright $exec picom-trans -c 100
+
+# move window:
+bindsym $mod+Shift+h move left 64
+bindsym $mod+Shift+j move down 64
+bindsym $mod+Shift+k move up 64
+bindsym $mod+Shift+l move right 64
+
+# move window to workspace:
+bindsym $mod+Shift+1 move container to workspace 1:1
+bindsym $mod+Shift+2 move container to workspace 2:2
+bindsym $mod+Shift+3 move container to workspace 3:3
+bindsym $mod+Shift+4 move container to workspace 4:4
+bindsym $mod+Shift+5 move container to workspace 5:5
+bindsym $mod+Shift+6 move container to workspace 6:6
+bindsym $mod+Shift+7 move container to workspace 7:7
+bindsym $mod+Shift+8 move container to workspace 8:8
+bindsym $mod+Shift+9 move container to workspace 9:9
+bindsym $mod+Shift+0 move container to workspace 10:0
+
+# change workspace:
+bindsym $mod+n workspace next_on_output
+bindsym $mod+p workspace prev_on_output
+bindsym $mod+1 workspace 1:1
+bindsym $mod+2 workspace 2:2
+bindsym $mod+3 workspace 3:3
+bindsym $mod+4 workspace 4:4
+bindsym $mod+5 workspace 5:5
+bindsym $mod+6 workspace 6:6
+bindsym $mod+7 workspace 7:7
+bindsym $mod+8 workspace 8:8
+bindsym $mod+9 workspace 9:9
+bindsym $mod+0 workspace 10:0
+
+# move workspace to next output:
+bindsym $mod+Shift+m move workspace to output next
+
+# rename workspace:
+bindsym $mod+Control+1 rename workspace to 1:1
+bindsym $mod+Control+2 rename workspace to 2:2
+bindsym $mod+Control+3 rename workspace to 3:3
+bindsym $mod+Control+4 rename workspace to 4:4
+bindsym $mod+Control+5 rename workspace to 5:5
+bindsym $mod+Control+6 rename workspace to 6:6
+bindsym $mod+Control+7 rename workspace to 7:7
+bindsym $mod+Control+8 rename workspace to 8:8
+bindsym $mod+Control+9 rename workspace to 9:9
+bindsym $mod+Control+0 rename workspace to 10:0
+
+# vim:ft=config

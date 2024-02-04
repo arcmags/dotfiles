@@ -1,0 +1,185 @@
+## ~/.lscolors ::
+
+TERM Eterm
+TERM ansi
+TERM *color*
+TERM con[0-9]*x[0-9]*
+TERM cons25
+TERM console
+TERM cygwin
+TERM dtterm
+TERM gnome
+TERM hurd
+TERM jfbterm
+TERM konsole
+TERM kterm
+TERM linux
+TERM linux-c
+TERM mlterm
+TERM putty
+TERM rxvt*
+TERM screen*
+TERM st
+TERM terminator
+TERM tmux*
+TERM vt100
+TERM xterm*
+
+# file: white:
+NORMAL 38;5;15
+RESET 0
+FILE 38;5;15
+
+# directory: bold blue:
+DIR 1;38;5;12
+STICKY 1;38;5;12
+STICKY_OTHER_WRITABLE 1;38;5;12
+
+# block: bold yellow:
+BLK 1;38;5;11
+CHR 1;38;5;11
+
+# link: cyan:
+LINK 38;5;14
+FIFO 38;5;14
+SOCK 38;5;14
+DOOR 38;5;14
+
+# busted: bold red:
+ORPHAN 1;38;5;9
+
+# restricted: orange:
+SETUID 38;5;3
+SETGID 38;5;3
+CAPABILITY 38;5;3
+OTHER_WRITABLE 38;5;3
+
+# executable: green:
+EXEC 38;5;10
+
+# archive: yellow:
+.7z 38;5;11
+.ace 38;5;11
+.alz 1;38;5;11
+.arc 38;5;11
+.arj 38;5;11
+.asc 38;5;11
+.bz 38;5;11
+.bz2 38;5;11
+.cab 38;5;11
+.cb7 38;5;11
+.cba 38;5;11
+.cbr 38;5;11
+.cbz 38;5;11
+.cpio 38;5;11
+.deb 38;5;11
+.dz 38;5;11
+.ear 38;5;11
+.gpg 38;5;11
+.gz 38;5;11
+.img 38;5;11
+.iso 38;5;11
+.jar 38;5;11
+.lha 38;5;11
+.lrz 38;5;11
+.lz 38;5;11
+.lz4 38;5;11
+.lzh 38;5;11
+.lzma 38;5;11
+.lzo 38;5;11
+.rar 38;5;11
+.rpm 38;5;11
+.rz 38;5;11
+.sar 38;5;11
+.t7z 38;5;11
+.tar 38;5;11
+.taz 38;5;11
+.tb2 38;5;11
+.tbz 38;5;11
+.tbz2 38;5;11
+.tgz 38;5;11
+.tlz 38;5;11
+.txz 38;5;11
+.tz 38;5;11
+.tzo 38;5;11
+.tzst 38;5;11
+.uu 38;5;11
+.war 38;5;11
+.wim 38;5;11
+.xz 38;5;11
+.z 38;5;11
+.zip 38;5;11
+.zoo 38;5;11
+.zpaq 38;5;11
+.zst 38;5;11
+
+# image: dark cyan:
+.bmp 38;5;14
+.gif 38;5;14
+.jpeg 38;5;14
+.jpg 38;5;14
+.mjpeg 38;5;14
+.mjpg 38;5;14
+.mng 38;5;14
+.pbm 38;5;14
+.pcx 38;5;14
+.pgm 38;5;14
+.png 38;5;14
+.ppm 38;5;14
+.svg 38;5;14
+.svgz 38;5;14
+.tga 38;5;14
+.tif 38;5;14
+.tiff 38;5;14
+.xbm 38;5;14
+.xpm 38;5;14
+
+# audio: magenta:
+.aac 38;5;13
+.au 38;5;13
+.flac 38;5;13
+.m4a 38;5;13
+.mid 38;5;13
+.midi 38;5;13
+.mka 38;5;13
+.mp3 38;5;13
+.mpc 38;5;13
+.oga 38;5;13
+.ogg 38;5;13
+.opus 38;5;13
+.ra 38;5;13
+.spx 38;5;13
+.wav 38;5;13
+.xspf 38;5;13
+
+# video: magenta:
+.asf 38;5;13
+.avi 38;5;13
+.cgm 38;5;13
+.dl 38;5;13
+.emf 38;5;13
+.flc 38;5;13
+.fli 38;5;13
+.flv 38;5;13
+.gl 38;5;13
+.m2v 38;5;13
+.m4v 38;5;13
+.mkv 38;5;13
+.mov 38;5;13
+.mp4 38;5;13
+.mp4v 38;5;13
+.mpeg 38;5;13
+.mpg 38;5;13
+.nuv 38;5;13
+.ogm 38;5;13
+.ogv 38;5;13
+.ogx 38;5;13
+.qt 38;5;13
+.rm 38;5;13
+.rmvb 38;5;13
+.vob 38;5;13
+.webm 38;5;13
+.wmv 38;5;13
+.xcf 38;5;13
+.xwd 38;5;13
+.yuv 38;5;13

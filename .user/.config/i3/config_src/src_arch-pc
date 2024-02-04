@@ -1,0 +1,5 @@
+# gaps:
+gaps inner 0
+gaps outer 0
+smart_gaps on
+bindsym Mod4+bracketleft gaps inner current toggle 16

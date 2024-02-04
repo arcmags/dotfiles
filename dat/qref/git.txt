@@ -1,0 +1,151 @@
+===================
+Git Quick Reference
+===================
+
+Create
+======
+
+github
+------
+
+Create a repo using github's web interface.
+
+local
+-----
+
+Create a local repo::
+
+    $ git init [-b <BRANCH>]
+
+Add remote repo::
+
+    $ git remote add <REMOTE> <URL>
+
+Push or pull from remote for first time::
+
+    $ git <push|pull> <REMOTE> <BRANCH>
+
+Clone
+=====
+
+Clone repo::
+
+    $ git clone [--recurse-submodules] <URL> [DIR]
+
+Shallow clone repo::
+
+    $ git clone --depth 1 <URL> [DIR]
+
+Add, Commit, Push
+=================
+
+Add files, commit, and push changes::
+
+    $ git add [--all] [FILES]
+    $ git commit [-S] -m <MESSAGE>
+    $ git push [REMOTE] [BRANCH]
+
+Branch
+======
+
+local
+-----
+
+List branches::
+
+    $ git branch [-v]
+
+Create branch::
+
+    $ git checkout -b <BRANCH>
+
+Checkout (switch to) branch::
+
+    $ git checkout <BRANCH>
+
+remote
+------
+
+List remote branches::
+
+    $ git branch -r [-v]
+
+Checkout (download and switch to) remote branch::
+
+    $ git checkout -b <BRANCH> <REMOTE>/<BRANCH>
+
+Fetch, Merge
+============
+
+Add another (upstream) remote::
+
+    $ git remote add <REMOTE2> <URL>
+
+Fetch from new remote::
+
+    $ git fetch <REMOTE2>
+
+Merge changes from new remote::
+
+    $ git checkout <BRANCH>
+    $ git merge <REMOTE2>/<BRANCH>
+
+..  TODO : check
+
+Push to original remote::
+
+    $ git push
+
+Rebase
+======
+
+Rebase branch to main/master::
+
+    $ git checkout <BRANCH>
+    $ git rebase <main|master>
+
+Push to remote::
+
+    $ git push --force
+
+Submodules
+==========
+
+Add submodule::
+
+    $ git submodule add <URL>
+    $ git push
+
+Init and pull submodules::
+
+    $ git submodule init
+    $ git submodule update
+
+note
+----
+
+If any submodules fail to update, they all fail to checkout. You need to individually
+update each submodule then::
+
+    $ git submodule init
+    $ for sm in $(git submodule status | cut -f2 -d' '); do git submodule update "$sm"; done
+
+Various
+=======
+
+Use ``-C <PATH>`` to run git as if in <PATH> instead of current directory::
+
+    $ git -C <PATH> <COMMAND> [ARGS]
+
+checks
+------
+
+Check if <PATH> is in a git repo::
+
+    $ git -C <PATH> rev-parse >/dev/null 2>&1 && echo true
+
+Check if <PATH> is the root of a git repo::
+
+    $ [ "$(git -C <PATH> rev-parse --git-dir)" = '.git'] && echo true
+
+..  vim:ft=rst

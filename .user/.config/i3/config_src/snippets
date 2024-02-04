@@ -1,0 +1,34 @@
+#! i3 config file snippets
+
+# screen: lock:
+bindsym $mod+$ctl+x $exec "import -window root /tmp/lock.png; \
+    convert /tmp/lock.png -scale 25% -scale 400% /tmp/lock.png; \
+    i3lock -u -i /tmp/lock.png && rm /tmp/lock.png"
+
+# gaps:
+bindsym $mod+n gaps inner current toggle $gap_width
+
+# gaps (grep):
+bindsym $mod+n exec --no-startup-id "if [ `i3-msg -t get_tree | grep -Po \
+    '.*\\"gaps\\":{\\"inner\\":\K(-|)[0-9]+(?=.*\\"focused\\":true)' \
+    ` -eq 0 ]; then \
+        i3-msg gaps inner current set 0; \
+    else \
+        i3-msg gaps inner current set $gap_width; fi"
+
+# gaps (jq):
+bindsym $mod+g exec --no-startup-id "if [ $(i3-msg -t get_tree | jq -r \
+    'recurse(.nodes[]) | if .type == \\"workspace\\" and .name == \\"'`i3-msg \
+    -t get_workspaces | jq -r '.[] | if .[\\"focused\\"] then .[\\"name\\"] else \
+    empty end'`'\\" then .gaps.inner else empty end') -eq 0 ]; then \
+        i3-msg gaps inner current set 0; \
+    else \
+        i3-msg gaps inner current set $gap_width; fi"
+
+# window: border:
+bindsym Mod4+bracketright exec --no-startup-id "if [ `i3-msg -t get_tree | \
+    grep -Po '.*(},|\[)\K{.*?\\"focused\\":true.*?}(?=(,{|\]))' | grep -Po \
+    'current_border_width\\":\K[0-9]+'` -eq 0 ]; then \
+        i3-msg border pixel 3; \
+    else \
+        i3-msg border none; fi"
