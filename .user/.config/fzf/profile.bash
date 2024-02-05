@@ -14,7 +14,7 @@ __fzf_select__() {
     opts="--height ${FZF_TMUX_HEIGHT:-40%} --bind=ctrl-z:ignore --reverse \
       ${FZF_DEFAULT_OPTS-} ${FZF_CTRL_T_OPTS-} -m"
     eval "$cmd" | FZF_DEFAULT_OPTS="$opts" $(__fzfcmd) "$@" | while read -r item; do
-        printf '%q ' "$item"  # escape special chars
+        printf '%q ' "$item"
     done
 }
 
@@ -41,7 +41,8 @@ __fzf_history__() {
     local output opts script
     opts="--height ${FZF_TMUX_HEIGHT:-40%} --bind=ctrl-z:ignore ${FZF_DEFAULT_OPTS-} \
       -n2..,.. --scheme=history --bind=ctrl-r:toggle-sort ${FZF_CTRL_R_OPTS-} +m --read0"
-    script='BEGIN { getc; $/ = "\n\t"; $HISTCOUNT = $ENV{last_hist} + 1 } s/^[ *]//; print $HISTCOUNT - $. . "\t$_" if !$seen{$_}++'
+    script='BEGIN { getc; $/ = "\n\t"; $HISTCOUNT = $ENV{last_hist} + 1 } s/^[ *]//; \
+      print $HISTCOUNT - $. . "\t$_" if !$seen{$_}++'
     output=$(builtin fc -lnr -2147483648 | \
       last_hist=$(HISTTIMEFORMAT='' builtin history 1) perl -n -l0 -e "$script" | \
       FZF_DEFAULT_OPTS="$opts" $(__fzfcmd) --query "$READLINE_LINE") || return

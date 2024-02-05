@@ -58,7 +58,11 @@ command_not_found_handle() {
 
 [ "$TERM" = 'linux' ] && export TERM='linux-16color'
 
-#is_bin w3m && export BROWSER='w3m'
+if [ -z "$DISPLAY" ]; then
+    is_bin w3m && export BROWSER='w3m'
+else
+    is_bin qutebrowser && export BROWSER='qutebrowser'
+fi
 
 export COLORFGBG='7;0'
 
@@ -298,23 +302,5 @@ termset() {
 titleset() {
     [ -n "$1" ] && printf '\033]0;%s\007' "$*"
 }
-
-if is_bin transmission-remote; then
-    transmission-remote-addall() {
-        for t in $(find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent'); do
-            if transmission-remote -a "$t" >/dev/null 2>&1; then
-                rm "$t"
-            else
-                printf 'E: %s\n' "$t" >&2
-            fi
-        done
-    }
-    is_bin jq && transmission-remote-rmdone() {
-        for t in $(transmission-remote -j -l | \
-          jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
-            transmission-remote -t $t -r
-        done
-    }
-fi
 
 # vim:ft=sh

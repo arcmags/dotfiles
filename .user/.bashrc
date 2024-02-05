@@ -31,6 +31,24 @@ reload() {
     . "$HOME/.bashrc"
 }
 
+if is_bin transmission-remote; then
+    transmission-remote-addall() {
+        for t in $(find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent'); do
+            if transmission-remote -a "$t" >/dev/null 2>&1; then
+                rm "$t"
+            else
+                printf 'E: %s\n' "$t" >&2
+            fi
+        done
+    }
+    is_bin jq && transmission-remote-rmdone() {
+        for t in $(transmission-remote -j -l | \
+          jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
+            transmission-remote -t $t -r
+        done
+    }
+fi
+
 ## execute ::
 if command -v termset &>/dev/null && [[ "$TERM" =~ linux|linux-16color ]]; then
     termset
