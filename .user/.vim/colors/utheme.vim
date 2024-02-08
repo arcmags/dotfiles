@@ -26,7 +26,7 @@ hi LineNr ctermfg=04 ctermbg=00 cterm=none term=none
 hi NonText ctermfg=04 cterm=none term=none
 hi SignColumn ctermfg=07 ctermbg=00 cterm=none term=none
 hi VertSplit ctermfg=04 ctermbg=04 cterm=none term=none
-hi Visual ctermbg=04
+hi Visual ctermfg=none ctermbg=04
 
 # statusline:
 hi StatusLine ctermfg=10 ctermbg=04 cterm=bold term=bold
@@ -58,7 +58,7 @@ hi WildMenu ctermfg=10 ctermbg=04 cterm=bold term=bold
 hi ErrorMsg ctermfg=09 ctermbg=00 cterm=bold term=bold
 hi InfoMsg ctermfg=07 ctermbg=00 cterm=none term=none
 hi ModeMsg ctermfg=10 ctermbg=00 cterm=bold term=bold
-hi MoreMsg ctermfg=14 ctermbg=00 cterm=bold term=bold
+hi MoreMsg ctermfg=10 ctermbg=00 cterm=bold term=bold
 hi Question ctermfg=14 ctermbg=00 cterm=none term=none
 hi TOhtmlProgress ctermbg=02 cterm=none term=none
 hi Title ctermfg=12 ctermbg=00 cterm=bold term=bold
@@ -150,6 +150,7 @@ hi! link markdownCode String
 hi! link markdownCodeBlock String
 hi! link markdownHeadingRule Title
 hi! link markdownListMarker Title
+hi! link markdownURL Special
 
 # netrw:
 hi! link netrwExe String

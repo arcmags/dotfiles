@@ -591,7 +591,8 @@ config.bind('<Ctrl-j>', 'fake-key <Down>', mode='insert')
 config.bind('<Ctrl-k>', 'fake-key <Up>', mode='insert')
 config.bind('<Ctrl-n>', 'fake-key <Down>', mode='insert')
 config.bind('<Ctrl-p>', 'fake-key <Up>', mode='insert')
-config.bind('<Ctrl-w>', 'fake-key <Ctrl-Backspace>', mode='insert')
+#config.bind('<Ctrl-w>', 'fake-key <Ctrl-Backspace>', mode='insert')
+#config.bind('<Ctrl-w>', 'fake-key <Alt-Backspace>', mode='insert')
 
 # passthrough:
 config.bind('<Ctrl-Escape>', 'mode-leave', mode='passthrough')
