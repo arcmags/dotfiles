@@ -4,9 +4,8 @@ css: css/main.css
 
 # Bluetooth Sniffing
 
-[Bluetooth Classic][bc] and [Bluetooth Low Energy][ble] are two independent
-things. It seems most information out there is Bluetooth Low Energy (BLE).
-That's what I'll be dealing with in this document.
+[Bluetooth Low Energy][ble] and [Bluetooth Classic][bc] are two independent
+things. This guide is about Bluetooth Low Energy (BLE) sniffing.
 
 
 ## Requirements
