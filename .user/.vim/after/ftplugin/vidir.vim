@@ -4,7 +4,7 @@ vim9script
 setlocal commentstring=#%s
 setlocal nonumber
 
-nnoremap <buffer> <leader>vm 0wv$F/hxivideos_in/movies<esc>
-nnoremap <buffer> <leader>vM 0wv$F/hxivideos_in/movies/subs<esc>
-nnoremap <buffer> <leader>vs 0wv$F/F/hxivideos_in/shows<esc>
-nnoremap <buffer> <leader>vS 0wv$F/F/hxivideos_in/shows<esc>f/asubs/<esc>
+nnoremap <buffer> <localleader>m 0wv$F/hxivideos_in/movies<esc>l
+nnoremap <buffer> <localleader>M 0wv$F/hxivideos_in/movies/subs<esc>l
+nnoremap <buffer> <localleader>s 0wv$F/F/hxivideos_in/shows<esc>l
+nnoremap <buffer> <localleader>S 0wv$F/F/hxivideos_in/shows<esc>f/asubs/<esc>l

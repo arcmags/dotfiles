@@ -321,7 +321,7 @@ img_size_set() {
 
 ## arrays, strings, numbers ::
 arr_contains() {
-    # check if array $1 contains $2:
+    # check if array var $1 contains $2:
     local arr e
     eval "arr=(\"\${$1[@]}\")"
     for e in "${arr[@]}"; do

@@ -33,20 +33,27 @@ reload() {
 
 if is_bin transmission-remote; then
     transmission-remote-addall() {
-        for t in $(find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent'); do
-            if transmission-remote -a "$t" >/dev/null 2>&1; then
+        find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent' | while read -r t; do
+            if transmission-remote -a "$t" &>/dev/null; then
                 rm "$t"
             else
                 printf 'E: %s\n' "$t" >&2
             fi
         done
     }
-    is_bin jq && transmission-remote-rmdone() {
-        for t in $(transmission-remote -j -l | \
-          jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
-            transmission-remote -t $t -r
-        done
-    }
+    if is_bin jq; then
+        transmission-remote-rmall() {
+            for t in $(transmission-remote -j -l | jq '.arguments.torrents.[].id'); do
+                transmission-remote -t $t -r &>/dev/null
+            done
+        }
+        transmission-remote-rmdone() {
+            for t in $(transmission-remote -j -l | \
+              jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
+                transmission-remote -t $t -r &>/dev/null
+            done
+        }
+    fi
 fi
 
 ## execute ::

@@ -154,7 +154,9 @@ spelling::
     [s          previous misspelled word
     z=          show suggestions
     zg          add word to dictionary
-    zw          remove word from dictionary
+    zw          mark word as bad in dictionary
+    zG          add word to temporary dictionary
+    zW          mark word as bad in temporary dictionary
 
 buffers::
 

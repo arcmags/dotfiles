@@ -30,6 +30,7 @@ silent! helptags ALL
 set autoread
 set encoding=utf-8 fileformats=unix,dos,mac
 set modeline modelines=1
+set nobomb
 set nobackup noswapfile nowritebackup
 set tags=tags;/
 
@@ -110,7 +111,7 @@ augroup end
 
 ## mappings :: special keys ::
 g:mapleader = ';'
-#g:maplocalleader = '\'
+g:maplocalleader = '\'
 nnoremap <leader>, ;
 set cedit=<c-q>
 set wildcharm=<c-n>
@@ -821,6 +822,9 @@ def TextUnix()
     endif
     const pos = getpos('.')
     sil keepp :%s/\r//e
+    sil setlocal fileencoding=utf-8
+    sil setlocal fileformat=unix
+    sil setlocal nobomb
     setpos('.', pos)
 enddef
 
