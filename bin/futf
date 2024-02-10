@@ -1,13 +1,13 @@
 #!/bin/bash
-## ~/bin/uutf ::
+## ~/bin/futf ::
 
 print_help() {
 cat <<'HELPDOC'
 NAME
-    uutf
+    futf
 
 SYNOPSIS
-    uutf [OPTION...] FILE...
+    futf [OPTION...] FILE...
 
 DESCRIPTION
     Convert file to utf-8 encoded unix text. By default: replace tabs with
