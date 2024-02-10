@@ -81,7 +81,7 @@ words=()
 
 ## functions ::
 msg_error() {
-	printf "\e[1;38;5;9m==> E: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9m==> E: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 screen_init() {

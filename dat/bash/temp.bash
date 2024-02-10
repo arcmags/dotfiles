@@ -39,20 +39,20 @@ trap "printf 'ctrl-c caught\n'; exit 1" INT
 
 ## messages ::
 msg() {
-	[ "$flag_quiet" = 'true' ] && return
-	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    [ "$flag_quiet" = 'true' ] && return
+    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg_ask() {
-	printf "\e[1;38;5;10m::> \e[0;38;5;15m$1\e[0m " "${@:2}"
+    printf "\e[1;38;5;10m::> \e[0;38;5;15m$1\e[0m " "${@:2}"
 }
 
 msg_error() {
-	printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_warn() {
-	printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 ## status checks ::
@@ -120,15 +120,7 @@ n_args=0
 n_flgs=0
 n_opts=0
 args_parse() {
-    local _args=("$@") a=0 arg="${_args[a]}" error_opt error_unknown
-    error_opt() {
-        msg_error '%s requires an option' "$arg"
-        exit 2
-    }
-    error_unknown() {
-        msg_error 'unknown argument: %s' "${arg:2:1}"
-        exit 2
-    }
+    local _args=("$@") a=0 arg="${_args[a]}"
     while [ -n "$arg" ]; do case "$arg" in
         # flags:
         -A|--A-long)
@@ -136,9 +128,8 @@ args_parse() {
             ((n_flgs++)); arg="${_args[((++a))]}" ;;
         # options:
         -x|--x-long)
-            opt_x="${_args[((++a))]}"
-            [ $# -le $a ] && error_opt
-            ((n_opts++)); arg="${_args[((++a))]}" ;;
+            [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 2
+            opt_x="${args[((++a))]}"; ((n_opts++)); arg="${args[((++a))]}" ;;
         # help:
         -H|--help)
             if [ "$(type -t print_help)" = 'function' ]; then
@@ -150,7 +141,10 @@ args_parse() {
         # all flags:
         -[AH]*)
             # all flags and options:
-            [[ ! "${arg:2:1}" =~ [ABxyH] ]] && error_unknown
+            if [[ ! "${arg:2:1}" =~ [AHx] ]]; then
+                msg_error 'unknown option: %s' "${arg:2:1}"
+                exit 2
+            fi
             _args[((a--))]="-${arg:2}"
             arg="${arg:0:2}" ;;
         # all options:

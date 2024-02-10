@@ -40,9 +40,9 @@ args_convert=('-auto-orient')
 numcolors=16     # Default number of colors in the palette.
 background=white # Default montage background.
 foreground=black # Default text color.
-width=800	 # Default width of screen in pixels.
+width=800    # Default width of screen in pixels.
 
-tilesize=150	       # Width and height of each tile in the montage.
+tilesize=150           # Width and height of each tile in the montage.
 tilewidth=$tilesize    # (or specify separately, if you prefer)
 tileheight=$tilesize
 tileheight=$tilesize
@@ -55,21 +55,21 @@ font='Hack-Regular'
 #fontsize=$((tilewidth/10))
 fontsize=12
 
-timeout=0.25		    # How long to wait for terminal to respond
-			    # to a control sequence (in seconds).
+timeout=0.25            # How long to wait for terminal to respond
+                # to a control sequence (in seconds).
 
 
 ## functions ::
 msg() {
-	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg_error() {
-	printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_warn() {
-	printf "\e[1;38;5;11m==> WARNING: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;11m==> WARNING: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_cmd() {
@@ -90,21 +90,21 @@ processlabel() {
     # 3. Replace control characters with question marks.
     # 4. If a filename is too long, remove extension (.jpg).
     # 5. Split long filenames with newlines (recursively)
-    span=15			# filenames longer than span will be split
+    span=15         # filenames longer than span will be split
     echo -n "$1" |
-	sed 's|^:||; s|\[0]$||;' | tr '[:cntrl:]' '?' |
-	awk -v span=$span -v ORS=""  '
-	function halve(s,      l,h) {	# l and h are locals
-	    l=length(s);  h=int(l/2);
-	    if (l <= span) { return s; }
-	    return halve(substr(s, 1, h))  "\n"  halve(substr(s, h+1));
-	}
-	{
-	  if ( length($0) > span ) gsub(/\..?.?.?.?$/, "");
-	  print halve($0);
-	}
-	' |
-	sed 's|%|%%|g; s|\\|\\\\|g; s|@|\\@|g;'
+    sed 's|^:||; s|\[0]$||;' | tr '[:cntrl:]' '?' |
+    awk -v span=$span -v ORS=""  '
+    function halve(s,      l,h) {   # l and h are locals
+        l=length(s);  h=int(l/2);
+        if (l <= span) { return s; }
+        return halve(substr(s, 1, h))  "\n"  halve(substr(s, h+1));
+    }
+    {
+      if ( length($0) > span ) gsub(/\..?.?.?.?$/, "");
+      print halve($0);
+    }
+    ' |
+    sed 's|%|%%|g; s|\\|\\\\|g; s|@|\\@|g;'
 }
 
 
@@ -133,8 +133,8 @@ fi
 
 
 cleanup() {
-    echo -n $'\e\\'		# Escape sequence to stop SIXEL.
-    stty echo			# Reset terminal to show characters.
+    echo -n $'\e\\'     # Escape sequence to stop SIXEL.
+    stty echo           # Reset terminal to show characters.
     exit 0
 }
 trap cleanup SIGINT SIGHUP SIGABRT EXIT
@@ -143,9 +143,9 @@ trap cleanup SIGINT SIGHUP SIGABRT EXIT
 # Various terminal automatic configuration routines.
 
 # Don't show escape sequences the terminal doesn't understand.
-stty -echo			# Hush-a Mandara Ni Pari
+stty -echo          # Hush-a Mandara Ni Pari
 
-# IS TERMINAL SIXEL CAPABLE?		# Send Device Attributes
+# IS TERMINAL SIXEL CAPABLE?        # Send Device Attributes
 IFS=';?c' read -a REPLY -s -t 1 -d c -p $'\e[c' >&2
 for code in "${REPLY[@]}"; do if [ "$code" = '4' ]; then
     hassixel=yup

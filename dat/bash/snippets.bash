@@ -94,20 +94,20 @@ bar_x=$'\u253c'
 
 ## messages ::
 msg() {
-	[ "$flg_quiet" = 'true' ] && return
-	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    [ "$flg_quiet" = 'true' ] && return
+    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg_ask() {
-	printf "\e[1;38;5;10m::> \e[0;38;5;15m$1\e[0m " "${@:2}"
+    printf "\e[1;38;5;10m::> \e[0;38;5;15m$1\e[0m " "${@:2}"
 }
 
 msg_error() {
-	printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_warn() {
-	printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_cmd() {
@@ -122,16 +122,16 @@ msg_cmd() {
 }
 
 msg2() {
-	[ "$flg_quiet" = 'true' ] && return
-	printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    [ "$flg_quiet" = 'true' ] && return
+    printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg2_error() {
-	printf "\e[1;38;5;9m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg2_warn() {
-	printf "\e[1;38;5;11m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;11m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 ## sed ::

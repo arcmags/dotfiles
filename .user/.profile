@@ -176,13 +176,14 @@ lsblk() {
     fi
 }
 
+is_bin minicom && minicom() { command minicom -F ' /dev/%D | %T | %C ' "$@"; }
+
 is_bin pactree && pactree() { command pactree -a "$@"; }
 
 is_bin ranger && ranger() {
     command ranger --choosedir="$TMPDIR/rangerdir.txt" "$@"
     cd "$(cat $TMPDIR/rangerdir.txt)"
  }
-
 
 is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@"; }
 
@@ -244,12 +245,6 @@ elif [ -z "$DISPLAY" ] && is_bin fbgrab && groups | grep -q '\bvideo\b'; then
         png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
         fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
     )
-fi
-
-if is_bin minicom; then
-    minicom() {
-        command minicom -F ' /dev/%D | %T | %C ' "$@"
-    }
 fi
 
 if is_bin nc; then

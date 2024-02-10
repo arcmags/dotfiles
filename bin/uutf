@@ -1,0 +1,166 @@
+#!/bin/bash
+## ~/bin/uutf ::
+
+print_help() {
+cat <<'HELPDOC'
+NAME
+    uutf
+
+SYNOPSIS
+    uutf [OPTION...] FILE...
+
+DESCRIPTION
+    Convert file to utf-8 encoded unix text. By default: replace tabs with
+    spaces (except in makefiles), remove trailing whitespaces, remove
+    leading/trailing blank lines, and backup original file.
+
+OPTIONS
+    -t, --tabwidth <NUM>
+        Set number of spaces to replace tabs with.
+
+    -L, --lines
+        Keep leading and trailing blank lines.
+
+    -O, --overwrite
+        Overwrite input file.
+
+    -S, --spaces
+        Keep trailing whitespaces.
+
+    -T, --tabs
+        Keep tabs.
+
+    -H, --help
+        Print help.
+
+REQUIREMENTS
+    cmp, dos2unix, expand, iconv, uchardet
+HELPDOC
+}
+
+# options:
+ext_original='_org'
+
+## internal control::
+args=("$@")
+a=0
+arg="${args[a]}"
+flg_keeplines=false
+flg_keepspaces=false
+flg_keeptabs=false
+flg_overwrite=false
+opt_tabwidth=4
+requirements=(cmp dos2unix expand iconv uchardet)
+
+## functions ::
+msg() {
+    printf "\e[1;38;5;12m-> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
+msg_error() {
+    printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+msg_warn() {
+    printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+}
+
+## main() ::
+while [ -n "$arg" ]; do case "$arg" in
+    -t|--tabwidth)
+        [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 2
+        opt_tabwidth="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -L|--lines)
+        flg_keeplines=true; arg="${args[((++a))]}" ;;
+    -O|--overwrite)
+        flg_overwrite=true; arg="${args[((++a))]}" ;;
+    -S|--spaces)
+        flg_keepspaces=true; arg="${args[((++a))]}" ;;
+    -T|--tabs)
+        flg_keeptabs=true; arg="${args[((++a))]}" ;;
+    -H|--help)
+        print_help; exit 0 ;;
+    -[LOSTH]*)
+        if [[ ! "${arg:2:1}" =~ [LOSTHt] ]]; then
+            msg_error "unknown option: ${arg:2:1}"; exit 2
+        fi
+        args[((a--))]="-${arg:2}"; arg="${arg:0:2}" ;;
+    -[t]*)
+        args[$a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+    --)
+        ((a++)); break ;;
+    *)
+        break ;;
+esac; done
+args=("${args[@]:a}")
+
+for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
+    msg_error 'required: %s' "$req"
+    exit 7
+fi; done
+
+if ! [[ "$opt_tabwidth" =~ ^[1-9][0-9]*$ ]]; then
+    msg_error "bad width: $opt_tabwidth"
+    exit 2
+fi
+
+for arg in "${args[@]}"; do
+    if [ -d "$arg" ]; then
+        msg_warn 'directory: %s' "$arg"
+        continue
+    elif [ ! -f "$arg" ]; then
+        msg_warn 'no such file: %s' "$arg"
+        continue
+    fi
+
+    # convert to unix (remove any \r, remove BOM, ensure EOL on last line):
+    tmp="$(mktemp)"
+    if ! dos2unix -e -q -r -n "$arg" "$tmp"; then
+        msg_warn 'dos2unix: %s' "$arg"
+        rm "$tmp"
+        continue
+    fi
+
+    # ensure utf-8 encoding:
+    enc="$(uchardet "$tmp")"
+    if [ "$enc" != 'UTF-8' ]; then
+        tmp1="$(mktemp)"
+        if ! iconv -f "$enc" -t UTF-8 -o "$tmp1" "$tmp" &>/dev/null; then
+            msg_warn 'iconv: %s' "$arg"
+            rm "$tmp" "$tmp1"
+            continue
+        fi
+        mv "$tmp1" "$tmp"
+    fi
+
+    # replace tabs with spaces:
+    if [ "$flg_keeptabs" = 'false' ] && [ "${arg,,}" != 'makefile' ]; then
+        tmp1="$(mktemp)"
+        if ! expand -t "$opt_tabwidth" "$tmp" > "$tmp1"; then
+            msg_warn 'expand: %s' "$arg"
+            rm "$tmp" "$tmp1"
+            continue
+        fi
+        mv "$tmp1" "$tmp"
+    fi
+
+    # strip trailing whitespaces:
+    if [ "$flg_keepspaces" = 'false' ]; then
+        sed -i 's/\s\+$//' "$tmp"
+    fi
+
+    # remove leading/trailing blank lines:
+    if [ "$flg_keeplines" = 'false' ]; then
+        sed -i -e :a -e '/./,$!d;/^\n*$/{$d;N;};/\n$/ba' "$tmp"
+    fi
+
+    # cp/mv new file:
+    if ! cmp -s "$tmp" "$arg"; then
+        msg '%s' "$arg"
+        [ "$flg_overwrite" != 'true' ] && cp "$arg" "$arg${ext_original}"
+        cp "$tmp" "$arg"
+    fi
+    rm "$tmp"
+done
+
+# vim:ft=bash

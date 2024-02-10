@@ -4,12 +4,12 @@
 
 ## internal ::
 msg() {
-	[ "$flag_quiet" = 'true' ] && return
-	printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    [ "$flag_quiet" = 'true' ] && return
+    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg_error() {
-	printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 # config:
