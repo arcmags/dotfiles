@@ -179,11 +179,11 @@ for coin, value in coins.items():
             (data[coin]['quote']['USD']['percent_change_7d'] / 100)) /
             data[coin]['quote']['USD']['price'] - 1 ) * 100
     else:
-        value['price'] = data[coin]['quote']['USD']['price']
-        value['change_1h'] = data[coin]['quote']['USD']['percent_change_1h']
-        value['change_24h'] = data[coin]['quote']['USD']['percent_change_24h']
-        value['change_7d'] = data[coin]['quote']['USD']['percent_change_7d']
-        value['updated'] = data[coin]['quote']['USD']['last_updated']
+        value['price'] = data[coin]['quote']['USD']['price'] or 0
+        value['change_1h'] = data[coin]['quote']['USD']['percent_change_1h'] or 0
+        value['change_24h'] = data[coin]['quote']['USD']['percent_change_24h'] or 0
+        value['change_7d'] = data[coin]['quote']['USD']['percent_change_7d'] or 0
+        value['updated'] = data[coin]['quote']['USD']['last_updated'] or 0
     value['rank'] = data[coin]['cmc_rank']
     value['USD'] = value['price'] * value['balance']
     usd_total += value['USD']

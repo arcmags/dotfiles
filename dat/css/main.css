@@ -301,7 +301,7 @@ figure + :not(figure) {
     margin-top: .5ch;
 }
 
-p + div.box, p + div.code, p + pre code {
+p + div.box, p + div.code, p + pre code, p + ol, p + ul {
     margin-top: -2ch;
     /*margin-top: 0;*/
 }

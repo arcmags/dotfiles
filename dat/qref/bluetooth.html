@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="../css/main.css">
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
 <meta name="viewport" content="width=device-width">
 <link rel="icon" href="data:,">
@@ -11,19 +11,25 @@
 <body>
 <h1 id="Bluetooth Sniffing">Bluetooth Sniffing</h1>
 <p><a href="https://en.wikipedia.org/wiki/Bluetooth_Low_Energy" target="_blank">Bluetooth Low Energy</a> and <a href="https://en.wikipedia.org/wiki/Bluetooth" target="_blank">Bluetooth Classic</a> are two independent
-things. This guide is about Bluetooth Low Energy (BLE) sniffing.</p>
+things. Most newer devices use Bluetooth Low Energy (BLE). This guide is BLE
+sniffing for these devices.</p>
 <h2 id="Requirements">Requirements</h2>
-<p>You need a card/dongle capable of sniffing. Apparently this company called
-<a href="https://www.nordicsemi.com" target="_blank">Nordic Semiconductor</a> is the main player. This <a href="https://www.nordicsemi.com/Products/Development-hardware/nRF52840-Dongle" target="_blank">nRF52840
-dongle</a> seems to be the go-to device for sniffing. I have a <a href="https://www.adafruit.com/product/2267" target="_blank">nRF51822
-dongle</a> that works as well. You need <a href="https://www.wireshark.org/" target="_blank">Wireshark</a>,
-<a href="https://www.python.org/" target="_blank">Python</a>, and <a href="https://infocenter.nordicsemi.com/index.jsp?topic=%2Fug_sniffer_ble%2FUG%2Fsniffer_ble%2Fintro.html" target="_blank">nRF Sniffer</a>.</p>
+<p>Hardware:</p>
+<ul>
+<li><a href="https://www.nordicsemi.com/Products/Development-hardware/nRF52840-Dongle" target="_blank">nRF52840 dongle</a> or something similar (e.g. <a href="https://www.adafruit.com/product/2267" target="_blank">nRF51822 dongle</a>)</li>
+</ul>
+<p>Software:</p>
+<ul>
+<li><a href="https://www.python.org/" target="_blank">Python</a></li>
+<li><a href="https://www.wireshark.org/" target="_blank">Wireshark</a></li>
+<li><a href="https://infocenter.nordicsemi.com/index.jsp?topic=%2Fug_sniffer_ble%2FUG%2Fsniffer_ble%2Fintro.html" target="_blank">nRF Sniffer</a></li>
+</ul>
 <h2 id="Sniffing">Sniffing</h2>
 <!--metadata:
 author: Chris Magyar <c.magyar.ec@gmail.com>
 description: Bluetooth Low Energy sniffing basic instructions.
 keywords: bluetooth, BLE, sniffing, wireshark, nrf sniffer
-css: css/main.css
+css: ../css/main.css
 -->
 </body>
 </html>

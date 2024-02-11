@@ -338,14 +338,14 @@ noremap <leader>fb <scriptcmd>BooleanToggle()<cr>
 noremap <leader>fH <scriptcmd>HTMLToggle('!')<cr>
 noremap <leader>fh <scriptcmd>HTMLToggle()<cr>
 
-# convert entire buffer to ascii only:
+# convert all text to ascii only:
 nnoremap <leader>Fa <scriptcmd>TextAscii()<cr>
 
-# remove all trailing spaces and  blank lines in entire buffer:
+# remove all trailing whitespaces and trailing blank lines:
 nnoremap <leader>F<cr> <scriptcmd>TextTrim()<cr>
 
-# remove all carrage returns:
-nnoremap <leader>Fu <scriptcmd>TextUnix()<cr>
+# remove all carriage returns, set encoding=utf-8 format=unix nobomb:
+nnoremap <leader>Fu <scriptcmd>TextUnix()<bar>TextTrim()<cr>
 
 # convert all tabs to spaces, use &tabstop for width calculation:
 nnoremap <leader>F<space> <cmd>setl et<bar>retab<cr>
@@ -359,6 +359,10 @@ vnoremap <m-x> <c-x>
 # expand every word to a separate line:
 nnoremap <leader>f1 <cmd>keepp s/^ \+//e<bar>keepp s/ \+/\r/ge<cr>
 vnoremap <leader>f1 <esc><cmd>'<,'>keepp s/^ \+//e<bar>'<,'>keepp s/ \+/\r/ge<cr>
+
+# expand sentences to separate lines:
+nnoremap <leader>f. <cmd>keepp s/[.!?]\zs /\1\r/ge<cr>
+vnoremap <leader>f. J<esc><cmd>'<,'>keepp s/[.!?]\zs /\2\r/ge<cr>
 
 # insert/update date:
 nnoremap <leader>fd <scriptcmd>DateUpdate()<cr>
