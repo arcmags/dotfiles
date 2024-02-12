@@ -18,6 +18,8 @@ Software:
 - [Wireshark][wireshark]
 - [nRF Sniffer][sniffer]
 
+- add user to group `wireshark` and `uucp`
+
 ## Sniffing
 
 It appears, unfortunately, that wireshark must be run as root in order to use
