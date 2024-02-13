@@ -210,7 +210,7 @@ tnoremap <c-w>T <scriptcmd>BufTmp()<cr>
 tnoremap <c-w>e <cmd>enew<bar>Explore<cr>
 tnoremap <expr> <c-w>E '<scriptcmd>Explore<cr><cmd>BufWipe! ' .. bufnr() .. '<cr>'
 
-# remove trailing spaces and lines, save buffer if modified:
+# remove trailing whitespace and leading/trailing blank lines, save buffer if modified:
 noremap <c-s> <esc><scriptcmd>TextTrim()<cr><cmd>update<cr>
 noremap! <c-s> <esc><scriptcmd>TextTrim()<cr><cmd>update<cr>
 
@@ -302,6 +302,22 @@ nnoremap <c-w>GT <scriptcmd>TabMove('-')<cr>
 # search for non ascii characters:
 nnoremap <leader>/A /[^ -~]<cr>
 
+## mappings: text: entire buffer ::
+# convert all text to ascii only:
+nnoremap <leader>Fa <scriptcmd>TextToAscii()<cr>
+
+# combine multiple blank lines:
+nnoremap <leader>Fl <scriptcmd>TextJoinBlankLines()<cr>
+
+# convert all tabs to spaces, use &tabstop for width calculation:
+nnoremap <leader>Fs <cmd>setl et<bar>retab<cr>
+
+# remove trailing whitespace and leading/trailing blank lines:
+nnoremap <leader>Ft <scriptcmd>TextTrim()<cr>
+
+# remove carriage returns, set encoding=utf-8 format=unix nobomb, replace tabs with spaces:
+nnoremap <leader>Fu <scriptcmd>TextToUnix()<cr>
+
 ## mappings: text ::
 nnoremap Q gwip
 vnoremap Q gw
@@ -337,18 +353,6 @@ noremap <leader>fb <scriptcmd>BooleanToggle()<cr>
 # toggle html escape characters (&amp; &lt; &gt;):
 noremap <leader>fH <scriptcmd>HTMLToggle('!')<cr>
 noremap <leader>fh <scriptcmd>HTMLToggle()<cr>
-
-# convert all text to ascii only:
-nnoremap <leader>Fa <scriptcmd>TextAscii()<cr>
-
-# remove all trailing whitespaces and trailing blank lines:
-nnoremap <leader>F<cr> <scriptcmd>TextTrim()<cr>
-
-# remove all carriage returns, set encoding=utf-8 format=unix nobomb:
-nnoremap <leader>Fu <scriptcmd>TextUnix()<bar>TextTrim()<cr>
-
-# convert all tabs to spaces, use &tabstop for width calculation:
-nnoremap <leader>F<space> <cmd>setl et<bar>retab<cr>
 
 # add/subtract number (remapped because <c-x> used elsewhere:
 nnoremap <m-a> <c-a>
@@ -443,6 +447,10 @@ command! -bang BufWipeHidden BufWipeHidden(<q-bang>)
 command! -nargs=1 -complete=command BufCmd var c = ''<bar>BufTmp()<bar>redir => c<bar>sil <args><bar>redir END<bar>sil put =c<bar>:%s/\%^\(\n\s*\)\+//e<bar>setl nomod
 command! BufTmp BufTmp()
 command! -nargs=? -complete=help Help Help(<q-args>)
+command! TextJoinBlankLines TextJoinBlankLines()
+command! TextToAscii TextToAscii()
+command! TextToUnix TextToUnix()
+command! TextTrim TextTrim()
 
 # set/reset CNT counter:
 command! -nargs=? CntSet CntSet(<args>)
@@ -610,7 +618,7 @@ def BufTmp()
     exec 'sil edit ' .. tmp
 enddef
 
-# TODO: wipe b:term if it exists:
+# TODO: wipe b:term if it exists?
 def BufWipe(bang = '', args = [])
     var bufs = copy(args)
     if len(bufs) == 0
@@ -791,10 +799,22 @@ def Msg(msg = '')
         echohl InfoMsg
     endif
     echomsg msg
-    echohl nONE
+    echohl none
 enddef
 
-def TextAscii()
+def TextJoinBlankLines()
+    # merge repeated blanks lines:
+    if ! &modifiable
+        return
+    endif
+    const pos = getpos('.')
+    call TextTrim()
+    sil! keepp g/^\n\{2,}/d
+    setpos('.', pos)
+enddef
+
+def TextToAscii()
+    # convert buffer to ASCII:
     if ! &modifiable
         return
     endif
@@ -811,24 +831,30 @@ def TextAscii()
 enddef
 
 def TextTrim()
+    # remove trailing whitespace and leading/trailing blank lines:
     if ! &modifiable
         return
     endif
     const pos = getpos('.')
     sil keepp :%s/\s\+$//e
     sil keepp :%s/\($\n\s*\)\+\%$//e
+    sil keepp :%s/\%^\n\+//e
     setpos('.', pos)
 enddef
 
-def TextUnix()
+def TextToUnix()
+    # remove \r, set encoding=utf-8 format=unix nobomb, tabs to spaces, trim text:
     if ! &modifiable
         return
     endif
     const pos = getpos('.')
     sil keepp :%s/\r//e
-    sil setlocal fileencoding=utf-8
-    sil setlocal fileformat=unix
-    sil setlocal nobomb
+    sil setlocal fileencoding=utf-8 fileformat=unix nobomb
+    call TextTrim()
+    if tolower(bufname('.')) != 'makefile'
+        setl et
+        retab
+    endif
     setpos('.', pos)
 enddef
 

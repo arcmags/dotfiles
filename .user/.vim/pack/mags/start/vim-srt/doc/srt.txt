@@ -1,0 +1,41 @@
+*srt.txt*  Filetype plugin for working with subtitles
+
+This vim9script filetype plugin contains several commands to clean up,
+renumber, and adjust subtitle timecodes.
+
+COMMANDS                                                *srt-commands*
+
+                                                        *:SRTClean*
+:SRTClean       Strip all trailing whitespaces, remove leading and trailing
+                blank lines, merge repeated blank lines, fix syntax errors,
+                and renumber all subtitles.  Optionally convert file to unix,
+                change encoding to utf-8, and replace tabs with spaces.
+
+                                                        *:SRTNumber*
+:SRTNumber      Renumber subtitles.
+
+                                                        *:SRTShift*
+:SRTShift {num} Shift all subtitle timecodes by {num} milliseconds.
+                May be positive or negative.
+
+                                                        *:SRTToAscii*
+:SRTToAscii     Convert entire buffer to ASCII with transliteration.
+                Requires external iconv command.
+
+MAPS                                                    *srt-maps*
+
+<localleader>n  |:SRTNumber|
+
+<localleader>m  |:SRTClean|
+
+SETTINGS                                                *srt-settings*
+
+*g:srt_maps*      Create default mappings.  default: true
+
+*g:srt_tabs*      Keep tabs with :SRTClean.  default: false
+
+*g:srt_unix*      Convert file to unix with :SRTClean.  default: true
+
+*g:srt_utf8*      Set encoding to utf-8 with :SRTClean.  default: true
+
+ vim:ts=4:et:ft=help

@@ -138,6 +138,9 @@ export S_COLORS_SGR='H=33;1:I=36;1:M=34;1:N=32;1:Z=34;1'
 
 export SUDO_PROMPT="$(printf '\e[1;38;5;9m::> \e[0;38;5;15mpassword: ')"
 
+## iteractive check ::
+#[ "$(tty)" = 'not a tty' ] && return 0
+
 ## functions: aliases ::
 cdd() { cd "$UDIR/dat"; }
 cdg() { cd "$UDIR/git"; }

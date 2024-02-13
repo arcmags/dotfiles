@@ -78,6 +78,7 @@ files_src=(
     .user/.themes/
     .user/.vim/after/
     .user/.vim/colors/utheme.vim
+    .user/.vim/pack/mags/
     .user/.vim/vimrc
     .user/.w3m/config
     .user/.w3m/keymap
@@ -112,6 +113,7 @@ patterns_exclude=(
     .git
     __pycache__
     .venv
+    doc/tags
 )
 
 ## internal control ::
