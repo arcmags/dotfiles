@@ -1,0 +1,29 @@
+vim9script
+## ~/.vim/.uvim ::
+
+const files = [
+    '~/user/.user/.vim/vimrc',
+    '~/user/.user/.vim/colors/utheme.vim',
+    '~/user/.user/.bashrc',
+    '~/user/.user/.profile',
+    '~/user/dat/log/todo.md',
+    system("find ~/user/dat/log -name '[0-9][0-9][0-9][0-9]-[0-9][0-9].md' | sort | tail -n1")
+]
+
+var i = 0
+for f in files
+    if f != ''
+        if i % 2 == 0
+            if i > 0
+                tabnew
+            endif
+        else
+            vsplit
+        endif
+        exec 'edit ' .. f
+        wincmd w
+        i = i + 1
+    endif
+endfor
+
+# vim:ft=vim

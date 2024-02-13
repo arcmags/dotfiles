@@ -138,8 +138,8 @@ export S_COLORS_SGR='H=33;1:I=36;1:M=34;1:N=32;1:Z=34;1'
 
 export SUDO_PROMPT="$(printf '\e[1;38;5;9m::> \e[0;38;5;15mpassword: ')"
 
-## iteractive check ::
-#[ "$(tty)" = 'not a tty' ] && return 0
+## interactive check ::
+[ "$(tty)" = 'not a tty' ] && return 0
 
 ## functions: aliases ::
 cdd() { cd "$UDIR/dat"; }
@@ -196,7 +196,11 @@ is_bin tmux && tmux() { command tmux -2 "$@"; }
 
 is_bin tt && tt() { command tt -notheme -noskip -blockcursor -nohighlight "$@"; }
 
-is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@"; }
+if is_bin vim; then
+    [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@"; }
+    [ -f "$UDIR/.user/.vim/.uvim" ] && uvim() { vim -c "source $UDIR/.user/.vim/.uvim"; }
+fi
+
 
 if [ -n "$DISPLAY" ] && is_bin xclip; then
     xclip() {

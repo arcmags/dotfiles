@@ -76,6 +76,7 @@ files_src=(
     .user/.moc/themes/
     .user/.mozilla/firefox/default/chrome/
     .user/.themes/
+    .user/.vim/.uvim
     .user/.vim/after/
     .user/.vim/colors/utheme.vim
     .user/.vim/pack/mags/

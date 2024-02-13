@@ -802,62 +802,6 @@ def Msg(msg = '')
     echohl none
 enddef
 
-def TextJoinBlankLines()
-    # merge repeated blanks lines:
-    if ! &modifiable
-        return
-    endif
-    const pos = getpos('.')
-    call TextTrim()
-    sil! keepp g/^\n\{2,}/d
-    setpos('.', pos)
-enddef
-
-def TextToAscii()
-    # convert buffer to ASCII:
-    if ! &modifiable
-        return
-    endif
-    const pos = getpos('.')
-    const textbuf = join(getline(1, '$'), "\n")
-    const textnew = system('iconv -f utf-8 -t ascii//TRANSLIT', textbuf)
-    if textbuf != textnew
-        append(0, textnew)
-        sil :1,$delete
-        sil put =textnew
-        :1delete
-    endif
-    setpos('.', pos)
-enddef
-
-def TextTrim()
-    # remove trailing whitespace and leading/trailing blank lines:
-    if ! &modifiable
-        return
-    endif
-    const pos = getpos('.')
-    sil keepp :%s/\s\+$//e
-    sil keepp :%s/\($\n\s*\)\+\%$//e
-    sil keepp :%s/\%^\n\+//e
-    setpos('.', pos)
-enddef
-
-def TextToUnix()
-    # remove \r, set encoding=utf-8 format=unix nobomb, tabs to spaces, trim text:
-    if ! &modifiable
-        return
-    endif
-    const pos = getpos('.')
-    sil keepp :%s/\r//e
-    sil setlocal fileencoding=utf-8 fileformat=unix nobomb
-    call TextTrim()
-    if tolower(bufname('.')) != 'makefile'
-        setl et
-        retab
-    endif
-    setpos('.', pos)
-enddef
-
 def g:StatusLine(): string
     const sepbar = '%#StatusLineSep# | %*'
     const sepcolon = '%#StatusLineSep#:%*'
@@ -919,6 +863,62 @@ def g:StatusLine(): string
     endif
     line ..= '%2{strlen(getline("."))}' .. sepcolon .. '%2c %)'
     return line
+enddef
+
+def TextJoinBlankLines()
+    # merge repeated blanks lines:
+    if ! &modifiable
+        return
+    endif
+    const pos = getpos('.')
+    call TextTrim()
+    sil! keepp g/^\n\{2,}/d
+    setpos('.', pos)
+enddef
+
+def TextToAscii()
+    # convert buffer to ASCII:
+    if ! &modifiable
+        return
+    endif
+    const pos = getpos('.')
+    const textbuf = join(getline(1, '$'), "\n")
+    const textnew = system('iconv -f utf-8 -t ascii//TRANSLIT', textbuf)
+    if textbuf != textnew
+        append(0, textnew)
+        sil :1,$delete
+        sil put =textnew
+        :1delete
+    endif
+    setpos('.', pos)
+enddef
+
+def TextTrim()
+    # remove trailing whitespace and leading/trailing blank lines:
+    if ! &modifiable
+        return
+    endif
+    const pos = getpos('.')
+    sil keepp :%s/\s\+$//e
+    sil keepp :%s/\($\n\s*\)\+\%$//e
+    sil keepp :%s/\%^\n\+//e
+    setpos('.', pos)
+enddef
+
+def TextToUnix()
+    # remove \r, set encoding=utf-8 format=unix nobomb, tabs to spaces, trim text:
+    if ! &modifiable
+        return
+    endif
+    const pos = getpos('.')
+    sil keepp :%s/\r//e
+    sil setlocal fileencoding=utf-8 fileformat=unix nobomb
+    call TextTrim()
+    if tolower(bufname('.')) != 'makefile'
+        setl et
+        retab
+    endif
+    setpos('.', pos)
 enddef
 
 def g:TabLine(): string
