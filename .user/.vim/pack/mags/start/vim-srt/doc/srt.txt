@@ -18,8 +18,8 @@ COMMANDS                                                *srt-commands*
 :SRTShift {num} Shift all subtitle timecodes by {num} milliseconds.
                 May be positive or negative.
 
-                                                        *:SRTToAscii*
-:SRTToAscii     Convert entire buffer to ASCII with transliteration.
+:[range]SRTToAscii                                      *:SRTToAscii*
+                Convert lines in [range] to ASCII with transliteration.
                 Requires external iconv command.
 
 MAPS                                                    *srt-maps*

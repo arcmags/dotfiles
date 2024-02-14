@@ -28,9 +28,9 @@ Shift all subtitle timescodes by NUMBER milliseconds (positive or negative):
 
     :SRTShift <NUMBER>
 
-Convert entire buffer to ASCII with transliteration (requires `iconv`):
+Convert text to ASCII with transliteration (requires `iconv`):
 
-    :SRTTOAscii
+    :[RANGE]SRTTOAscii
 
 ## Mappings
 

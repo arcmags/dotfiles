@@ -11,7 +11,7 @@ endif
 command! SRTClean SRTClean()
 command! SRTNumber SRTNumber()
 command! -nargs=1 SRTShift SRTShift(<args>)
-command! SRTToAscii SRTToAscii()
+command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
 
 def SRTClean()
     # remove carriage returns, convert to utf-8 unix, strip trailing
@@ -90,24 +90,41 @@ def SRTShift(ms_shift: number)
     endfor
 enddef
 
-def SRTToAscii()
-    # convert to ASCII:
+def SRTToAscii(mode = 'n', start = -1, end = -1)
+    # convert to ASCII with transliteration:
     if !executable('iconv')
         echohl WarningMsg
         echomsg "W: required program 'iconv' not found, no changes made"
         echohl none
         return
     endif
-    const pos = getpos('.')
-    const textbuf = join(getline(1, '$'), "\n")
-    const textnew = system('iconv -f utf-8 -t ascii//TRANSLIT', textbuf)
-    if textbuf != textnew
-        append(0, textnew)
-        sil :1,$delete
-        sil put =textnew
-        :1delete
+    const subs = [
+        ["\u2669", '#'],
+        ["\u266a", '#'],
+        ["\u266b", '#'],
+        ["\u266c", '#']
+    ]
+    var line0 = line('.')
+    var line1 = line0
+    if mode == 'v'
+        exec "normal! \<esc>"
+        line0 = getpos("'<")[1]
+        line1 = getpos("'>")[1]
+    elseif start > 0
+        line0 = start
+        line1 = end
     endif
-    setpos('.', pos)
+    const lines = getline(line0, line1)
+    var text = join(lines, "\n")
+    for sub in subs
+        text = substitute(text, sub[0], sub[1], 'g')
+    endfor
+    const linesnew = split(system('iconv -f utf-8 -t ascii//TRANSLIT', text), "\n")
+    for i in range(len(linesnew))
+        if lines[i] != linesnew[i]
+            setline(line0 + i, linesnew[i])
+        endif
+    endfor
 enddef
 
 defcompile

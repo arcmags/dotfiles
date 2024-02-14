@@ -302,9 +302,14 @@ nnoremap <c-w>GT <scriptcmd>TabMove('-')<cr>
 # search for non ascii characters:
 nnoremap <leader>/A /[^ -~]<cr>
 
-## mappings: text: entire buffer ::
-# convert all text to ascii only:
-nnoremap <leader>Fa <scriptcmd>TextToAscii()<cr>
+## mappings: text ::
+nnoremap Q gwip
+vnoremap Q gw
+
+# convert to ascii:
+nnoremap <leader>fa <scriptcmd>TextToAscii()<cr>
+vnoremap <leader>fa <scriptcmd>TextToAscii('v')<cr>
+nnoremap <leader>Fa <scriptcmd>TextToAscii('n', 1, line('$'))<cr>
 
 # combine multiple blank lines:
 nnoremap <leader>Fl <scriptcmd>TextJoinBlankLines()<cr>
@@ -318,9 +323,6 @@ nnoremap <leader>Ft <scriptcmd>TextTrim()<cr>
 # remove carriage returns, set encoding=utf-8 format=unix nobomb, replace tabs with spaces:
 nnoremap <leader>Fu <scriptcmd>TextToUnix()<cr>
 
-## mappings: text ::
-nnoremap Q gwip
-vnoremap Q gw
 
 # sort lines:
 nnoremap <leader>S mzvip<esc><cmd>'<,'>sort<cr>`z
@@ -447,10 +449,11 @@ command! -bang BufWipeHidden BufWipeHidden(<q-bang>)
 command! -nargs=1 -complete=command BufCmd var c = ''<bar>BufTmp()<bar>redir => c<bar>sil <args><bar>redir END<bar>sil put =c<bar>:%s/\%^\(\n\s*\)\+//e<bar>setl nomod
 command! BufTmp BufTmp()
 command! -nargs=? -complete=help Help Help(<q-args>)
+
 command! TextJoinBlankLines TextJoinBlankLines()
-command! TextToAscii TextToAscii()
 command! TextToUnix TextToUnix()
 command! TextTrim TextTrim()
+command! -range TextToAscii TextToAscii('n', <line1>, <line2>)
 
 # set/reset CNT counter:
 command! -nargs=? CntSet CntSet(<args>)
@@ -876,21 +879,35 @@ def TextJoinBlankLines()
     setpos('.', pos)
 enddef
 
-def TextToAscii()
-    # convert buffer to ASCII:
-    if ! &modifiable
-        return
+def TextToAscii(mode = 'n', start = -1, end = -1)
+    # convert to ASCII with transliteration:
+    const subs = [
+        ["\u2669", '#'],
+        ["\u266a", '#'],
+        ["\u266b", '#'],
+        ["\u266c", '#']
+    ]
+    var line0 = line('.')
+    var line1 = line0
+    if mode == 'v'
+        exec "normal! \<esc>"
+        line0 = getpos("'<")[1]
+        line1 = getpos("'>")[1]
+    elseif start > 0
+        line0 = start
+        line1 = end
     endif
-    const pos = getpos('.')
-    const textbuf = join(getline(1, '$'), "\n")
-    const textnew = system('iconv -f utf-8 -t ascii//TRANSLIT', textbuf)
-    if textbuf != textnew
-        append(0, textnew)
-        sil :1,$delete
-        sil put =textnew
-        :1delete
-    endif
-    setpos('.', pos)
+    const lines = getline(line0, line1)
+    var text = join(lines, "\n")
+    for sub in subs
+        text = substitute(text, sub[0], sub[1], 'g')
+    endfor
+    const linesnew = split(system('iconv -f utf-8 -t ascii//TRANSLIT', text), "\n")
+    for i in range(len(linesnew))
+        if lines[i] != linesnew[i]
+            setline(line0 + i, linesnew[i])
+        endif
+    endfor
 enddef
 
 def TextTrim()
@@ -906,7 +923,7 @@ def TextTrim()
 enddef
 
 def TextToUnix()
-    # remove \r, set encoding=utf-8 format=unix nobomb, tabs to spaces, trim text:
+    # remove all \r, set encoding=utf-8 format=unix nobomb, tabs to spaces, trim text:
     if ! &modifiable
         return
     endif
