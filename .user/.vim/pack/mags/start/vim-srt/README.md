@@ -1,7 +1,8 @@
 # vim-srt
 
 This is a vim9script filetype plugin for working with subtitle (*.srt*) files.
-It adds commands for cleaning, renumbering, and adjusting subtitle timecodes.
+It adds various commands for tidying subtitles, renumbering them, modifying
+their contents, and adjusting their timecodes.
 
 ## Installation
 Install using a plugin manager, or use vim's builtin package support:
@@ -52,4 +53,5 @@ Convert text to ASCII with transliteration (requires `iconv`):
 author: Chris Magyar
 description: Vim9script subtitle file plugin.
 keywords: vim, vim9script, plugin, subtitle, srt
+css: ../../../../../../dat/css/main.css
 -->

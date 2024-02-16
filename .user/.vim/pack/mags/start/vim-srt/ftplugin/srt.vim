@@ -13,31 +13,44 @@ command! SRTNumber SRTNumber()
 command! -nargs=1 SRTShift SRTShift(<args>)
 command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
 
+# TODO: maybe do this entire thing over using substitute(), lol
 def SRTClean()
-    # remove carriage returns, convert to utf-8 unix, strip trailing
-    # whitespaces, remove leading/trailing blank lines, combine multiple blank
-    # lines, fix syntax errors, replace tabs with spaces, re-number subtitles:
     const pos = getpos('.')
+    # remove carriage returns, convert to unix:
     if !exists('g:srt_unix') || g:srt_unix
         sil keepp :%s/\r//e
         sil setlocal fileformat=unix nobomb
     endif
+    # convert to utf-8:
     if !exists('g:srt_utf8') || g:srt_utf8
         sil keepp :%s/\r//e
         sil setlocal fileencoding=utf-8
     endif
+    # replace tabs with spaces:
     if !exists('g:srt_tabs') || !g:srt_tabs
         setlocal expandtab
         retab
     endif
+    # strip trailing whitespaces:
     sil keepp :%s/\s\+$//e
-    sil keepp :%s/\($\n\s*\)\+\%$//e
-    sil keepp :%s/\%^\n\+//e
+    # merge repeated blank lines:
     sil! keepp g/^\n\{2,}/d
+    # remove trailing blank lines:
+    sil keepp :%s/\($\n\s*\)\+\%$//e
+    # remove leading blank lines:
+    sil keepp :%s/\%^\n\+//e
+    # fix timestamps with bad syntax:
     sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d\)\s*-\?>\+\s*\(\d\+:\d\d:\d\d,\d\d\d\)$/\1 --> \2/e
     sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d\)\s*---\+>\+\s*\(\d\+:\d\d:\d\d,\d\d\d\)$/\1 --> \2/e
+    # remove blank lines between indexes and timecodes:
     sil keepp :%s/\(\%^\|\n\)\(\d\+\n\)\n/\1\2/e
+    # remove blank lines between timecodes and text:
     sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d --> \d\+:\d\d:\d\d,\d\d\d\n\)\n/\1/e
+    # make every utf-8 note character an eighth note:
+    sil keepp :%s/[\d9833\d9834\d9835\d9836]\+/\=nr2char(9834)/ge
+    # merge repeated eighth notes:
+    sil keepp :%s/\%d9834[\d9834 ]\{-}\%d9834/\=nr2char(9834)/ge
+    # renumber subtitles:
     call SRTNumber()
     setpos('.', pos)
 enddef
@@ -98,12 +111,7 @@ def SRTToAscii(mode = 'n', start = -1, end = -1)
         echohl none
         return
     endif
-    const subs = [
-        ["\u2669", '#'],
-        ["\u266a", '#'],
-        ["\u266b", '#'],
-        ["\u266c", '#']
-    ]
+    const subs = [["[\d9833\d9834\d9835\d9836]", '#']]
     var line0 = line('.')
     var line1 = line0
     if mode == 'v'

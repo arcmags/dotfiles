@@ -171,8 +171,8 @@ tnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 nnoremap <expr> <leader>qg '<cmd>cc ' .. (v:count > 0 ? v:count : '') .. '<cr>'
 nnoremap [Q <cmd>cfirst<cr>
 nnoremap ]Q <cmd>clast<cr>
-nnoremap [q <cmd>cbefore<cr>
-nnoremap ]q <cmd>cafter<cr>
+nnoremap [q h<cmd>cbefore<cr>
+nnoremap ]q l<cmd>cafter<cr>
 nnoremap <leader>qN <cmd>cnfile<cr>
 nnoremap <leader>qP <cmd>cpfile<cr>
 nnoremap <leader>qm <cmd>update<cr><cmd>make<cr>
@@ -185,8 +185,8 @@ nnoremap <leader>qw <cmd>copen<cr>
 nnoremap <expr> <leader>lg '<cmd>ll ' .. (v:count > 0 ? v:count : '') .. '<cr>'
 nnoremap [L <cmd>lfirst<cr>
 nnoremap ]L <cmd>llast<cr>
-nnoremap [l <cmd>lbefore<cr>
-nnoremap ]l <cmd>lafter<cr>
+nnoremap [l h<cmd>lbefore<cr>
+nnoremap ]l l<cmd>lafter<cr>
 nnoremap <leader>lN <cmd>lnfile<cr>
 nnoremap <leader>lP <cmd>lpfile<cr>
 nnoremap <leader>lm <cmd>update<cr><cmd>lmake<cr>
@@ -879,14 +879,10 @@ def TextJoinBlankLines()
     setpos('.', pos)
 enddef
 
+# TODO: make this with visual line and regular:
 def TextToAscii(mode = 'n', start = -1, end = -1)
     # convert to ASCII with transliteration:
-    const subs = [
-        ["\u2669", '#'],
-        ["\u266a", '#'],
-        ["\u266b", '#'],
-        ["\u266c", '#']
-    ]
+    const subs = [["[\d9833\d9834\d9835\d9836]", '#']]
     var line0 = line('.')
     var line1 = line0
     if mode == 'v'

@@ -188,21 +188,21 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: bold;
 }
 
+h1 {
+    border-top: solid;
+}
+
 h1, h2, h3 {
     border-bottom: solid;
     border-width: 2ch;
 }
 
-h1 {
+h1, h2 {
     border-image: var(--box1-heading);
 }
 
-h2 {
-    border-image: var(--box2-heading);
-}
-
 h3 {
-    border-image: var(--box3-heading);
+    border-image: var(--box2-heading);
 }
 
 h4, h5, h6 {
@@ -289,9 +289,10 @@ div.box, div.code, .google-maps, .margin {
     margin-top: 0;
 }
 
-pre code hr {
-    margin-bottom: 0;
-}
+/*pre code hr {*/
+    /*margin-bottom: 0;*/
+    /*margin-top: 0;*/
+/*}*/
 
 figure {
     margin-bottom: 1.5ch;
@@ -299,6 +300,12 @@ figure {
 
 figure + :not(figure) {
     margin-top: .5ch;
+}
+
+/* for some reason there's a margin between headings and code without this: */
+h1 + pre code, h2 + pre code, h3 + pre code, h4 + pre code {
+    margin-top: -2ch;
+    /*margin-top: 0;*/
 }
 
 p + div.box, p + div.code, p + pre code, p + ol, p + ul {

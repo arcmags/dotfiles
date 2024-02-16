@@ -152,16 +152,16 @@ while read file_in; do
     elif [ "$ext" = 'jpeg' ]; then
         ext='jpg'
     fi
-    sleep 0.25
-    while [ -f "$dir_in/$file_in"*.part ] || [ -f "$dir_in/${file_in%.*}(1).$ext" ]; do
-        sleep 0.25
-    done
     sleep 0.5
+    while [ -f "$dir_in/$file_in"*.part ] || [ -f "$dir_in/${file_in%.*}(1).$ext" ]; do
+        sleep 0.5
+    done
+    sleep 1
     if [ -f "$dir_in/$file_in" ]; then
         md5=$(md5sum "$dir_in/$file_in" | cut -c1-32)
         m=0
         while [ "$m" -lt 8 ] && [ "$md5" = 'd41d8cd98f00b204e9800998ecf8427e' ]; do
-            sleep 0.25
+            sleep 0.5
             md5=$(md5sum "$dir_in/$file_in" | cut -c1-32)
             ((m++))
         done
