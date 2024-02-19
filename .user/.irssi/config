@@ -42,7 +42,7 @@ servers = (
     chatnet = "Discord";
     port = "6667";
     use_tls = "no";
-    tls_verify = "yes";
+    tls_verify = "no";
     autoconnect = "yes";
   }
 );
@@ -253,10 +253,10 @@ statusbar = {
       visible = "inactive";
       items = {
         barstart = { priority = "100"; };
-        topic= { priority = "100"; };
-        topic_empty= { priority = "100"; };
-        server= { priority = "100"; };
-        user= { priority = "100"; };
+        topic = { priority = "100"; };
+        topic_empty = { priority = "100"; };
+        server = { priority = "100"; };
+        user = { priority = "100"; };
         more = { priority = "100"; };
         awl_shared = { priority = "10"; alignment = "right"; };
         barend = { priority = "100"; alignment = "right"; };
@@ -293,6 +293,13 @@ statusbar = {
       };
       position = "100";
     };
+    awl_1 = {
+      items = {
+        barstart = { priority = "100"; };
+        awl_1 = { };
+        barend = { priority = "100"; alignment = "right"; };
+      };
+    };
   };
 };
 
@@ -315,7 +322,7 @@ settings = {
     autoclose_query = "0";
     show_names_on_join = "no";
     autoclose_windows = "no";
-    autolog_path = "~/log/irc/$tag/$0/$0_%Y-%m-%d.log";
+    autolog_path = "~/user/local/logs/irc/$tag/$0/$0_%Y-%m-%d.log";
     autolog = "yes";
   };
   "perl/core/scripts" = {

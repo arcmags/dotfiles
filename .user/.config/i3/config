@@ -131,7 +131,7 @@ bindsym $mod+shift+b $exec \
     fi"
 
 # toggle window float:
-bindsym $mod+y floating toggle
+bindsym $mod+Shift+u floating toggle
 
 # toggle window fullscreen:
 bindsym $mod+f fullscreen toggle
@@ -143,9 +143,6 @@ bindsym $mod+t layout toggle tabbed split
 
 # toggle floating/tiled window focus:
 bindsym $mod+u focus mode_toggle
-
-# float window, resize to 96%, center on the workspace:
-bindsym $mod+Shift+y floating enable resize set 96 ppt 96 ppt, move position center
 
 # focus next output:
 bindsym $mod+m focus output right, focus output down

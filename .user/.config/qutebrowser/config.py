@@ -378,7 +378,7 @@ c.tabs.undo_stack_size = 24
 
 ## url ::
 c.url.auto_search = 'naive'
-c.url.default_page = 'file:///home/mags/user/sync/www/links/index.html'
+c.url.default_page = 'file:///home/mags/user/www/links/index.html'
 c.url.open_base_url = True
 c.url.searchengines = {
     'DEFAULT': 'https://google.com/search?q={}',
@@ -402,7 +402,7 @@ c.url.searchengines = {
     'yt': 'https://www.youtube.com/results?search_query={}',
     'yts': 'https://yts.mx/browse-movies/{}',
 }
-c.url.start_pages = 'file:///home/mags/user/sync/www/links/index.html'
+c.url.start_pages = c.url.default_page
 
 ## window ::
 c.window.hide_decoration = True

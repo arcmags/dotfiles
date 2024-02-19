@@ -344,13 +344,9 @@ if [ "$flag_verbose" = true ]; then
 fi
 
 # rsync and parse output:
-rsync "${args_rsync[@]}" | sed -E -e '/^.*\/$/d' -e '/^created /d' \
+rsync "${args_rsync[@]}" | sed -E -e '/\/$/d' -e '/^created /d' \
     -e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
     -e '/  - /! s/^/\o033[38;5;10m  + \o033[38;5;15m/'
-# rsync and parse output, also print locally modified directories:
-#rsync "${args_rsync[@]}" | sed -E -e '/^created /d' \
-    #-e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
-    #-e '/  - /! s/^/\o033[38;5;10m  + \o033[38;5;15m/'
 
 # dry-run:
 if [ "$flag_dryrun" = true ]; then

@@ -13,6 +13,8 @@ command! SRTNumber SRTNumber()
 command! -nargs=1 SRTShift SRTShift(<args>)
 command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
 
+# TODO: functions to remove <font color>, <b>, <i>?
+
 # TODO: maybe do this entire thing over using substitute(), lol
 def SRTClean()
     const pos = getpos('.')
@@ -111,7 +113,7 @@ def SRTToAscii(mode = 'n', start = -1, end = -1)
         echohl none
         return
     endif
-    const subs = [["[\d9833\d9834\d9835\d9836]", '#']]
+    const subs = [['[\d9833\d9834\d9835\d9836]', '#']]
     var line0 = line('.')
     var line1 = line0
     if mode == 'v'

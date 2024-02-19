@@ -7,14 +7,15 @@ export ADIR_REALPATH="$(realpath "$ADIR")"
 export HOME_REALPATH="$(realpath "$HOME")"
 
 apwd() {
-    local pwd_realpath="$(realpath .)"
-    if [[ "$PWD" =~ ^("$ADIR"|"$ADIR_REALPATH")(.*) ]] || [[ "$pwd_realpath" =~ ^("$ADIR"|"$ADIR_REALPATH")(.*) ]]; then
-        printf '%s' "-${BASH_REMATCH[2]}"
-    elif [[ "$PWD" =~ ^("$HOME"|"$HOME_REALPATH")(.*) ]] || [[ "$pwd_realpath" =~ ^("$HOME"|"$HOME_REALPATH")(.*) ]]; then
-        printf '%s' "~${BASH_REMATCH[2]}"
-    else
-        printf '%s' "$PWD"
-    fi
+    PWD_REALPATH="$(realpath "$PWD")"
+    case "$PWD_REALPATH" in
+        "$ADIR_REALPATH"*)
+            printf '%s' "-${PWD_REALPATH#"$ADIR_REALPATH"}" ;;
+        "$HOME_REALPATH"*)
+            printf '%s' "-${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+        *)
+            printf '%s' "$PWD" ;;
+    esac
 }
 
 ## utils ::

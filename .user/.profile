@@ -3,7 +3,10 @@
 
 ## user setup: UDIR, UHOST, upwd() ::
 export UDIR="$HOME/user"
-mkdir -p "$UDIR/.root" "$UDIR/.user" "$UDIR/bin" "$UDIR/git" "$UDIR/lib" "$UDIR/local" "$UDIR/sync"
+mkdir -p "$UDIR/.root" "$UDIR/.user" "$UDIR/bin" "$UDIR/git" "$UDIR/lib" "$UDIR/local"
+
+export HOME_REALPATH="$(realpath "$HOME")"
+export UDIR_REALPATH="$(realpath "$UDIR")"
 
 if [ -f '/etc/hostname-' ]; then
     UHOST="$(cat /etc/hostname-)"
@@ -15,13 +18,29 @@ fi
 export UHOST
 
 upwd() {
+    PWD_REALPATH="$(realpath "$PWD")"
     case "$PWD" in
         "$UDIR"*)
             printf '%s' "-${PWD#"$UDIR"}" ;;
+        "$UDIR_REALPATH"*)
+            printf '%s' "-${PWD#"$UDIR_REALPATH"}" ;;
         "$HOME"*)
             printf '%s' "~${PWD#"$HOME"}" ;;
+        "$HOME_REALPATH"*)
+            printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
         *)
-            printf '%s' "$PWD"
+            case "$PWD_REALPATH" in
+                "$UDIR"*)
+                    printf '%s' "-${PWD_REALPATH#"$UDIR"}" ;;
+                "$UDIR_REALPATH"*)
+                    printf '%s' "-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
+                "$HOME"*)
+                    printf '%s' "~${PWD_REALPATH#"$HOME"}" ;;
+                "$HOME_REALPATH"*)
+                    printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+                *)
+                    printf '%s' "$PWD" ;;
+            esac ;;
     esac
 }
 
@@ -142,17 +161,19 @@ export SUDO_PROMPT="$(printf '\e[1;38;5;9m::> \e[0;38;5;15mpassword: ')"
 [ "$(tty)" = 'not a tty' ] && return 0
 
 ## functions: aliases ::
+cdb() { cd "$UDIR/bin"; }
 cdd() { cd "$UDIR/dat"; }
 cdg() { cd "$UDIR/git"; }
-[ -d "$UDIR/sync/img" ] && cdi() { cd "$UDIR/sync/img"; }
+[ -d "$UDIR/usync/img" ] && cdi() { cd "$UDIR/usync/img"; }
 cdl() { cd "$UDIR/local"; }
 cdm() { cd /mnt; }
 [ -d "/mnt/nas" ] && cdn() { cd /mnt/nas; }
-cds() { cd "$UDIR/sync"; }
+[ -d "$UDIR/urepo" ] && cdr() { cd "$UDIR/urepo"; }
+[ -d "$UDIR/usync" ] && cds() { cd "$UDIR/usync"; }
 cdt() { cd "$TMPDIR"; }
 cdu() { cd "$UDIR"; }
 [ -d /mnt/nas/share/videos ] && cdv() { cd /mnt/nas/share/videos; }
-[ -d "$UDIR/sync/www" ] && cdw() { cd "$UDIR/sync/www"; }
+[ -d "$UDIR/www" ] && cdw() { cd "$UDIR/www"; }
 
 is_bin diff && diff() { command diff --color=auto "$@"; }
 

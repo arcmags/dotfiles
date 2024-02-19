@@ -1,9 +1,8 @@
 #!/bin/bash
-
 ## repo-update ::
 # Copy files listed in $files_src from $dir_src to script directory.
 
-flag_gitpush=false
+flg_gitpush=false
 dir_src="$UDIR"
 files_src=(
     bin/
@@ -109,12 +108,12 @@ files_src=(
     .user/.xprofile
 )
 patterns_exclude=(
-    nvim/lazy-lock.json
     .ccls-cache
     .git
-    __pycache__
     .venv
+    __pycache__
     doc/tags
+    nvim/lazy-lock.json
 )
 
 ## internal control ::
@@ -122,6 +121,7 @@ dir_script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 file_script="$(basename "$0")"
 files=()
 args_rsync=(-a --delete --mkpath --info=copy1,del1,name1)
+requirements=(git rsync)
 
 ## functions ::
 msg() {
@@ -138,24 +138,20 @@ msg_warn() {
 
 ## main ::
 while (($#)); do case "$1" in
-    push)  flag_gitpush=true ;;
+    push)  flg_gitpush=true ;;
     *)     msg_error "unknown option: $1"; exit 5 ;;
 esac; shift; done
 
-# check dependencies:
-if ! command -v rsync &>/dev/null; then
-    msg_error 'rsync not found'
-    exit 4
-fi
-if ! command -v git &>/dev/null; then
-    msg_error 'git not found'
-    exit 4
-fi
+# check deps:
+for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
+    msg_error 'required: %s' "$req"
+    exit 7
+fi; done
 
 # check source directory:
 if [ ! -d "$dir_src" ]; then
     msg_error "source directory not found: $dir_src"
-    exit 3
+    exit 6
 fi
 
 # build rsync exclude args:
@@ -179,14 +175,13 @@ for file in "${files_src[@]}"; do
     if [ -d "$dir_src/$file" ] && [ "${file: -1}" != '/' ]; then
         file="$file/"
     fi
-    rsync "${args_rsync[@]}" "$dir_src/$file" "$file" | sed -E -e '/^.*\/$/d' \
-        -e '/^created /d' \
-        -e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
+    rsync "${args_rsync[@]}" "$dir_src/$file" "$file" | sed -E -e '/\/$/d' \
+        -e '/^created /d' -e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
         -e '/  - /! s/^/\o033[38;5;10m  + \o033[38;5;15m/'
 done
 
 # push to remote git repo:
-if [ "$flag_gitpush" = 'true' ]; then
+if [ "$flg_gitpush" = 'true' ]; then
     if [ "$(git -C "$dir_script" rev-parse --git-dir 2>/dev/null)" != '.git' ]; then
         msg_warn 'not a git repo'
     else

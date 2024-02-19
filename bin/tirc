@@ -1,13 +1,9 @@
 #!/bin/sh
-
 ## tirc ::
-# - ssh into remote host
-# - start bitlbee daemon
-# - attach/create tmux session
-# - run irssi
+# ssh into remote, attach/create tmux session, launch irssi:
 
 ## config ::
-remote='arch-pi'
+remote='arch-nas'
 tmux='irc'
 
 ## main ::
@@ -15,10 +11,6 @@ set -e
 
 if [ "$(hostname)" != "$remote" ]; then
     exec ssh -t "$remote" 'bash -li -c tirc'
-fi
-
-if ! pidof -q bitlbee; then
-    sudo -u bitlbee bitlbee -D && sleep 4
 fi
 
 if tmux -L "$tmux" has-session >/dev/null 2>&1; then

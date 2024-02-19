@@ -8,25 +8,6 @@ len_vid() {
     ffprobe -hide_banner -show_format "$1" 2>/dev/null | grep -Po '^duration=\K\d+'
 }
 
-ffmpeg_PinkFloyd_LiveAtPompeii() {
-    local args_1440=(-i PinkFloyd_LiveAtPompeii_2160p.webm
-        -vf 'crop=x=488:y=11:w=2848:h=2136,scale=-1:1440:flags=lanczos'
-        -preset veryslow -c:a copy)
-    local args_1440_cropped=(-i PinkFloyd_LiveAtPompeii_2160p.webm
-        -vf 'crop=x=488:y=190:w=2848:h=1780,scale=-1:1440:flags=lanczos'
-        -preset veryslow -c:a copy)
-    local args_1080=(-i PinkFloyd_LiveAtPompeii_2160p.webm
-        -vf 'crop=x=488:y=11:w=2848:h=2136,scale=-1:1080:flags=lanczos'
-        -preset veryslow -c:a copy)
-    local args_1080_cropped=(-i PinkFloyd_LiveAtPompeii_2160p.webm
-        -vf 'crop=x=488:y=190:w=2848:h=1780,scale=-1:1080:flags=lanczos'
-        -preset veryslow -c:a copy)
-    #cmd_ffmpeg "${args_1440[@]}" -crf 25 PinkFloyd_LiveAtPompeii_1440p_crf25.mp4
-    #cmd_ffmpeg "${args_1440_cropped[@]}" -crf 25 PinkFloyd_LiveAtPompeii_1440p_cropped_crf25.mp4
-    cmd_ffmpeg "${args_1080[@]}" -crf 25 PinkFloyd_LiveAtPompeii_1080p_crf25.mp4
-    #cmd_ffmpeg "${args_1080_cropped[@]}" -crf 25 PinkFloyd_LiveAtPompeii_1080p_cropped_crf25.mp4
-}
-
 ## ffmpeg ::
 # Apply delogo filter, fade in/out audio and video, and add a brief caption:
 #   $ ffmpeg_caption-delogo-fade <INPUT> <DELOGO PARMS> [START] [END] [CAPTION] [OUTPUT]
@@ -81,24 +62,6 @@ ffmpeg_track-pad() {
         track="${track%/*}"
         [ "${#track}" -gt 1 ] && continue
         track="0$track"
-        file_ext="${arg##*.}"
-        tmp_file="$(mktemp -t "XXXX.$file_ext")"
-        ffmpeg -hide_banner -i "$arg" -c:a copy -c:v copy \
-          -metadata "track=$track" \
-          -fflags +bitexact -flags:a +bitexact -flags:v +bitexact -y "$tmp_file" &&
-        rm "$arg" &&
-        mv "$tmp_file" "$arg"
-    done
-}
-
-ffmpeg_tag-clean() {
-    for arg in "$@"; do
-        track="$(ffprobe -loglevel 8 -hide_banner -show_format "$arg" | grep -Po '^TAG:track=\K.*')"
-        [ -z "$track" ] && continue
-        track="${track%/*}"
-        if [ "${#track}" -lt 2 ]; then
-            track="0$track"
-        fi
         file_ext="${arg##*.}"
         tmp_file="$(mktemp -t "XXXX.$file_ext")"
         ffmpeg -hide_banner -i "$arg" -c:a copy -c:v copy \
