@@ -41,7 +41,7 @@ Extract:
 
 Create:
 
-    $ bsdtar --zstd:compression-level=19 -caf <NAME>.tar.zst <FILE...>
+    $ bsdtar --options zstd:compression-level=19 -caf <NAME>.tar.zst <FILE...>
     $ bsdtar c <FILE...> | zstd -19 -o <NAME>.tar.zst
 
 Extract:

@@ -111,14 +111,9 @@ msg_warn() {
 }
 
 msg_cmd() {
-    local arg str=$'\e[1;38;5;10m'' -$'$'\e[0;38;5;15m'
-    if [ $EUID -eq 0 ]; then
-        str=$'\e[1;38;5;9m'' -#'$'\e[0;38;5;15m'
-    fi
-    for arg in "$@"; do
-        str+=" $(printf '%q' "$arg")"
-    done
-    printf '%s\e[0m\n' "$str"
+    local ps1=$'\e[1;38;5;10m'' :$'
+    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' :#'
+    printf '%s \e[0;38;5;15m%s\n' "$ps1" "$(printf '%q ' "$@")"
 }
 
 msg2() {

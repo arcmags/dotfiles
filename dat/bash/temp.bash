@@ -171,4 +171,9 @@ args_parse "$@"
 [ -n "$opt_x" ] && msg 'opt_x=%q' "$opt_x"
 a=0; for arg in "${args[@]}"; do msg 'args[%d]=%s' $((a++)) "$arg"; done
 
+for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
+    msg_error 'required: %s' "$req"
+    #exit 7
+fi; done
+
 # vim:ft=bash

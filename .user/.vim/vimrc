@@ -167,6 +167,9 @@ nnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 tnoremap <c-w>; <scriptcmd>TermBuf()<cr>
 tnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 
+## mappings: make ::
+nnoremap <leader>m <cmd>update<cr><cmd>sil lmake<cr><cmd>redraw!<cr>
+
 ## mappings: make/quickfix ::
 nnoremap <expr> <leader>qg '<cmd>cc ' .. (v:count > 0 ? v:count : '') .. '<cr>'
 nnoremap [Q <cmd>cfirst<cr>

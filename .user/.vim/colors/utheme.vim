@@ -190,6 +190,11 @@ hi! link shDerefPattern PreProc
 # srt:
 hi! link srtItalics Italic
 
+# toml:
+hi! link tomlBoolean PreProc
+hi! link tomlKey Type
+hi! link tomlTable Statement
+
 # vim:
 hi! link vimHiAttrib String
 hi! link vimHiKeyList PreProc
@@ -210,7 +215,8 @@ hi! link LspDiagSignWarningText WarningMsg
 hi! link LspDiagSignInfoText Title
 
 # yaml:
-hi! link yamlBool PreProc
 hi! link yamlBlockMappingKey Type
+hi! link yamlBool PreProc
 hi! link yamlKeyValueDelimiter Delimiter
+hi! link yamlNull Special
 hi! link yamlPlainScalar String

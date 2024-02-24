@@ -1,8 +1,11 @@
 ## ~/.config/yt-dlp/config ::
 
+--format 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
 --output '%(title)s.%(ext)s'
 --output 'chapter:%(title)s_%(section_number)02d_%(section_title)s.%(ext)s'
 --restrict-filenames
---format 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+--sub-lang 'en.*'
+--write-sub
+--write-auto-sub
 
 # vim: set ft=config:

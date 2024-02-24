@@ -72,10 +72,11 @@ ffmpeg_track-pad() {
     done
 }
 
-ffmpeg_Thylacine_ARTE2022() {
-    local input='Thylacine_ARTE2022.mp4'
-    ffmpeg -hide_banner -i "$input" -c:a copy -crf 25 -preset veryslow \
-      -vf delogo=x=62:y=55:w=90:h=180 Thylacine_ARTE2022_delogo_crf25.mp4
+ffmpeg_ARTE() {
+    local vid_in="$1"
+    local vid_out="${1%.*}_new.mp4"
+    ffmpeg -hide_banner -i "$vid_in" -c:a copy -crf 25 -preset veryslow \
+      -vf delogo=x=58:y=55:w=98:h=180 "$vid_out"
 }
 
 # vim:ft=bash
