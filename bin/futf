@@ -84,9 +84,9 @@ while [ -n "$arg" ]; do case "$arg" in
         if [[ ! "${arg:2:1}" =~ [LOSTHt] ]]; then
             msg_error "unknown option: ${arg:2:1}"; exit 2
         fi
-        args[((a--))]="-${arg:2}"; arg="${arg:0:2}" ;;
+        args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
     -[t]*)
-        args[$a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+        args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
     --)
         ((a++)); break ;;
     *)

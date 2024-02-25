@@ -24,11 +24,18 @@ OPTIONS
 HELPDOC
 }
 
-## script variables ::
+## internal control ::
 file_script="$(basename "$BASH_SOURCE")"
 dir_script="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
 path_script="$(realpath "$BASH_SOURCE")"
 pid_script="$$"
+# args:
+args=()
+flg_a=false
+opt_x=
+n_args=0
+n_flgs=0
+n_opts=0
 
 ## signals, trap ::
 # EXIT catches any sort of exit except `kill -9`:
@@ -36,6 +43,25 @@ pid_script="$$"
 
 # INT catches <c-c>:
 trap "printf 'ctrl-c caught\n'; exit 1" INT
+
+## debug ::
+debug() {
+    local vars=($(compgen -v | sed '0,/^_$/d' | sort))
+    local arr=() val= var=
+    for var in "${vars[@]}"; do
+        val="${!var}"
+        if [[ "$(declare -p "$var")" =~ 'declare -a' ]]; then
+            eval "arr=(\"\${$var[@]}\")"
+            val=$'\e[38;5;13m''('$'\e[38;5;15m'
+            for a in "${arr[@]::${#arr[@]}-1}"; do
+                val+=$'\e[38;5;13m'"'"$'\e[38;5;15m'"$a"$'\e[38;5;13m'"' "
+            done
+            val+=$'\e[38;5;13m'"'"$'\e[38;5;15m'"${arr[-1]}"$'\e[38;5;13m'"'"
+            val+=$'\e[38;5;13m'')'$'\e[38;5;15m'
+        fi
+        printf '\e[0;38;5;12m%s\e[38;5;11m=\e[38;5;15m%s\n' "$var" "$val"
+    done
+}
 
 ## messages ::
 msg() {
@@ -113,12 +139,6 @@ file_set() {
 }
 
 ## parse args ::
-args=()
-flg_a=false
-opt_x=
-n_args=0
-n_flgs=0
-n_opts=0
 args_parse() {
     local _args=("$@") a=0 arg="${_args[a]}"
     while [ -n "$arg" ]; do case "$arg" in
@@ -166,14 +186,11 @@ args_parse() {
 
 ## main() ::
 args_parse "$@"
-[ $((n_flgs + n_opts + n_args)) -eq 0 ] && msg 'no arguments given'
-[ "$flg_a" = 'true' ] && msg 'flg_a=true'
-[ -n "$opt_x" ] && msg 'opt_x=%q' "$opt_x"
-a=0; for arg in "${args[@]}"; do msg 'args[%d]=%s' $((a++)) "$arg"; done
+debug
 
 for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
     msg_error 'required: %s' "$req"
-    #exit 7
+    #exit 5
 fi; done
 
 # vim:ft=bash

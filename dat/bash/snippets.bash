@@ -191,11 +191,11 @@ args_parse() {
         -[AH]*)
             # all flags and options:
             [[ ! "${arg:2:1}" =~ [ABxyH] ]] && error_unknown
-            _args[((a--))]="-${arg:2}"
+            _args[a--]="-${arg:2}"
             arg="${arg:0:2}" ;;
         # all options:
         -[x]*)
-            _args[$a]="${arg:2}"
+            _args[a]="${arg:2}"
             arg="${arg:0:2}"
             ((a--)) ;;
         # start args:
@@ -208,6 +208,27 @@ args_parse() {
     # get args:
     args=("${_args[@]:a}")
     n_args=${#args[@]}
+}
+
+## debug ::
+debug() {
+    # pretty print all script variables and values:
+    local vars=($(compgen -v | sed '0,/^_$/d' | sort)) a arr val var
+    for var in "${vars[@]}"; do
+        val="${!var}"
+        if [[ "$(declare -p "$var")" =~ 'declare -a' ]]; then
+            eval "arr=(\"\${$var[@]}\")"
+            val=$'\e[38;5;13m''('
+            for a in "${arr[@]:0:1}"; do
+                val+="'"$'\e[38;5;15m'"$a"$'\e[38;5;13m'"'"
+            done
+            for a in "${arr[@]:1}"; do
+                val+=" '"$'\e[38;5;15m'"$a"$'\e[38;5;13m'"'"
+            done
+            val+=')'
+        fi
+        printf '\e[0;38;5;12m%s\e[38;5;11m=\e[38;5;15m%s\e[0m\n' "$var" "$val"
+    done
 }
 
 ## PATH, bin, command ::

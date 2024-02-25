@@ -1,26 +1,21 @@
 #!/bin/bash
-
 ## usync ::
-# GNU General Public License v3
 
 print_help() {
 cat <<'HELPDOC'
 NAME
-    usync - push/pull file changes from remote source
+    usync - push/pull changes from remote source
 
 SYNOPSIS
     usync <COMMAND> [OPTION...]
 
 DESCRIPTION
-    usync is an automated rsync wrapper controlled by a simple config file.
-    A file named .usync defines a usync repo - a collection of files and
-    directories along with the address of a remote source to sync with.  usync
-    searches the current and parent directories for a .usync file and executes
-    COMMAND on that repo.
+    Usync is an rsync wrapper controlled via config file. Usync searches the
+    current and parent directories for a .usync file and executes COMMAND.
 
 COMMANDS
     init
-        Create a new usync repo in current directory.
+        Create a new .usync file in current directory.
 
     push
         Push changes to remote source.
@@ -30,97 +25,75 @@ COMMANDS
 
 OPTIONS
     -c, --config <FILE>
-        Read config from FILE instead of .usync default.  Config files are read
-        and parsed as if they are in the current directory.  When specifying a
-        config file with this option, usync will not search parent directories
-        if the config file does not exist.
+        Use config FILE. Don't search parent dirs if FILE does not exist.
 
-    -D, --dry-run
-        Perform trial run making no changes.
+    -D, --dryrun
+        Perform dry run making no changes.
 
     -V, --verbose
-        Print rsync command.
+        Show rsync command.
 
     -H, --help
         Display this help.
 
-FILES
-    .usync
-        The init command creates a file named .usync in the current directory.
-        This file has two sections.  The remote repo settings are defined via
-        variables in the [remote] section, while the [exclude] section contains
-        a list of patterns to exclude from syncing.
+CONFIG
+    .usync - yaml file defining usync repo, may contain following keys:
 
-        [remote]
-            url =
-                Remote repo url.  It may be an ssh alias or even localhost.
-                It cannot be unset.
+        url
+            Remote repo url. May be an ssh alias. Required.
 
-            port =
-                Remote port to connect to.  If left blank, it will take on
-                the default value of 22 or inherit any ssh alias settings.
+        dir
+            Remote directory. Must be a full path. Required.
 
-            user =
-                User to connect to remote as.  If left blank, it will be
-                the current user or inherit any ssh alias settings.
+        port
+            Remote port. If blank, inherit from ssh alias.
 
-            dir =
-                Directory on remote to sync with.  The directory must be a
-                full path.  It cannot be unset.
+        user
+            Remote user. If blank, inherit from ssh alias.
 
-        [exclude]
-            This section is a list of patterns to exclude from rsync via the
-            --exclude option.  Any pattern that starts with a / is anchored
-            to the root usync folder, otherwise it is matched against the
-            end of the pathname.  If the pattern ends with a / then it will
-            only match a directory.  A * matches any non-slash path component.
-            ** matches everything, including slashes.
-
-            Character classes may also me used in patterns.  See the
-            INCLUDE/EXCLUDE PATTERN RULES section of the rsync manual for
-            the complete documentation.
+        exclude
+            List of patterns to exclude via rsync --exclude option.
+            See FILTER RULES section of rsync manual.
 
 REQUIREMENTS
-    rsync
-    ssh
+    rsync, ssh, yq
 HELPDOC
-if ! command -v rsync &>/dev/null; then
-    msg_warn 'missing required package: rsync'
-fi
-if ! command -v ssh &>/dev/null; then
-    msg_warn 'missing required package: ssh'
-fi
 }
 
-# TODO: pull .usync and source before pulling everything else
-# TODO: use .usync.log to automatically determine action?
-# TODO: require .usync to be in $PWD (must be in base directory)?
-# TODO: get rid of eval
-# TODO: use toml or ini as config
-# TODO: remove blank lines from excludes
-# TODO: deal with shitty filenames (like ones starting with # and whatnot)
+# TODO: list/query action
 
-# arguments:
-flag_dryrun=false
-flag_init=false
-flag_pull=false
-flag_push=false
-flag_verbose=false
-opt_config=
-
-# internal control:
-n_cmds=0
-flag_local=false
-url=
-port=
-user=
-dir=
-excludes=()
-url_dir=
+## internal control ::
+a=0
+arg="$1"
+args=("$@")
 args_rsync=('-azz' '--protect-args' '--info=copy1,del1,name1' '--delete')
-conf_ssh=
+arr_config=()
+cfg_ssh=
 cmd_ssh='ssh'
-config='.usync'
+dir=
+exclude=
+excludes=()
+file_config='.usync'
+flg_dryrun=false
+flg_init=false
+flg_local=false
+flg_pull=false
+flg_push=false
+flg_verbose=false
+host="$HOSTNAME"
+n_actions=0
+opt_config=
+port=
+requirements=(rsync ssh yq)
+url=
+url_dir=
+user=
+
+if [ -f /etc/hostname- ]; then
+    host="$(</etc/hostname-)"
+elif [ -f /etc/hostname ]; then
+    host="$(</etc/hostname)"
+fi
 
 ## functions ::
 msg() {
@@ -128,176 +101,135 @@ msg() {
 }
 
 msg_error() {
-    printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_warn() {
-    printf "\e[1;38;5;11m==> WARNING: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg_cmd() {
-    local arg str=$'\e[1;38;5;10m'' -$'$'\e[0;38;5;15m'
-    if [ $EUID -eq 0 ]; then
-        str=$'\e[1;38;5;9m'' -#'$'\e[0;38;5;15m'
-    fi
-    for arg in "$@"; do
-        str+=" $(printf '%q' "$arg")"
-    done
-    printf '%s\e[0m\n' "$str"
-}
-
-conf_gen() {
-    { printf '[remote]\nurl=localhost\n#port=22\n'
-    printf '#user=%s\ndir=%s' "$(printf '%q' "$USER")" "$(printf '%q' "$PWD")"
-    printf '\n\n[exclude]\n/local\n.git\n' ;} > "$1"
-}
-
-conf_parse() {
-    local conf="$(sed -n '/^\s*[^#]/p' "$1")"
-    eval "$(sed -n '/^\s*\[remote\]/,/^\s*\[/{/^\s*\[/!p;}' <<<"$conf" | \
-        sed -Ee 's/^\s*(url|port|user|dir)\s*=\s*(.*)/\1=\2/g')"
-    # parse dir:
-    if [ "${dir: -1}" = '/' ]; then
-        dir="${dir:0:-1}"
-    fi
-    mapfile -t excludes < <(sed -n '/^\s*\[exclude\]/,/^\s*\[/{/^\s*\[/!p;}' \
-         <<<"$conf")
+    local ps1=$'\e[1;38;5;10m'' :$'
+    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' :#'
+    printf '%s \e[0;38;5;15m%s\n' "$ps1" "$(printf '%q ' "$@")"
 }
 
 ## main ::
-while (($#)); do
-    case "$1" in
-        init)
-            flag_init=true
-            ((n_cmds++)) ;;
-        pull)
-            flag_pull=true
-            ((n_cmds++)) ;;
-        push)
-            flag_push=true
-            ((n_cmds++)) ;;
-        -c|--config)
-            shift
-            opt_config="$1" ;;
-        -D|--dryrun|--dry-run)
-            flag_dryrun=true ;;
-        -V|--verbose)
-            flag_verbose=true ;;
-        -H|--help)
-            print_help
-            exit 0 ;;
-        *)
-            msg_error 'unknown option: %s' "$1"
-            exit 4 ;;
-    esac
-    # ERROR: too many actions:
-    if [ $n_cmds -gt 1 ]; then
-        msg_error 'cannot perform multiple commands'
-        exit 5
-    fi
-    shift
-done
+while [ -n "$arg" ]; do case "$arg" in
+    init)
+        flg_init=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    pull)
+        flg_pull=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    push)
+        flg_push=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    -c|--config)
+        [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 3
+        opt_config="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -D|--dryrun)
+        flg_dryrun=true; arg="${args[((++a))]}" ;;
+    -V|--verbose)
+        flg_verbose=true; arg="${args[((++a))]}" ;;
+    -H|--help)
+        print_help; exit 0 ;;
+    -[DVH]*)
+        if [[ ! "${arg:2:1}" =~ [DVHc] ]]; then
+            msg_error "unknown option: ${arg:2:1}"; exit 3
+        fi
+        args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
+    -[c]*)
+        args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+    --)
+        ((a++)); break ;;
+    *)
+        break ;;
+esac; done
+args=("${args[@]:a}")
 
-# HELP: no command:
-if [ $n_cmds -eq 0 ]; then
-    print_help
-    exit 6
+for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
+    msg_error 'required: %s' "$req"
+    exit 4
+fi; done
+
+if [ ${#args[@]} -gt 0 ]; then
+    msg_error "unknown args: ${args[*]}"
+    exit 3
 fi
 
-# set config file:
-config="${opt_config:-$config}"
-
-# ERROR: missing ssh:
-if ! command -v ssh &>/dev/null; then
-    msg_error 'missing required program: ssh'
-    exit 7
-# ERROR: missing rsync:
-elif ! command -v rsync &>/dev/null; then
-    msg_error 'missing required program: rsync'
-    exit 7
+if [ $n_actions -eq 0 ] || [ $n_actions -gt 1 ]; then
+    msg_error 'too many/no actions given'
+    exit 3
 fi
 
-# init:
-if [ "$flag_init" = true ]; then
-    # ERROR: already in a repo:
-    if [ -f "$config" ]; then
-        msg_error '%q already exists' "$config"
-        exit 8
+file_config="${opt_config:-$file_config}"
+
+if [ "$flg_init" = true ]; then
+    if [ -f "$file_config" ]; then
+        msg_error "already exists: $file_config"
+        exit 3
     fi
-    conf_gen "$config"
+    touch "$file_config"
+    { printf '## %s ::\n\n' "$(realpath "$file_config")"
+    printf 'dir: %s\nurl: localhost\n\nexclude:\n- /local\n- .git\n\n' "$PWD"
+    printf '# vim:ft=yaml\n' ;} > "$file_config"
     exit 0
 fi
 
 if [ -z "$opt_config" ]; then
-    # cd to closest parent dir with config file:
-    while [ ! -f "$config" ] && [ "$PWD" != '/' ]; do
+    while [ ! -f "$file_config" ] && [ "$PWD" != '/' ]; do
         cd ..
     done
-
-    # ERROR: no config file found:
-    if [ ! -f "$config" ]; then
-        msg_error 'not a usync repository (or any parent up to mount point /)'
-        exit 9
+    if [ ! -f "$file_config" ]; then
+        msg_error 'not a usync repository'
+        exit 3
     fi
 
-# ERROR: config file not found:
-elif [ ! -f "$config" ]; then
-    msg_error 'file %q not found' "$config"
-    exit 10
-
+elif [ ! -f "$file_config" ]; then
+    msg_error "file not found: $file_config"
+    exit 3
 fi
 
-# parse config file:
-conf_parse "$config"
+mapfile -t arr_config < <(yq -r '.dir, .port, .url, .user, .exclude[]' 2>/dev/null "$file_config")
+if [ ${#arr_config[@]} -lt 4 ]; then
+    msg_error "yaml error: $file_config"
+    exit 3
+fi
+dir="${arr_config[0]}"; [ "$dir" = 'null' ] && dir=
+port="${arr_config[1]}"; [ "$port" = 'null' ] && port=
+url="${arr_config[2]}"; [ "$url" = 'null' ] && url=
+user="${arr_config[3]}"; [ "$user" = 'null' ] && user=
+excludes=("${arr_config[@]:4}")
+[ "${dir:0:1}" = '~' ] && dir="$HOME${dir:1}"
+[ "${dir: -1}" = '/' ] && dir="${dir:0:-1}"
 
-# ERROR: no url:
 if [ -z "$url" ]; then
-    msg_error 'url must be specified in %q' "$config"
-    exit 11
-# ERROR: no directory:
-elif [ -z "$dir" ]; then
-    msg_error 'directory must be specified in %q' "$config"
-    exit 12
+    msg_error 'no url'
+    exit 3
+fi
+if [ -z "$dir" ]; then
+    msg_error 'no directory'
+    exit 3
+fi
+if [ -n "$port" ]; then
+    if [[ ! $port =~ ^[1-9][0-9]*$ ]] || [ "$port" -gt 65535 ]; then
+        msg_error "invalid port: $port"
+        exit 3
+    fi
 fi
 
-# local host:
-if [ "$url" = 'localhost' ] || [ "$url" = "$HOSTNAME" ] || \
-[ "$url" = '127.0.0.1' ]; then
-    flag_local=true
-    # EXIT: inside remote, no need to copy files to themselves:
-    if [ "$(realpath "$dir")" = "$(realpath .)" ]; then
-        msg_warn 'inside remote repo, no action taken'
+if [[ "$url" =~ ^localhost|$host|127.0.0.1$ ]]; then
+    flg_local=true
+    if [ "$(realpath "$dir")" = "$(realpath "$PWD")" ]; then
+        msg_warn 'remote: no action taken'
         exit 0
     fi
+fi
 
-# remote host:
-else
-    # get ssh alias config, if any:
-    conf_ssh="$(ssh -G "$url")"
-
-    # TODO: cannot reliably use ping to check connectivity, maybe could
-    #       try an ssh connection as a test
-    # ERROR: unable to reach remote:
-    #if ! ping -c1 -W4 "$url" &>/dev/null &&
-    #! ping -c1 -W4 "$(grep -Po '^hostname \K.*' <<<"$conf_ssh")" &>/dev/null; then
-        #msg_error 'unable to reach remote: %s' "$url"
-        #exit 13
-    #fi
-
-    # ERROR: invalid port number:
-    if [ -n "$port" ] && \
-    ([[ ! $port =~ ^[1-9][0-9]*$ ]] || [ $port -gt 65535 ]); then
-        msg_error "invalid port: $port"
-        exit 14
-    fi
-
-    # set ssh command:
-    if [ -n "$port" ] && \
-    [ "$(grep -Po '^port \K.*' <<<"$conf_ssh")" != "$port" ]; then
+if [ "$flg_local" != true ]; then
+    cfg_ssh="$(ssh -G "$url")"
+    if [ -n "$port" ] && [ "$(grep -Po '^port \K.*' <<<"$cfg_ssh")" != "$port" ]; then
         cmd_ssh+=" -p $port"
     fi
-    if [ -n "$user" ] && \
-    [ "$(grep -Po '^user \K.*' <<<"$conf_ssh")" != "$user" ]; then
+    if [ -n "$user" ] && [ "$(grep -Po '^user \K.*' <<<"$cfg_ssh")" != "$user" ]; then
         cmd_ssh+=" -l $user"
     fi
     if [ "$cmd_ssh" != 'ssh' ]; then
@@ -305,65 +237,33 @@ else
     fi
 fi
 
-# add exclude patterns:
-for pattern in "${excludes[@]}"; do
-    args_rsync+=('--exclude' "$pattern")
+for exclude in "${excludes[@]}"; do
+    args_rsync+=('--exclude' "$exclude")
 done
+[ "$flg_dryrun" = true ] && args_rsync+=('--dry-run')
+[ "$flg_local" = true ] && url_dir="$dir" || url_dir="$url:$dir"
 
-# set --dry-run flag:
-if [ "$flag_dryrun" = true ]; then
-    args_rsync+=('--dry-run')
-fi
-
-# make rsync url:dir arg:
-url_dir="$url:$dir"
-if [ "$flag_local" = true ]; then
-    url_dir="$dir"
-fi
-
-# push:
-if [ "$flag_push" = true ]; then
-    if [ "$flag_local" = true ]; then
+if [ "$flg_push" = true ]; then
+    if [ "$flg_local" = true ]; then
         mkdir -p "$dir"
     else
-        # create remote directory:
         args_rsync+=('--rsync-path' "mkdir -p '$dir' && rsync")
     fi
     args_rsync+=("$PWD/" "$url_dir")
     msg "pushing %s to %s ..." "$(printf '%q' "$PWD/")" "$(printf '%q' "$url_dir/")"
+fi
 
-# pull:
-else
+if [ "$flg_pull" = true ]; then
     args_rsync+=("$url_dir/" "$PWD")
     msg "pulling %s from %s ..." "$(printf '%q' "$PWD/")" "$(printf '%q' "$url_dir/")"
 fi
 
-# print rsync command:
-if [ "$flag_verbose" = true ]; then
-    msg_cmd rsync "${args_rsync[@]}"
-fi
+[ "$flg_verbose" = true ] && msg_cmd rsync "${args_rsync[@]}"
 
-# rsync and parse output:
 rsync "${args_rsync[@]}" | sed -E -e '/\/$/d' -e '/^created /d' \
     -e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
     -e '/  - /! s/^/\o033[38;5;10m  + \o033[38;5;15m/'
 
-# dry-run:
-if [ "$flag_dryrun" = true ]; then
-    msg_warn 'dry-run: no files changed'
-fi
-
-## error codes ::
-#   4   unknown argument
-#   5   too many commands
-#   6   no command
-#   7   missing ssh or rsync
-#   8   init command selected but config file already exists
-#   9   not in a usync repository
-#   10  config file not found
-#   11  url not set in config file
-#   12  directory not set in config file
-#   13  unable to reach url
-#   14  invalid port number set in config file
+[ "$flg_dryrun" = true ] && msg_warn 'dry-run: no files synced'
 
 # vim:ft=bash

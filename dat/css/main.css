@@ -27,10 +27,11 @@
     --color-bg: #00002a;
     --color-code: #f5f5ff;
     --color-comment: #50507a;
-    --color-em: #fc4cb8;
+    --color-em: #f5f5ff;
     --color-fg: #d0d0fa;
     --color-heading: #66b0ff;
     --color-link: #32a6a6;
+    --color-strong: #f5f5ff;
 }
 
 * {
@@ -135,7 +136,7 @@ main nav div, div.box div, div.code div, div.links div, pre code div {
     margin-left: 2ch;
 }
 
-div.code, pre code {
+div.code, code {
     color: var(--color-code);
 }
 
@@ -277,14 +278,14 @@ th {
 }
 
 /*/* margins ::*/
-h1, h2, h3, h4, h5, h6, figure,
+h1, h2, h3, h4, h5, h6, figure, hr,
 .nomargin, p.nomargin, div.box.nomargin, div.code.nomargin {
     margin-bottom: 0;
     margin-top: 0;
 }
 
-ul, ol, header, main, p, pre code, hr, table,
-div.box, div.code, .google-maps, .margin {
+ul, ol, header, main, p, pre code, table,
+div.box, div.code, .google-maps, .margin, dl, dl dd {
     margin-bottom: 2ch;
     margin-top: 0;
 }
@@ -350,13 +351,13 @@ b, .bold {
 /*}*/
 
 em, i, .ital {
-    /*color: var(--color-em);*/
+    color: var(--color-em);
     font-style: italic;
 }
 
 strong, .strg {
-    color: var(--color-heading);
-    font-weight: normal;
+    color: var(--color-strong);
+    font-weight: boldl;
 }
 
 .comment {

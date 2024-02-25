@@ -42,6 +42,7 @@ l = pan -40 0
 <Shift+A> = upscaling next
 <Shift+I> = zoom 5
 <Shift+O> = zoom -5
+<Shift+W> = scaling full
 e = scaling none
 i = zoom 1
 o = zoom -1
