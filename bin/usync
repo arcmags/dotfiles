@@ -188,15 +188,16 @@ elif [ ! -f "$file_config" ]; then
     exit 3
 fi
 
-mapfile -t arr_config < <(yq -r '.dir, .port, .url, .user, .exclude[]' 2>/dev/null "$file_config")
+mapfile -t arr_config < <(yq -r \
+'.dir//"", .port//"", .url//"", .user//"", .exclude[]' 2>/dev/null "$file_config")
 if [ ${#arr_config[@]} -lt 4 ]; then
     msg_error "yaml error: $file_config"
     exit 3
 fi
-dir="${arr_config[0]}"; [ "$dir" = 'null' ] && dir=
-port="${arr_config[1]}"; [ "$port" = 'null' ] && port=
-url="${arr_config[2]}"; [ "$url" = 'null' ] && url=
-user="${arr_config[3]}"; [ "$user" = 'null' ] && user=
+dir="${arr_config[0]}"
+port="${arr_config[1]}"
+url="${arr_config[2]}"
+user="${arr_config[3]}"
 excludes=("${arr_config[@]:4}")
 [ "${dir:0:1}" = '~' ] && dir="$HOME${dir:1}"
 [ "${dir: -1}" = '/' ] && dir="${dir:0:-1}"

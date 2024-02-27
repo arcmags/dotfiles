@@ -113,6 +113,11 @@ hi! link asciidocMacroAttributes Identifier
 # bash:
 hi! link bashSpecialVariables Type
 
+# cfg:
+hi! link CfgSection Title
+hi! link CfgValues Statement
+hi! link CfgOnOff Constant
+
 # css:
 hi! link cssBraces Delimiter
 

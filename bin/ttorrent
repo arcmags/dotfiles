@@ -21,7 +21,7 @@ if [ -n "$TMUX" ]; then
         sleep 4
         tmux send-keys -t 3 'transmission-daemon -f; exit' Enter
         sleep 1
-        tmux send-keys -t 2 'watch transmission-remote -l; exit' Enter
+        tmux send-keys -t 2 'watch -w transmission-remote -l; exit' Enter
         tmux select-pane -t 1
         cd /tmp/in
         exec bash -i

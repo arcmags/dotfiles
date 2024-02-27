@@ -81,6 +81,12 @@ msg_warn() {
     printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
+msg_cmd() {
+    local ps1=$'\e[1;38;5;10m'' :$'
+    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' :#'
+    printf '%s \e[0;38;5;15m%s\e[0m\n' "$ps1" "$(printf '%q ' "$@")"
+}
+
 ## status checks ::
 is_root() {
     [ $(id -u) -eq 0 ] && return 0

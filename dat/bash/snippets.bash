@@ -113,7 +113,7 @@ msg_warn() {
 msg_cmd() {
     local ps1=$'\e[1;38;5;10m'' :$'
     [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' :#'
-    printf '%s \e[0;38;5;15m%s\n' "$ps1" "$(printf '%q ' "$@")"
+    printf '%s \e[0;38;5;15m%s\e[0m\n' "$ps1" "$(printf '%q ' "$@")"
 }
 
 msg2() {

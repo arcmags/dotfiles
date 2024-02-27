@@ -3,17 +3,13 @@
 
 ## user setup: UDIR, UHOST, upwd() ::
 export UDIR="$HOME/user"
-mkdir -p "$UDIR/.root" "$UDIR/.user" "$UDIR/bin" "$UDIR/git" "$UDIR/lib" "$UDIR/local"
-
 export HOME_REALPATH="$(realpath "$HOME")"
 export UDIR_REALPATH="$(realpath "$UDIR")"
-
+UHOST="$HOSTNAME"
 if [ -f '/etc/hostname-' ]; then
     UHOST="$(cat /etc/hostname-)"
 elif [ -f '/etc/hostname' ]; then
     UHOST="$(cat /etc/hostname)"
-else
-    UHOST="$(uname -o | tr -dc 'A-Za-z0-9/_-' | tr '[:upper:]' '[:lower:]')"
 fi
 export UHOST
 
@@ -163,7 +159,7 @@ export ZSTD_CLEVEL=19
 cdb() { cd "$UDIR/bin"; }
 cdd() { cd "$UDIR/dat"; }
 cdg() { cd "$UDIR/git"; }
-[ -d "$UDIR/usync/img" ] && cdi() { cd "$UDIR/usync/img"; }
+[ -d "$UDIR/usync/images" ] && cdi() { cd "$UDIR/usync/images"; }
 cdl() { cd "$UDIR/local"; }
 cdm() { cd /mnt; }
 [ -d "/mnt/nas" ] && cdn() { cd /mnt/nas; }

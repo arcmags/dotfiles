@@ -1,6 +1,6 @@
 ## ~/.config/feh/keys ::
 
-## clear ::
+## unset ::
 action_0
 quit
 save_filelist
@@ -10,56 +10,100 @@ toggle_filenames
 toggle_fixed_geometry
 toggle_fullscreen
 toggle_info
+toggle_filenames
+toggle_actions
 toggle_pointer
+save_image
 prev_dir
 next_dir
 
 ## mappings ::
 close q
+
+# close every feh window:
 action_6 Q
-action_1 f
+
+# open in imv:
 action_2 backslash
+
+# fullscreen (via i3-msg):
+action_1 f
+
+# toggle action defs overlay:
+toggle_actions F
+
+# toggle exif info overlay:
+toggle_exif E
+
+# toggle status bar:
+toggle_info S
+
+# print info in terminal:
 action_3 question
 
-# interface:
-toggle_info D
-
-# navigate:
+# next/prev image:
 next_img n
 prev_img p
-action_4 N bracketright
-action_5 P bracketleft
 
-# pan:
-scroll_down j
-scroll_down_page J
+# next/prev 5% of file list:
+jump_fwd N Next
+jump_back P Prior
+
+# next/prev every feh window:
+action_4 bracketright
+action_5 bracketleft
+
+# first/last:
+jump_first g
+jump_last G
+
+# scroll:
 scroll_left h
 scroll_left_page H
-scroll_right l
-scroll_right_page L
+scroll_down j
+scroll_down_page J
 scroll_up k
 scroll_up_page K
+scroll_right l
+scroll_right_page L
 
-# remove/delete:
-delete C-x Delete
+# remove from file list:
 remove x
 
-jump_back Prior
-jump_first g
-jump_fwd Next
-jump_last G
+# delete and remove from file list:
+delete C-x Delete
+
+# load random image from file list:
 jump_random m
+
+# reload:
 reload_image C-l
+
 render Return
-save_image C-s
+
+# resize window to image:
 size_to_image W
-toggle_aliasing A
-toggle_keep_vp V
-toggle_pause space
-zoom_default 0 e
+
+# zoom: fill window:
 zoom_fill w
+
+# zoom: 100%:
+zoom_default e 0
+
+# zoom: fit to window:
 zoom_fit r
+
+# zoom in/out:
 zoom_in i
 zoom_out o
+
+# toggle
+toggle_aliasing A
+
+# toggle keeping zoom level between images:
+toggle_keep_vp V
+
+# pause slideshow:
+toggle_pause space
 
 # vim: set ft=config:
