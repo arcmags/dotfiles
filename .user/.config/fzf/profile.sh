@@ -2,7 +2,6 @@
 ## ~/.config/fzf/profile.sh ::
 
 export FZF_DEFAULT_COMMAND="find -type f -printf '%P\n'"
-
 export FZF_DEFAULT_OPTS="--bind 'alt-a:first' \
   --bind 'alt-d:half-page-down' \
   --bind 'alt-e:last' \
@@ -38,5 +37,3 @@ export FZF_DEFAULT_OPTS="--bind 'alt-a:first' \
   --no-unicode \
   --preview-window hidden \
   --preview='cat {}'"
-  #--reverse \
-  #--tac"

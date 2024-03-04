@@ -161,6 +161,10 @@ hi! link markdownURL Special
 hi! link netrwExe String
 hi! link netrwClassify SpecialKey
 
+# pkgbuild:
+hi! link pbMaintainerGroup Comment
+
+
 # python:
 hi! link pythonBuiltin Type
 
@@ -175,6 +179,7 @@ hi! link readlineVariable Type
 hi! link rstEmphasis htmlBold
 
 # sh:
+hi! link shFunctionOne Statement
 hi! link shRange Delimiter
 hi! link shQuote Delimiter
 hi! link shVariable Type

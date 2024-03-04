@@ -44,18 +44,14 @@ upwd() {
 is_bin() (
     [ -z "$1" ] && return 1
     IFS=':'
-    for dir in $PATH; do
-        [ -f "$dir/$1" ] && [ -x "$dir/$1" ] && return 0
-    done
+    for dir in $PATH; do [ -f "$dir/$1" ] && [ -x "$dir/$1" ] && return 0; done
     return 1
 )
 
 path_add() {
     case ":$PATH:" in
-        *:"$1":*)
-            ;;
-        *)
-            export PATH="$1${PATH:+:$PATH}" ;;
+        *:"$1":*) ;;
+        *) export PATH="$1${PATH:+:$PATH}" ;;
     esac
 }
 
@@ -66,9 +62,21 @@ path_add "$UDIR/local/bin"
 path_add "$HOME/bin"
 
 ## environment ::
+export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
+export PS2='\[\e[0m\] '
+
+[ -d "$UDIR/lib/python" ] && export PYTHONPATH="$UDIR/lib/python"
+[ -f "$UDIR/.user/.pythonrc" ] && export PYTHONSTARTUP="$UDIR/.user/.pythonrc"
+
+[ -d "$UDIR/lib/figlet" ] && export FIGLET_FONTDIR="$UDIR/lib/figlet"
+
+is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
+
+export SUDO_PROMPT="$(printf '\e[1;38;5;9m:> \e[0;38;5;15mpassword: \e[0m')"
+su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@"; }
+
 command_not_found_handle() {
-    printf '\e[1;38;5;11m==> \e[0;38;5;15mnot found: %s\e[0m\n' "$1"
-    return 127
+    printf '\e[1;38;5;11mP:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127
 }
 
 [ "$TERM" = 'linux' ] && export TERM='linux-16color'
@@ -81,16 +89,7 @@ fi
 
 export COLORFGBG='7;0'
 
-export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
-export PS2='\[\e[0m\] '
-
-[ -d "$UDIR/lib/python" ] && export PYTHONPATH="$UDIR/lib/python"
-[ -f "$UDIR/.user/.pythonrc" ] && export PYTHONSTARTUP="$UDIR/.user/.pythonrc"
-
-[ -d "$UDIR/lib/figlet" ] && export FIGLET_FONTDIR="$UDIR/lib/figlet"
-
 export TMPDIR='/tmp'
-mkdir -p "$TMPDIR/in"
 
 export EDITOR='vim'
 export VISUAL="$EDITOR"
@@ -111,8 +110,6 @@ export GREP_COLORS='mt=38;5;3:mc=48;5;3;38;5;0:fn=38;5;14:ln=38;5;8:bn=38;5;4:se
 export GROFF_NO_SGR=
 
 is_bin fzf && [ -f "$HOME/.config/fzf/profile.sh" ] && . "$HOME/.config/fzf/profile.sh"
-
-is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
 
 export HISTSIZE=4096
 export HISTFILESIZE=4096
@@ -151,8 +148,6 @@ export RIPGREP_CONFIG_PATH="$HOME/.rg.conf"
 export S_COLORS='always'
 export S_COLORS_SGR='H=33;1:I=36;1:M=34;1:N=32;1:Z=34;1'
 
-export SUDO_PROMPT="$(printf '\e[1;38;5;9m::> \e[0;38;5;15mpassword: ')"
-
 export ZSTD_CLEVEL=19
 
 ## functions: aliases ::
@@ -162,7 +157,7 @@ cdg() { cd "$UDIR/git"; }
 [ -d "$UDIR/usync/images" ] && cdi() { cd "$UDIR/usync/images"; }
 cdl() { cd "$UDIR/local"; }
 cdm() { cd /mnt; }
-[ -d "/mnt/nas" ] && cdn() { cd /mnt/nas; }
+[ -d /mnt/nas ] && cdn() { cd /mnt/nas; }
 [ -d "$UDIR/urepo" ] && cdr() { cd "$UDIR/urepo"; }
 [ -d "$UDIR/usync" ] && cds() { cd "$UDIR/usync"; }
 cdt() { cd "$TMPDIR"; }
@@ -206,29 +201,11 @@ is_bin ranger && ranger() {
 
 is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@"; }
 
-su() { printf '\e[1;38;5;9m::> \e[0;38;5;15m'; command su "$@"; }
-
 is_bin tmux && tmux() { command tmux -2 "$@"; }
 
 is_bin tt && tt() { command tt -notheme -noskip -blockcursor -nohighlight "$@"; }
 
-if is_bin vim; then
-    [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@"; }
-    [ -f "$UDIR/.user/.vim/.uvim" ] && uvim() { vim -c "source $UDIR/.user/.vim/.uvim"; }
-fi
-
-
-if [ -n "$DISPLAY" ] && is_bin xclip; then
-    xclip() {
-        command xclip -sel clipboard "$@"
-    }
-    xyank() {
-        xclip
-    }
-    xput() {
-        xclip -o
-    }
-fi
+is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@"; }
 
 is_bin zathura && zathura() { command zathura --fork "$@"; }
 
@@ -320,5 +297,26 @@ termset() {
 titleset() {
     [ -n "$1" ] && printf '\033]0;%s\007' "$*"
 }
+
+uvim() {
+    ! is_bin vim && exit 127
+    if [ -f "$UDIR/.user/.vim/.uvim" ]; then
+        vim -c "source $UDIR/.user/.vim/.uvim" "$@"
+    else
+        vim "$@"
+    fi
+}
+
+if [ -n "$DISPLAY" ] && is_bin xclip; then
+    xclip() {
+        command xclip -sel clipboard "$@"
+    }
+    xyank() {
+        xclip
+    }
+    xput() {
+        xclip -o
+    }
+fi
 
 # vim:ft=sh
