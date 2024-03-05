@@ -50,20 +50,12 @@ flg_keepspaces=false
 flg_keeptabs=false
 flg_overwrite=false
 opt_tabwidth=4
-requirements=(cmp dos2unix expand iconv uchardet)
+reqs=(cmp dos2unix expand iconv uchardet)
 
 ## functions ::
-msg() {
-    printf "\e[1;38;5;12m-> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
-}
-
-msg_error() {
-    printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
-
-msg_warn() {
-    printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
+msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 
 ## main() ::
 while [ -n "$arg" ]; do case "$arg" in
@@ -94,8 +86,8 @@ while [ -n "$arg" ]; do case "$arg" in
 esac; done
 args=("${args[@]:a}")
 
-for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
-    msg_error 'required: %s' "$req"
+for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
+    msg_error 'missing requirement: %s' "$req"
     exit 7
 fi; done
 

@@ -84,10 +84,12 @@ host="$HOSTNAME"
 n_actions=0
 opt_config=
 port=
-requirements=(rsync ssh yq)
+reqs=(rsync ssh yq)
 url=
 url_dir=
 user=
+args_sed=(-e 's/deleting /\o033[38;5;9m - \o033[38;5;15m/'
+    -e '/ - /! s/^/\o033[38;5;10m + \o033[38;5;15m/')
 
 if [ -f /etc/hostname- ]; then
     host="$(</etc/hostname-)"
@@ -97,7 +99,7 @@ fi
 
 ## functions ::
 msg() {
-    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg_error() {
@@ -109,9 +111,15 @@ msg_warn() {
 }
 
 msg_cmd() {
-    local ps1=$'\e[1;38;5;10m'' :$'
-    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' :#'
-    printf '%s \e[0;38;5;15m%s\n' "$ps1" "$(printf '%q ' "$@")"
+    local ps1=$'\e[1;38;5;10m'' $'
+    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' #'
+    [ "$flg_dryrun" = true ] && ps1=$'\e[1;38;5;11m'" ${ps1: -1}"
+    printf '%s \e[0;38;5;15m%s\e[0m\n' "$ps1" "$(printf '%q ' "$@")"
+}
+
+error() {
+    msg_error "$@"
+    exit 5
 }
 
 ## main ::
@@ -123,7 +131,7 @@ while [ -n "$arg" ]; do case "$arg" in
     push)
         flg_push=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
     -c|--config)
-        [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 3
+        [ $# -le $((a+1)) ] && error "arg required: $arg"
         opt_config="${args[((++a))]}"; arg="${args[((++a))]}" ;;
     -D|--dryrun)
         flg_dryrun=true; arg="${args[((++a))]}" ;;
@@ -132,9 +140,7 @@ while [ -n "$arg" ]; do case "$arg" in
     -H|--help)
         print_help; exit 0 ;;
     -[DVH]*)
-        if [[ ! "${arg:2:1}" =~ [DVHc] ]]; then
-            msg_error "unknown option: ${arg:2:1}"; exit 3
-        fi
+        [[ ! "${arg:2:1}" =~ [DVHc] ]] && error "unknown option: ${arg:2:1}"
         args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
     -[c]*)
         args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
@@ -145,28 +151,17 @@ while [ -n "$arg" ]; do case "$arg" in
 esac; done
 args=("${args[@]:a}")
 
-for req in "${requirements[@]}"; do if ! command -v "$req" &>/dev/null; then
-    msg_error 'required: %s' "$req"
-    exit 4
+for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
+    error "missing requirement: $req"
 fi; done
 
-if [ ${#args[@]} -gt 0 ]; then
-    msg_error "unknown args: ${args[*]}"
-    exit 3
-fi
-
-if [ $n_actions -eq 0 ] || [ $n_actions -gt 1 ]; then
-    msg_error 'too many/no actions given'
-    exit 3
-fi
+[ ${#args[@]} -gt 0 ] && error "unknown args: ${args[*]}"
+[ $n_actions -eq 0 ] || [ $n_actions -gt 1 ] && error 'too many/no actions given'
 
 file_config="${opt_config:-$file_config}"
 
 if [ "$flg_init" = true ]; then
-    if [ -f "$file_config" ]; then
-        msg_error "already exists: $file_config"
-        exit 3
-    fi
+    [ -f "$file_config" ] && error "already exists: $file_config"
     touch "$file_config"
     { printf '## %s ::\n\n' "$(realpath "$file_config")"
     printf 'dir: %s\nurl: localhost\n\nexclude:\n- /local\n- .git\n\n' "$PWD"
@@ -178,22 +173,15 @@ if [ -z "$opt_config" ]; then
     while [ ! -f "$file_config" ] && [ "$PWD" != '/' ]; do
         cd ..
     done
-    if [ ! -f "$file_config" ]; then
-        msg_error 'not a usync repository'
-        exit 3
-    fi
+    [ ! -f "$file_config" ] && msg_error 'not a usync repository'
 
 elif [ ! -f "$file_config" ]; then
-    msg_error "file not found: $file_config"
-    exit 3
+    error "file not found: $file_config"
 fi
 
 mapfile -t arr_config < <(yq -r \
 '.dir//"", .port//"", .url//"", .user//"", .exclude[]' 2>/dev/null "$file_config")
-if [ ${#arr_config[@]} -lt 4 ]; then
-    msg_error "yaml error: $file_config"
-    exit 3
-fi
+[ ${#arr_config[@]} -lt 4 ] && error "yaml error: $file_config"
 dir="${arr_config[0]}"
 port="${arr_config[1]}"
 url="${arr_config[2]}"
@@ -202,18 +190,11 @@ excludes=("${arr_config[@]:4}")
 [ "${dir:0:1}" = '~' ] && dir="$HOME${dir:1}"
 [ "${dir: -1}" = '/' ] && dir="${dir:0:-1}"
 
-if [ -z "$url" ]; then
-    msg_error 'no url'
-    exit 3
-fi
-if [ -z "$dir" ]; then
-    msg_error 'no directory'
-    exit 3
-fi
+[ -z "$url" ] && error 'no url'
+[ -z "$dir" ] && error 'no directory'
 if [ -n "$port" ]; then
     if [[ ! $port =~ ^[1-9][0-9]*$ ]] || [ "$port" -gt 65535 ]; then
-        msg_error "invalid port: $port"
-        exit 3
+        error "invalid port: $port"
     fi
 fi
 
@@ -259,12 +240,13 @@ if [ "$flg_pull" = true ]; then
     msg "pulling %s from %s ..." "$(printf '%q' "$PWD/")" "$(printf '%q' "$url_dir/")"
 fi
 
+if [ "$flg_dryrun" = true ]; then
+    args_sed=(-e 's/deleting /\o033[38;5;11m - \o033[38;5;15m/'
+        -e '/ - /! s/^/\o033[38;5;11m + \o033[38;5;15m/')
+fi
+
 [ "$flg_verbose" = true ] && msg_cmd rsync "${args_rsync[@]}"
 
-rsync "${args_rsync[@]}" | sed -E -e '/\/$/d' -e '/^created /d' \
-    -e 's/deleting /\o033[38;5;9m  - \o033[38;5;15m/' \
-    -e '/  - /! s/^/\o033[38;5;10m  + \o033[38;5;15m/'
-
-[ "$flg_dryrun" = true ] && msg_warn 'dry-run: no files synced'
+rsync "${args_rsync[@]}" | sed -E -e '/\/$/d' -e '/^created /d' "${args_sed[@]}"
 
 # vim:ft=bash

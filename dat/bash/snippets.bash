@@ -95,11 +95,11 @@ bar_x=$'\u253c'
 ## messages ::
 msg() {
     [ "$flg_quiet" = 'true' ] && return
-    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg_ask() {
-    printf "\e[1;38;5;10m::> \e[0;38;5;15m$1\e[0m " "${@:2}"
+    printf "\e[1;38;5;10m:> \e[0;38;5;15m$1\e[0m " "${@:2}"
 }
 
 msg_error() {
@@ -111,22 +111,22 @@ msg_warn() {
 }
 
 msg_cmd() {
-    local ps1=$'\e[1;38;5;10m'' :$'
-    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' :#'
+    local ps1=$'\e[1;38;5;10m'' $'
+    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' #'
     printf '%s \e[0;38;5;15m%s\e[0m\n' "$ps1" "$(printf '%q ' "$@")"
 }
 
 msg2() {
     [ "$flg_quiet" = 'true' ] && return
-    printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+    printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
 
 msg2_error() {
-    printf "\e[1;38;5;9m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;9m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 msg2_warn() {
-    printf "\e[1;38;5;11m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
+    printf "\e[1;38;5;11m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
 ## sed ::
@@ -160,15 +160,7 @@ n_args=0
 n_flgs=0
 n_opts=0
 args_parse() {
-    local _args=("$@") a=0 arg="${_args[a]}" error_opt error_unknown
-    error_opt() {
-        msg_error '%s requires an option' "$arg"
-        exit 2
-    }
-    error_unknown() {
-        msg_error 'unknown argument: %s' "${arg:2:1}"
-        exit 2
-    }
+    local _args=("$@") a=0 arg="${_args[a]}"
     while [ -n "$arg" ]; do case "$arg" in
         # flags:
         -A|--A-long)
@@ -176,9 +168,8 @@ args_parse() {
             ((n_flgs++)); arg="${_args[((++a))]}" ;;
         # options:
         -x|--x-long)
-            opt_x="${_args[((++a))]}"
-            [ $# -le $a ] && error_opt
-            ((n_opts++)); arg="${_args[((++a))]}" ;;
+            [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 2
+            opt_x="${args[((++a))]}"; ((n_opts++)); arg="${args[((++a))]}" ;;
         # help:
         -H|--help)
             if [ "$(type -t print_help)" = 'function' ]; then
@@ -190,12 +181,15 @@ args_parse() {
         # all flags:
         -[AH]*)
             # all flags and options:
-            [[ ! "${arg:2:1}" =~ [ABxyH] ]] && error_unknown
-            _args[a--]="-${arg:2}"
+            if [[ ! "${arg:2:1}" =~ [AHx] ]]; then
+                msg_error 'unknown option: %s' "${arg:2:1}"
+                exit 2
+            fi
+            _args[((a--))]="-${arg:2}"
             arg="${arg:0:2}" ;;
         # all options:
         -[x]*)
-            _args[a]="${arg:2}"
+            _args[$a]="${arg:2}"
             arg="${arg:0:2}"
             ((a--)) ;;
         # start args:
@@ -235,10 +229,8 @@ debug() {
 path_add() {
     # add $1 to the end of PATH unless it is already in PATH:
     case ":$PATH:" in
-        *:"$1":*)
-            ;;
-        *)
-            export PATH="$1${PATH:+:$PATH}" ;;
+        *:"$1":*) ;;
+        *) export PATH="$1${PATH:+:$PATH}" ;;
     esac
 }
 
@@ -246,9 +238,7 @@ is_bin() (
     # posix compatible way to check if $1 is an executable somewhere in $PATH:
     [ -z "$1" ] && return 1
     IFS=':'
-    for dir in $PATH; do
-        [ -f "$dir/$1" ] && [ -x "$dir/$1" ] && return 0
-    done
+    for dir in $PATH; do [ -f "$dir/$1" ] && [ -x "$dir/$1" ] && return 0; done
     return 1
 )
 # Why?
@@ -266,14 +256,13 @@ is_function() {
 
 ## status checks ::
 is_root() {
-    [ $(id -u) -eq 0 ] && return 0
-    return 1
+    [ $(id -u) -eq 0 ] && return 0 || return 1
 }
 
 status_internet() {
-    ping -q -c1 -W2 google.com &>/dev/null || \
-        ping -q -c1 -W2 archlinux.org &>/dev/null || \
-        ping -q -c1 -W4 google.com &>/dev/null
+    ping -q -c1 -W2 google.com &>/dev/null ||
+    ping -q -c1 -W2 archlinux.org &>/dev/null ||
+    ping -q -c1 -W4 google.com &>/dev/null
 }
 
 status_ntp() {
@@ -295,18 +284,13 @@ status_xorg() {
 
 ## ip/mac ::
 address_ip() {
-    if { status_internet ;}; then
-        curl -s -m 4 api.ipify.org || curl -s -m 4 icanhazip.com
-    else
-        printf 'n/a\n'
-        return 1
-    fi
+    status_internet || return 1
+    echo $(curl -s -m 4 api.ipify.org || curl -s -m 4 icanhazip.com)
 }
 
 address_mac() {
-    ip link show "$(ip link | \
-        grep -Pom1 '^[0-9]+: \K[^:]+(?=: <BROADCAST)')" | \
-        grep -Po 'link/ether \K[^ ]+(?= )'
+    ip link show "$(ip link | grep -Pom1 '^\d+: \K[^:]+(?=: <BROADCAST)')" \
+    | grep -Po 'link/ether \K[^ ]+(?= )'
 }
 
 ## images ::
@@ -315,19 +299,14 @@ is_img() {
 }
 
 img_size() {
-    if { identify "$@" &>/dev/null ;}; then
-        identify -format '%wx%h\n' "$@"
-    else
-        return 1
-    fi
+    identify -format '%wx%h\n' "$1" 2>/dev/null
 }
 
 img_size_set() {
     # set $img_w and $img_h from image $1:
-    if { identify "$1" &>/dev/null ;}; then
-        img_w="$(identify -format '%w %h' "$1")"
-        img_h="${img_w#* }"
-        img_w="${img_w% *}"
+    if img_w="$(identify -format '%w,%h' "$1")"; then
+        img_h="${img_w#*,}"
+        img_w="${img_w%,*}"
     else
         img_w=0
         img_h=0
@@ -395,6 +374,19 @@ file_ext() {
     local ext="${base#*.}"
     [ "$base" = ".$ext" ] && ext=''
     printf '%s' "$ext"
+}
+
+file_set() {
+    # set $file_dir, $file_name, $file_base, $file_ext from file $1:
+    [ ! -e "$1" ] && return 1
+    file_dir="$(cd "$(dirname "$1")" && pwd)"
+    file_name="$(basename "$1")"
+    file_base="${file_name%.*}"
+    if [ "${file_name:0:1}" = '.' ]; then
+        file_base="${file_name:1}"
+        file_base=".${file_base%.*}"
+    fi
+    file_ext="${file_name:${#file_base}}"
 }
 
 ## wget ::

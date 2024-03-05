@@ -39,64 +39,35 @@ REQUIREMENTS
 HELPDOC
 }
 
-# arguments:
-flag_imv=false
-opt_in=
-opt_out=
-
-# internal control:
+## internal control ::
 dir_in=
 dir_out=
-i=
-md5=
-m=
+ext=
 file_in=
 file_out=
-ext=
+flg_imv=false
+i=
+m=
+md5=
+opt_in=
+opt_out=
 pid_imv=
 
 ## functions ::
-msg() {
-    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
-}
-
-msg_error() {
-    printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
-
-msg2() {
-    [ "$flag_quiet" = 'true' ] && return
-    printf "\e[1;38;5;12m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
-}
-
-msg2_error() {
-    printf "\e[1;38;5;9m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
-
-msg2_warn() {
-    printf "\e[1;38;5;11m -> \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
+msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg2() { printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg2_error() { printf "\e[1;38;5;9m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg2_warn() { printf "\e[1;38;5;11m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 
 ## main ::
-while (($#)); do
-    case "$1" in
-        -i|--in|--input)
-            shift
-            opt_in="$1" ;;
-        -I|--imv)
-            flag_imv=true ;;
-        -o|--out|--output)
-            shift
-            opt_out="$1" ;;
-        -H|--help)
-            print_help
-            exit 0 ;;
-        *)
-            msg_error 'unknown option: %s' "$1"
-            exit 4 ;;
-    esac
-    shift
-done
+while (($#)); do case "$1" in
+    -i|--in|--input) shift; opt_in="$1" ;;
+    -I|--imv) flg_imv=true ;;
+    -o|--out|--output) shift; opt_out="$1" ;;
+    -H|--help) print_help; exit 0 ;;
+    *) msg_error 'unknown option: %s' "$1"; exit 4 ;;
+esac; shift; done
 
 # ERROR: missing inotifywait:
 if ! command -v inotifywait &>/dev/null; then
@@ -187,7 +158,7 @@ while read file_in; do
         msg2 "$file_out"
         mv "$dir_in/$file_in" "$dir_out/$file_out"
         printf '%s  %s\n' "$md5" "$file_out" >> "$dir_out/index.txt"
-        if [ "$flag_imv" = 'true' ] && [[ "$ext" =~ jpg|png|webp|gif ]]; then
+        if [ "$flg_imv" = 'true' ] && [[ "$ext" =~ jpg|png|webp|gif ]]; then
             if ps --pid "$pid_imv" &>/dev/null; then
                 imv-msg "$pid_imv" open "$file_out"
                 imv-msg "$pid_imv" goto -1

@@ -326,7 +326,6 @@ nnoremap <leader>Ft <scriptcmd>TextTrim()<cr>
 # remove carriage returns, set encoding=utf-8 format=unix nobomb, replace tabs with spaces:
 nnoremap <leader>Fu <scriptcmd>TextToUnix()<cr>
 
-
 # sort lines:
 nnoremap <leader>S mzvip<esc><cmd>'<,'>sort<cr>`z
 vnoremap <leader>S <esc><cmd>'<,'>sort<cr>
@@ -452,11 +451,11 @@ command! -bang BufWipeHidden BufWipeHidden(<q-bang>)
 command! -nargs=1 -complete=command BufCmd var c = ''<bar>BufTmp()<bar>redir => c<bar>sil <args><bar>redir END<bar>sil put =c<bar>:%s/\%^\(\n\s*\)\+//e<bar>setl nomod
 command! BufTmp BufTmp()
 command! -nargs=? -complete=help Help Help(<q-args>)
-
 command! TextJoinBlankLines TextJoinBlankLines()
 command! TextToUnix TextToUnix()
 command! TextTrim TextTrim()
 command! -range TextToAscii TextToAscii('n', <line1>, <line2>)
+command! -bang Write Write(<q-bang>)
 
 # set/reset CNT counter:
 command! -nargs=? CntSet CntSet(<args>)
@@ -1075,6 +1074,19 @@ def WinMode()
         redraw!
         echon ''
     endtry
+enddef
+
+def Write(bang = '')
+    call TextTrim()
+    if ! &modified
+        return
+    endif
+    if bang == '!'
+        exec "silent w !sudo tee > /dev/null %"
+        edit!
+    else
+        silent update
+    endif
 enddef
 
 defcompile

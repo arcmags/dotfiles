@@ -15,29 +15,21 @@ export UHOST
 
 upwd() {
     PWD_REALPATH="$(realpath "$PWD")"
+    _ud="$PWD"
     case "$PWD" in
-        "$UDIR"*)
-            printf '%s' "-${PWD#"$UDIR"}" ;;
-        "$UDIR_REALPATH"*)
-            printf '%s' "-${PWD#"$UDIR_REALPATH"}" ;;
-        "$HOME"*)
-            printf '%s' "~${PWD#"$HOME"}" ;;
-        "$HOME_REALPATH"*)
-            printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-        *)
-            case "$PWD_REALPATH" in
-                "$UDIR"*)
-                    printf '%s' "-${PWD_REALPATH#"$UDIR"}" ;;
-                "$UDIR_REALPATH"*)
-                    printf '%s' "-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
-                "$HOME"*)
-                    printf '%s' "~${PWD_REALPATH#"$HOME"}" ;;
-                "$HOME_REALPATH"*)
-                    printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-                *)
-                    printf '%s' "$PWD" ;;
-            esac ;;
+        "$UDIR"*) _ud="-${PWD#"$UDIR"}" ;;
+        "$UDIR_REALPATH"*) _ud="-${PWD#"$UDIR_REALPATH"}" ;;
+        "$HOME"*) _ud="~${PWD#"$HOME"}" ;;
+        "$HOME_REALPATH"*) _ud="~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+        *) case "$PWD_REALPATH" in
+            "$UDIR"*) _ud="-${PWD_REALPATH#"$UDIR"}" ;;
+            "$UDIR_REALPATH"*) _ud="-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
+            "$HOME"*) _ud="~${PWD_REALPATH#"$HOME"}" ;;
+            "$HOME_REALPATH"*) _ud="~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+            *) ;;
+        esac ;;
     esac
+    printf '%s' "$_ud"
 }
 
 ## utils ::
