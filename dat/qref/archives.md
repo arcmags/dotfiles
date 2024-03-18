@@ -1,11 +1,9 @@
----
-title: Archive and Compression Formats
----
+# Archive and Compression Formats
 
 This document details a bunch of common archive and compression formats and
 gives actual commands to compress/decompress them.
 
-# Archive
+## Archive
 Archive only formats don't compress data at all (sometimes they actually use
 more disk space). Rather they are used to combine a bunch of files/directories
 into a single archive file. This archive is then usually compressed by one of
@@ -14,13 +12,7 @@ files like *name.tar.gz*; this is a *tar* archive that was compressed by
 *gzip*. Some tools (bsdtar, tar) may call the compression program all in one
 step.
 
-| ext | name | `file -b` | tools |
-|----|----|----|----|
-| .a .ar | [unix archiver](https://en.wikipedia.org/wiki/Ar_(Unix)) | ? | [ar](https://man7.org/linux/man-pages/man1/ar.1.html) |
-| .cpio | [cpio](https://en.wikipedia.org/wiki/Cpio) | ASCII cpio archive | [bsdtar](https://man.freebsd.org/cgi/man.cgi?query=bsdtar) [bsdcpio](https://man.freebsd.org/cgi/man.cgi?query=bsdcpio) |
-| .shar | shell archive | ? | ? |
-
-## cpio
+### cpio
 - file: ASCII cpio archive
 - extension: .cpio
 
@@ -33,13 +25,18 @@ Extract:
     $ bsdtar xf <FILE> [-f FILE]...
     $ bsdcpio -i -F <FILE> [-F FILE]...
 
-# Compress
+## Compression
 
-## zstd
+### zstd
 - file: Zstandard compressed data
 - extension: .zst
 
 Create:
+
+    $ bsdtar caf <NAME>.tar.zst <FILE...>
+    $ bsdtar c <FILE...> | zstd -o <NAME>.tar.zst
+
+Create with highest compression level:
 
     $ bsdtar --options zstd:compression-level=19 -caf <NAME>.tar.zst <FILE...>
     $ bsdtar c <FILE...> | zstd -19 -o <NAME>.tar.zst

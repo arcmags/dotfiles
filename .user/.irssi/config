@@ -337,7 +337,8 @@ ignores = (
   { level = "JOINS MODES PARTS QUITS"; },
   { level = "NO_ACT NICKS"; },
   { mask = "tehbot"; level = "NO_ACT ALL"; servertag = "WeChall"; },
-  { mask = "Lamb3"; level = "NO_ACT ALL"; servertag = "WeChall"; }
+  { mask = "Lamb3"; level = "NO_ACT ALL"; servertag = "WeChall"; },
+  { level = "ALL"; pattern = "Failed to read ws header"; servertag = "Discord"; channels = ( "&bitlbee" ); }
 );
 
 keyboard = (
@@ -369,3 +370,4 @@ keyboard = (
 );
 
 # vim:ft=config:sw=2:ts=2
+logs = { };

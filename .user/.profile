@@ -6,30 +6,25 @@ export UDIR="$HOME/user"
 export HOME_REALPATH="$(realpath "$HOME")"
 export UDIR_REALPATH="$(realpath "$UDIR")"
 UHOST="$HOSTNAME"
-if [ -f '/etc/hostname-' ]; then
-    UHOST="$(cat /etc/hostname-)"
-elif [ -f '/etc/hostname' ]; then
-    UHOST="$(cat /etc/hostname)"
-fi
+[ -f '/etc/hostname' ] && UHOST="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && UHOST="$(cat /etc/hostname-)"
 export UHOST
 
 upwd() {
     PWD_REALPATH="$(realpath "$PWD")"
-    _ud="$PWD"
     case "$PWD" in
-        "$UDIR"*) _ud="-${PWD#"$UDIR"}" ;;
-        "$UDIR_REALPATH"*) _ud="-${PWD#"$UDIR_REALPATH"}" ;;
-        "$HOME"*) _ud="~${PWD#"$HOME"}" ;;
-        "$HOME_REALPATH"*) _ud="~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+        "$UDIR"*) printf '%s' "-${PWD#"$UDIR"}" ;;
+        "$UDIR_REALPATH"*) printf '%s' "-${PWD#"$UDIR_REALPATH"}" ;;
+        "$HOME"*) printf '%s' "~${PWD#"$HOME"}" ;;
+        "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
         *) case "$PWD_REALPATH" in
-            "$UDIR"*) _ud="-${PWD_REALPATH#"$UDIR"}" ;;
-            "$UDIR_REALPATH"*) _ud="-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
-            "$HOME"*) _ud="~${PWD_REALPATH#"$HOME"}" ;;
-            "$HOME_REALPATH"*) _ud="~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-            *) ;;
+            "$UDIR"*) printf '%s' "-${PWD_REALPATH#"$UDIR"}" ;;
+            "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
+            "$HOME"*) printf '%s' "~${PWD_REALPATH#"$HOME"}" ;;
+            "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+            *) printf '%s' "$PWD" ;;
         esac ;;
     esac
-    printf '%s' "$_ud"
 }
 
 ## utils ::
@@ -68,7 +63,7 @@ export SUDO_PROMPT="$(printf '\e[1;38;5;9m:> \e[0;38;5;15mpassword: \e[0m')"
 su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@"; }
 
 command_not_found_handle() {
-    printf '\e[1;38;5;11mP:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127
+    printf '\e[1;38;5;11mC:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127
 }
 
 [ "$TERM" = 'linux' ] && export TERM='linux-16color'
@@ -173,6 +168,7 @@ lls() { ls --color=always | less -R; }
 ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@"; }
 ls1() { ls -1 "$@"; }
 lsl() { ls -l "$@"; }
+lss() { ls -s "$@"; }
 
 lsblk() {
     if printf '%s\n' "$@" | grep -Fxq -- '-O'; then
@@ -189,7 +185,9 @@ is_bin pactree && pactree() { command pactree -a "$@"; }
 is_bin ranger && ranger() {
     command ranger --choosedir="$TMPDIR/rangerdir.txt" "$@"
     cd "$(cat $TMPDIR/rangerdir.txt)"
- }
+}
+
+reset() { tput reset; }
 
 is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@"; }
 

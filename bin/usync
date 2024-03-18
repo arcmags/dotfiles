@@ -88,8 +88,8 @@ reqs=(rsync ssh yq)
 url=
 url_dir=
 user=
-args_sed=(-e 's/deleting /\o033[38;5;9m - \o033[38;5;15m/'
-    -e '/ - /! s/^/\o033[38;5;10m + \o033[38;5;15m/')
+args_sed=(-e 's/deleting /\o033[1;38;5;9m - \o033[0;38;5;15m/'
+    -e '/ - /! s/^/\o033[1;38;5;10m + \o033[0;38;5;15m/')
 
 if [ -f /etc/hostname- ]; then
     host="$(</etc/hostname-)"
@@ -241,8 +241,8 @@ if [ "$flg_pull" = true ]; then
 fi
 
 if [ "$flg_dryrun" = true ]; then
-    args_sed=(-e 's/deleting /\o033[38;5;11m - \o033[38;5;15m/'
-        -e '/ - /! s/^/\o033[38;5;11m + \o033[38;5;15m/')
+    args_sed=(-e 's/deleting /\o033[1;38;5;11m - \o033[0;38;5;15m/'
+        -e '/ - /! s/^/\o033[1;38;5;11m + \o033[0;38;5;15m/')
 fi
 
 [ "$flg_verbose" = true ] && msg_cmd rsync "${args_rsync[@]}"

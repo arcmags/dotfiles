@@ -9,22 +9,17 @@ export HOME_REALPATH="$(realpath "$HOME")"
 apwd() {
     PWD_REALPATH="$(realpath "$PWD")"
     case "$PWD_REALPATH" in
-        "$ADIR_REALPATH"*)
-            printf '%s' "-${PWD_REALPATH#"$ADIR_REALPATH"}" ;;
-        "$HOME_REALPATH"*)
-            printf '%s' "-${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-        *)
-            printf '%s' "$PWD" ;;
+        "$ADIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#"$ADIR_REALPATH"}" ;;
+        "$HOME_REALPATH"*) printf '%s' "-${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+        *) printf '%s' "$PWD" ;;
     esac
 }
 
 ## utils ::
 path_add() {
     case ":$PATH:" in
-        *:"$1":*)
-            ;;
-        *)
-            export PATH="$1${PATH:+:$PATH}" ;;
+        *:"$1":*) ;;
+        *) export PATH="$1${PATH:+:$PATH}" ;;
     esac
 }
 
@@ -39,9 +34,7 @@ cda() { cd "$ADIR"; }
 
 ## commands ::
 reload() {
-    cd "$ADIR"
-    . .anonrc
-    cd - &>/dev/null
+    source "$ADIR/.anonrc"
 }
 
 ## source ::

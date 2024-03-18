@@ -5,6 +5,8 @@ vim9script
 noremap <buffer> <c-w><c-e> <nop>
 noremap <buffer> <c-w>E <nop>
 noremap <buffer> <c-w>e <nop>
+noremap <buffer> a <nop>
+noremap <buffer> s <nop>
 
 # close netrw and return to previous buffer:
 nnoremap <buffer> <c-w><c-n> <cmd>BufLast!<cr>
@@ -20,7 +22,7 @@ nnoremap <buffer> <c-x> <cmd>BufLast!<cr>
 nnoremap <buffer> <c-w>U <cmd>BufWipe!<cr><cmd>BufMatch<cr>
 nnoremap <buffer> <c-w><c-u> <cmd>BufWipe<cr><cmd>BufMatch<cr>
 nnoremap <buffer> <c-w>u <cmd>BufWipe<cr><cmd>BufMatch<cr>
-nnoremap <buffer> <<c-w>\ <cmd>terminal ++curwin ++noclose<cr>
+nnoremap <buffer> <c-w>\ <cmd>terminal ++curwin ++noclose<cr>
 
 # fast directory switching:
 def CDMap(suffix = '', dir = '')

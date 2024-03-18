@@ -79,6 +79,9 @@ set switchbuf=uselast
 set errorformat=%A%f:%l:%c:%m,%-G%.%#
 g:qf_disable_statusline = 1
 
+# fzf:
+g:fzf_action = { 'ctrl-s': 'split' }
+
 # netrw:
 g:netrw_banner = 0
 g:netrw_fastbrowse = 0
@@ -109,16 +112,14 @@ augroup vimrc
     autocmd TerminalWinOpen * setl nonu nornu
 augroup end
 
-## mappings :: special keys ::
+## mappings ::
 g:mapleader = ';'
 g:maplocalleader = '\'
 nnoremap <leader>, ;
 set cedit=<c-q>
 set wildcharm=<c-n>
 
-# TODO: [<key> and ]<key> mappings
-
-## mappings :: command/insert/search ::
+## mappings: command/insert/search ::
 noremap! <c-a> <home>
 noremap! <c-b> <left>
 noremap! <c-d> <del>
@@ -137,7 +138,7 @@ noremap! <m-l> <right>
 noremap! <m-r> <c-w>
 noremap! <m-w> <s-right>
 
-## mappings :: command/search ::
+## mappings: command/search ::
 cnoremap <c-j> <down>
 cnoremap <c-k> <up>
 cnoremap <expr> <m-y> repeat("\<right>\<bs>", len(getcmdline()) - getcmdpos() + 1)
@@ -149,28 +150,32 @@ inoremap <c-g> <c-d>
 inoremap <m-t> <c-u>
 inoremap <m-y> <c-\><c-o>D
 
-## mappings :: normal/visual/terminal ::
+## mappings: normal/visual/terminal ::
 tnoremap <c-w><c-w> <c-w>w
 
-# mappings: modes ::
+# fzf:
+nnoremap <leader>e <cmd>FZF<cr><cmd>redraw!<cr>
+nnoremap <leader>E <cmd>exec 'FZF ' .. g:UDIR<cr><cmd>redraw!<cr>
+
+# modes:
 nnoremap <leader><c-w> <scriptcmd>WinMode()<cr>
 nnoremap <leader>wQ Q
 nnoremap R gR
 nnoremap gR R
 
-## mappings: execute ::
+# execute:
 nnoremap <leader>: :silent !
 
-## mappings: terminal buffer (b:term) ::
+# terminal buffer (b:term):
 nnoremap <c-w>; <scriptcmd>TermBuf()<cr>
 nnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 tnoremap <c-w>; <scriptcmd>TermBuf()<cr>
 tnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 
-## mappings: make ::
+# make:
 nnoremap <leader>m <cmd>update<cr><cmd>sil lmake<cr><cmd>redraw!<cr>
 
-## mappings: make/quickfix ::
+# make/quickfix:
 nnoremap <expr> <leader>qg '<cmd>cc ' .. (v:count > 0 ? v:count : '') .. '<cr>'
 nnoremap [Q <cmd>cfirst<cr>
 nnoremap ]Q <cmd>clast<cr>
@@ -184,7 +189,7 @@ nnoremap <leader>qp <cmd>cprev<cr>
 nnoremap <leader>qq <cmd>cclose<cr>
 nnoremap <leader>qw <cmd>copen<cr>
 
-## mappings: make/locationlist ::
+# make/locationlist:
 nnoremap <expr> <leader>lg '<cmd>ll ' .. (v:count > 0 ? v:count : '') .. '<cr>'
 nnoremap [L <cmd>lfirst<cr>
 nnoremap ]L <cmd>llast<cr>
@@ -198,10 +203,7 @@ nnoremap <leader>lp <cmd>lprev<cr>
 nnoremap <leader>lq <cmd>lclose<cr>
 nnoremap <leader>lw <cmd>lopen<cr>
 
-# reload vimrc and plugins:
-noremap <leader><c-l> <cmd>source ~/.vim/vimrc<bar>runtime! plugin/*.vim<cr><cmd>echo 'vim reloaded'<cr>
-
-## mappings: buffer ::
+# buffer:
 nnoremap <expr> <c-w><c-e> '<cmd>let w:last = ' .. bufnr('%') .. '<cr><cmd>Explore<cr>'
 nnoremap <c-w>N <cmd>enew<cr>
 nnoremap <c-w>T <scriptcmd>BufTmp()<cr>
@@ -234,6 +236,8 @@ nnoremap <c-w>p <cmd>sil bp<cr>
 nnoremap <c-p> <cmd>sil bp<cr>
 tnoremap <c-w><c-p> <cmd>sil bp<cr>
 tnoremap <c-w>p <cmd>sil bp<cr>
+nnoremap ]b <cmd>sil bn<cr>
+nnoremap [b <cmd>sil bp<cr>
 
 # list all buffers, fill command line with `:b `:
 nnoremap <leader>b <scriptcmd>BufList()<cr>:b<Space>
@@ -285,27 +289,35 @@ tnoremap <expr> <c-w><c-q> '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$')
 tnoremap <expr> <c-w>Q '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1 ? 'q!' : 'qa!')) .. '<cr>'
 tnoremap <expr> <c-w>q '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1 ? 'q' : 'qa')) .. '<cr>'
 
-## mappings: tabs ::
+# tabs:
 nnoremap <c-w><c-t> <cmd>tab split<cr>
 nnoremap <c-w>t <cmd>tab split<cr>
 tnoremap <c-w><c-t> <cmd>tab split<cr>
 tnoremap <c-w>t <cmd>tab split<cr>
-nnoremap <c-j> gt
-tnoremap <c-w><c-j> <c-w>Ngt
-tnoremap <c-w>j <c-w>Ngt
-nnoremap <c-k> gT
-tnoremap <c-w><c-k> <c-w>NgT
-tnoremap <c-w>k <c-w>NgT
+nnoremap [t gT
+nnoremap ]t gt
+nnoremap [T 1gt
+nnoremap ]T 1gtgT
+#nnoremap <c-j> gt
+#tnoremap <c-w><c-j> <c-w>Ngt
+#tnoremap <c-w>j <c-w>Ngt
+#nnoremap <c-k> gT
+#tnoremap <c-w><c-k> <c-w>NgT
+#tnoremap <c-w>k <c-w>NgT
 
 # move tab:
 nnoremap <c-w>Gt <scriptcmd>TabMove()<cr>
 nnoremap <c-w>GT <scriptcmd>TabMove('-')<cr>
 
-## mappings: search ::
+# search:
 # search for non ascii characters:
 nnoremap <leader>/A /[^ -~]<cr>
 
-## mappings: text ::
+# navigation:
+nnoremap <c-j> gj
+nnoremap <c-k> gk
+
+# text:
 nnoremap Q gwip
 vnoremap Q gw
 
@@ -407,7 +419,10 @@ if exists('$DISPLAY') && executable('xclip')
     noremap! <c-r>x <scriptcmd>@x = system('xclip -sel clipboard -o')<cr><c-r>x
 endif
 
-## mappings: vim options ::
+# vim:
+noremap <leader><c-l> <cmd>source ~/.vim/vimrc<bar>runtime! plugin/*.vim<cr><cmd>echo 'vim reloaded'<cr>
+
+# set options:
 nnoremap <expr> <leader><space> '<cmd>' .. (v:hlsearch ? 'noh' : 'set hls') .. '<cr>'
 nnoremap <expr> <leader>t<c-n> '<cmd>setl ' .. ( &nu <bar><bar> &rnu ? 'nonu nornu' : 'nu rnu') .. '<cr>'
 nnoremap <expr> <leader>tS '<cmd>setl scl=' .. (&scl == 'no' ? 'number' : 'no') .. '<cr><cmd>setl scl?<cr>'
