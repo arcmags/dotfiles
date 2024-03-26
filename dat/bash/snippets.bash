@@ -8,7 +8,7 @@ NAME
 
 SYNOPSIS
     . snippets.bash
-    bash snippets.bash
+    ./snippets.bash
 
 DESCRIPTION
     Basically just a bunch of bash examples.
@@ -67,6 +67,7 @@ white1=$'\e[38;5;15m'
 # Most graphical terminal emulators have access to 256 or more colors. Many
 # allow customizing at least some (16) of them through config files, etc.
 # Colors can also sometimes be dynamically set.
+
 # Set color 69 to #442200:
 #   $ echo -en '\e]4;69;#442200\e\\'
 # Set terminal background to #ffaacc:
@@ -111,9 +112,10 @@ msg_warn() {
 }
 
 msg_cmd() {
-    local ps1=$'\e[1;38;5;10m'' $'
-    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' #'
-    printf '%s \e[0;38;5;15m%s\e[0m\n' "$ps1" "$(printf '%q ' "$@")"
+    local clr=$'\e[1;38;5;10m' txt=' $'
+    [ $EUID -eq 0 ] && clr=$'\e[1;38;5;9m' txt=' #'
+    [ "$flg_dryrun" = true ] && clr=$'\e[1;38;5;11m'
+    printf '%s%s \e[0;38;5;15m%s\e[0m\n' "$clr" "$txt" "$(printf '%q ' "$@")"
 }
 
 msg2() {
@@ -153,55 +155,28 @@ msg2_warn() {
 #grep -P '[^\x09\x0a\x0d -~]' <FILE>
 
 ## parse args ::
-args=()
-flg_a=false
-opt_x=
-n_args=0
-n_flgs=0
-n_opts=0
+args=("$@")
+flg_dryrun=false
+flg_yes=false
+opt_input=
+
 args_parse() {
-    local _args=("$@") a=0 arg="${_args[a]}"
+    local a=0 arg="$1"
     while [ -n "$arg" ]; do case "$arg" in
-        # flags:
-        -A|--A-long)
-            flg_a=true
-            ((n_flgs++)); arg="${_args[((++a))]}" ;;
-        # options:
-        -x|--x-long)
-            [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 2
-            opt_x="${args[((++a))]}"; ((n_opts++)); arg="${args[((++a))]}" ;;
-        # help:
-        -H|--help)
-            if [ "$(type -t print_help)" = 'function' ]; then
-                print_help
-            else
-                msg 'no help info'
-            fi
-            exit 0 ;;
-        # all flags:
-        -[AH]*)
-            # all flags and options:
-            if [[ ! "${arg:2:1}" =~ [AHx] ]]; then
-                msg_error 'unknown option: %s' "${arg:2:1}"
-                exit 2
-            fi
-            _args[((a--))]="-${arg:2}"
-            arg="${arg:0:2}" ;;
-        # all options:
-        -[x]*)
-            _args[$a]="${arg:2}"
-            arg="${arg:0:2}"
-            ((a--)) ;;
-        # start args:
-        --)
-            ((a++))
-            break ;;
-        *)
-            break ;;
+        -D|--dryrun) flg_dryrun=true; arg="${args[((++a))]}" ;;
+        -Y|--yes) flg_yes=true; arg="${args[((++a))]}" ;;
+        -H|--help) print_help; exit 0 ;;
+        -i|--input)
+            [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 3
+            opt_input="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+        -[DHY]*)
+            [[ ! "${arg:2:1}" =~ [DHYi] ]] && error "unknown option: ${arg:2:1}"
+            args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
+        -[i]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+        --) ((a++)); break ;;
+        *) break ;;
     esac; done
-    # get args:
-    args=("${_args[@]:a}")
-    n_args=${#args[@]}
+    args=("${args[@]:a}")
 }
 
 ## debug ::

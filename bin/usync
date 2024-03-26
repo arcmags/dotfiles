@@ -24,36 +24,37 @@ COMMANDS
         Pull changes from remote source.
 
 OPTIONS
-    -c, --config <FILE>
-        Use config FILE. Don't search parent dirs if FILE does not exist.
-
     -D, --dryrun
         Perform dry run making no changes.
-
-    -V, --verbose
-        Show rsync command.
 
     -H, --help
         Display this help.
 
+    -V, --verbose
+        Show rsync command.
+
+    -c, --config <FILE>
+        Use config FILE. Don't search parent dirs if FILE does not exist.
+
 CONFIG
     .usync - yaml file defining usync repo, may contain following keys:
-
-        url
-            Remote repo url. May be an ssh alias. Required.
 
         dir
             Remote directory. Must be a full path. Required.
 
+        exclude
+            List of patterns to exclude via rsync --exclude option.
+            See FILTER RULES section of rsync manual.
+
         port
             Remote port. If blank, inherit from ssh alias.
+
+        url
+            Remote repo url. May be an ssh alias. Required.
 
         user
             Remote user. If blank, inherit from ssh alias.
 
-        exclude
-            List of patterns to exclude via rsync --exclude option.
-            See FILTER RULES section of rsync manual.
 
 REQUIREMENTS
     rsync, ssh, yq
@@ -63,9 +64,7 @@ HELPDOC
 # TODO: list/query action
 
 ## internal control ::
-a=0
-arg="$1"
-args=("$@")
+a=0 arg="$1" args=("$@")
 args_rsync=('-azz' '--protect-args' '--info=copy1,del1,name1' '--delete')
 arr_config=()
 cfg_ssh=
@@ -91,63 +90,38 @@ user=
 args_sed=(-e 's/deleting /\o033[1;38;5;9m - \o033[0;38;5;15m/'
     -e '/ - /! s/^/\o033[1;38;5;10m + \o033[0;38;5;15m/')
 
-if [ -f /etc/hostname- ]; then
-    host="$(</etc/hostname-)"
-elif [ -f /etc/hostname ]; then
-    host="$(</etc/hostname)"
-fi
+[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 
 ## functions ::
-msg() {
-    printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
-}
-
-msg_error() {
-    printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
-
-msg_warn() {
-    printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
-
+msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg_cmd() {
-    local ps1=$'\e[1;38;5;10m'' $'
-    [ $EUID -eq 0 ] && ps1=$'\e[1;38;5;9m'' #'
-    [ "$flg_dryrun" = true ] && ps1=$'\e[1;38;5;11m'" ${ps1: -1}"
-    printf '%s \e[0;38;5;15m%s\e[0m\n' "$ps1" "$(printf '%q ' "$@")"
+    local clr=$'\e[1;38;5;10m' txt=' $'
+    [ $EUID -eq 0 ] && clr=$'\e[1;38;5;9m' txt=' #'
+    [ "$flg_dryrun" = true ] && clr=$'\e[1;38;5;11m'
+    printf '%s%s \e[0;38;5;15m%s\e[0m\n' "$clr" "$txt" "$(printf '%q ' "$@")"
 }
-
-error() {
-    msg_error "$@"
-    exit 5
-}
+error() { msg_error "$@"; exit 5 ;}
 
 ## main ::
 while [ -n "$arg" ]; do case "$arg" in
-    init)
-        flg_init=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
-    pull)
-        flg_pull=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
-    push)
-        flg_push=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    init) flg_init=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    pull) flg_pull=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    push) flg_push=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    -D|--dryrun) flg_dryrun=true; arg="${args[((++a))]}" ;;
+    -V|--verbose) flg_verbose=true; arg="${args[((++a))]}" ;;
+    -H|--help) print_help; exit 0 ;;
     -c|--config)
         [ $# -le $((a+1)) ] && error "arg required: $arg"
         opt_config="${args[((++a))]}"; arg="${args[((++a))]}" ;;
-    -D|--dryrun)
-        flg_dryrun=true; arg="${args[((++a))]}" ;;
-    -V|--verbose)
-        flg_verbose=true; arg="${args[((++a))]}" ;;
-    -H|--help)
-        print_help; exit 0 ;;
     -[DVH]*)
         [[ ! "${arg:2:1}" =~ [DVHc] ]] && error "unknown option: ${arg:2:1}"
         args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
-    -[c]*)
-        args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
-    --)
-        ((a++)); break ;;
-    *)
-        break ;;
+    -[c]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+    --) ((a++)); break ;;
+    *) break ;;
 esac; done
 args=("${args[@]:a}")
 

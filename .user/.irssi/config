@@ -338,7 +338,8 @@ ignores = (
   { level = "NO_ACT NICKS"; },
   { mask = "tehbot"; level = "NO_ACT ALL"; servertag = "WeChall"; },
   { mask = "Lamb3"; level = "NO_ACT ALL"; servertag = "WeChall"; },
-  { level = "ALL"; pattern = "Failed to read ws header"; servertag = "Discord"; channels = ( "&bitlbee" ); }
+  { level = "ALL"; pattern = "Failed to read ws header"; servertag = "Discord"; channels = ( "&bitlbee" ); },
+  { level = "ALL"; pattern = "Remote host is closing websocket connection"; servertag = "Discord"; channels = ( "&bitlbee" ); }
 );
 
 keyboard = (
