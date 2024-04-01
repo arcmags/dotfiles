@@ -57,6 +57,8 @@ files_src=(
     .user/.config/qutebrowser/userscripts/
     .user/.config/ranger/
     .user/.config/ttyper/
+    .user/.config/vifm/colors/
+    .user/.config/vifm/vifmrc
     .user/.config/wal/
     .user/.config/xfce4/helpers.rc
     .user/.config/yt-dlp/

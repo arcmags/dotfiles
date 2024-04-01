@@ -125,6 +125,7 @@ noremap! <c-b> <left>
 noremap! <c-d> <del>
 noremap! <c-f> <right>
 noremap! <c-h> <bs>
+noremap! <c-p> <c-n><c-p><c-p>
 noremap! <expr> <c-c> pumvisible() ? '<c-e>' : '<c-c>'
 noremap! <expr> <c-e> pumvisible() ? '<c-e>' : '<end>'
 noremap! <expr> <c-u> pumvisible() ? '<c-e>' : '<c-u>'

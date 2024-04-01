@@ -1,0 +1,113 @@
+"" ~/.config/vifm/colors/utheme.vifm ::
+
+" You can edit this file by hand.
+" The " character at the beginning of a line comments out the line.
+" Blank lines are ignored.
+
+" The Default color scheme is used for any directory that does not have
+" a specified scheme and for parts of user interface like menus. A
+" color scheme set for a base directory will also
+" be used for the sub directories.
+
+" The standard ncurses colors are:
+" Default = -1 = None, can be used for transparency or default color
+" Black = 0
+" Red = 1
+" Green = 2
+" Yellow = 3
+" Blue = 4
+" Magenta = 5
+" Cyan = 6
+" White = 7
+
+
+" Light versions of colors are also available (they set bold
+" attribute in terminals with less than 16 colors):
+" LightBlack
+" LightRed
+" LightGreen
+" LightYellow
+" LightBlue
+" LightMagenta
+" LightCyan
+" LightWhite
+
+" Available attributes (some of them can be combined):
+" bold
+" underline
+" reverse or inverse
+" standout
+" italic (on unsupported systems becomes reverse)
+" combine
+" none
+
+" Vifm supports 256 colors you can use color numbers 0-255
+" (requires properly set up terminal: set your TERM environment variable
+" (directly or using resources) to some color terminal name (e.g.
+" xterm-256color) from /usr/lib/terminfo/; you can check current number
+" of colors in your terminal with tput colors command)
+
+" highlight group ctermfg=foreground_color ctermbg=background_color cterm=attrs
+
+highlight clear
+
+highlight Win ctermfg=7 ctermbg=0 cterm=none
+
+highlight Border ctermfg=15 ctermbg=4 cterm=none
+highlight TopLine ctermfg=7 ctermbg=4 cterm=none
+highlight TopLineSel ctermfg=10 ctermbg=4 cterm=bold
+highlight StatusLine ctermfg=7 ctermbg=5 cterm=none
+highlight WildMenu ctermfg=10 ctermbg=4 cterm=none
+
+highlight TabLine ctermfg=7 ctermbg=4 cterm=none
+highlight TabLineSel ctermfg=10 ctermbg=4 cterm=bold
+
+highlight LineNr ctermfg=5 ctermbg=default
+
+highlight CurrLine ctermfg=default ctermbg=5 cterm=none
+
+highlight CmdLine ctermfg=7 ctermbg=0 cterm=none
+
+highlight Directory ctermfg=12 ctermbg=default cterm=bold
+
+highlight Link ctermfg=14 ctermbg=default cterm=none
+
+highlight BrokenLink ctermfg=9 ctermbg=default cterm=none
+
+highlight HardLink ctermfg=14 ctermbg=default cterm=none
+
+highlight Socket ctermfg=13 ctermbg=default cterm=bold
+
+highlight Device ctermfg=3 ctermbg=default cterm=none
+
+highlight Fifo ctermfg=13 ctermbg=default cterm=bold
+
+highlight Executable ctermfg=10 ctermbg=default cterm=none
+
+highlight Selected ctermfg=11 ctermbg=default cterm=bold
+
+highlight ErrorMsg ctermfg=9 ctermbg=4 cterm=bold
+
+highlight OtherLine ctermfg=default ctermbg=default
+highlight JobLine cterm=bold,reverse ctermfg=black ctermbg=white
+highlight SuggestBox ctermfg=default ctermbg=default cterm=bold
+highlight CmpMismatch ctermfg=white ctermbg=red cterm=bold
+highlight CmpUnmatched ctermfg=white ctermbg=green cterm=bold
+highlight CmpBlank ctermfg=default ctermbg=default
+highlight AuxWin ctermfg=default ctermbg=default
+
+" statusline:
+highlight User1 ctermfg=10 ctermbg=4 cterm=bold
+highlight User2 ctermfg=12 ctermbg=4 cterm=none
+highlight User3 ctermfg=13 ctermbg=4 cterm=none
+highlight User4 ctermfg=11 ctermbg=4 cterm=none
+highlight User5 ctermfg=3 ctermbg=4 cterm=none
+highlight User6 ctermfg=8 ctermbg=4 cterm=bold
+
+highlight User7 ctermfg=default ctermbg=default
+highlight User8 ctermfg=default ctermbg=default
+highlight User9 ctermfg=default ctermbg=default
+highlight OtherWin ctermfg=default ctermbg=default
+highlight OddLine ctermfg=default ctermbg=default
+
+" vim:ft=vim
