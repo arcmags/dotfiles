@@ -28,6 +28,7 @@ URxvt.keysym.Control-V: eval:paste_clipboard
 !! xterm ::
 XTerm.termName: xterm-256color
 XTerm.ttyModes: erase ^?
+XTerm.vt100.alternateScroll: true
 XTerm.vt100.backarrowKey: false
 !XTerm.vt100.boldColors: false
 XTerm.vt100.cursorBlink: 3

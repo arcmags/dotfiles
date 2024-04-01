@@ -147,7 +147,7 @@ if [ -z "$opt_config" ]; then
     while [ ! -f "$file_config" ] && [ "$PWD" != '/' ]; do
         cd ..
     done
-    [ ! -f "$file_config" ] && msg_error 'not a usync repository'
+    [ ! -f "$file_config" ] && error 'not a usync repository'
 
 elif [ ! -f "$file_config" ]; then
     error "file not found: $file_config"

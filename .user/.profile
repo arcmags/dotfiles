@@ -106,9 +106,9 @@ export CDHISTSIZE=16
 
 export JQ_COLORS='0;38;5;6:0;38;5;11:0;38;5;11:0;38;5;3:0;38;5;10:0;38;5;13:0;38;5;13:0;38;5;12'
 
-LESS='-i -x4 -M -R --mouse --wheel-lines=4 -PM ?f%f:[stdin]. ?m(%i/%m) .| %L lines | ?eBot:%Pb\%. | %lt-%lb $'
+LESS='-i -x4 -M -R -~ --mouse --wheel-lines=4 --intr=q$ -PM ?f%f:[stdin]. ?m(%i/%m) .| %L lines | ?eBot:%Pb\%. | %lt-%lb $'
 if less --help | grep -q 'use-color'; then
-    LESS="$LESS"' --use-color -DsG$ -DdB$ -DuC$ -DkR$ -DER$ -DNK$ -DPGb$ -DSyb$ -DMg$'
+    LESS="$LESS"' --use-color -DsG$ -DdB$ -DuC$ -DkG$ -DEGb$ -DNK$ -DPGb$ -DSyb$ -DRK$ -DMg$'
 else
     export LESS_TERMCAP_mb="$(printf '\e[38;5;12m')"
     export LESS_TERMCAP_md="$(printf '\e[38;5;12m')"

@@ -10,7 +10,7 @@ SYNOPSIS
     daemon.bash [OPTION...] <ACTION> [ARG...]
 
 DESCRIPTION
-    Bash example daemon process script.
+    Bash daemon process example script. Uses a named fifo to recieve stdin.
 
 ACTIONS
     start, srt
