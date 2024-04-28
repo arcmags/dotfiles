@@ -65,14 +65,14 @@ focus_follows_mouse no
 
 # windows:
 for_window [class="(?i)^(cropgtk.py|cropgui)$"] floating enable
+for_window [class="(?i)^file-roller$"] floating enable
 for_window [class=".*mpv$"] floating enable, move position center
-for_window [class="^File-roller$"] floating enable
+for_window [class="^(feh|imv|Eog).*"] floating enable, resize set 96 ppt 96 ppt, move position center
 for_window [class="^Pinentry$"] floating enable, move position center
 for_window [class="^Thunar$" title="^New Empty File...$"] floating enable
 for_window [class="^Thunar$" title="^Rename Mult.*"] resize set 750 500
 for_window [class="^feh.*"] floating enable, resize set 96 ppt 96 ppt, move position center
 for_window [class="^feh.*"] floating enable, resize set 96 ppt 96 ppt, move position center
-for_window [class="^(feh|imv|Eog).*"] floating enable, resize set 96 ppt 96 ppt, move position center
 for_window [class="^qutebrowser$"] border pixel
 for_window [title="(?i)^save as*"] floating enable
 for_window [title="Sign in to Minecraft"] floating enable, resize set 750 500, move position center

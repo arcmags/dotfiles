@@ -60,7 +60,7 @@ export PS2='\[\e[0m\] '
 is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
 
 export SUDO_PROMPT="$(printf '\e[1;38;5;9m:> \e[0;38;5;15mpassword: \e[0m')"
-su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@"; }
+su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@" ;}
 
 command_not_found_handle() {
     printf '\e[1;38;5;11mC:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127
@@ -68,11 +68,7 @@ command_not_found_handle() {
 
 [ "$TERM" = 'linux' ] && export TERM='linux-16color'
 
-if [ -z "$DISPLAY" ]; then
-    is_bin w3m && export BROWSER='w3m'
-else
-    is_bin qutebrowser && export BROWSER='qutebrowser'
-fi
+is_bin w3m && export BROWSER='w3m'
 
 export COLORFGBG='7;0'
 
@@ -138,37 +134,39 @@ export S_COLORS_SGR='H=33;1:I=36;1:M=34;1:N=32;1:Z=34;1'
 export ZSTD_CLEVEL=19
 
 ## functions: aliases ::
-cdb() { cd "$UDIR/bin"; }
-cdd() { cd "$UDIR/dat"; }
-cdg() { cd "$UDIR/git"; }
-[ -d "$UDIR/usync/images" ] && cdi() { cd "$UDIR/usync/images"; }
-cdl() { cd "$UDIR/local"; }
-cdm() { cd /mnt; }
-[ -d /mnt/nas ] && cdn() { cd /mnt/nas; }
-[ -d "$UDIR/urepo" ] && cdr() { cd "$UDIR/urepo"; }
-[ -d "$UDIR/usync" ] && cds() { cd "$UDIR/usync"; }
-cdt() { cd "$TMPDIR"; }
-cdu() { cd "$UDIR"; }
-[ -d /mnt/nas/share/videos ] && cdv() { cd /mnt/nas/share/videos; }
-[ -d "$UDIR/www" ] && cdw() { cd "$UDIR/www"; }
+cdb() { cd "$UDIR/bin" ;}
+cdd() { cd "$UDIR/dat" ;}
+cdg() { cd "$UDIR/git" ;}
+[ -d "$UDIR/usync/images" ] && cdi() { cd "$UDIR/usync/images" ;}
+cdl() { cd "$UDIR/local" ;}
+cdm() { cd /mnt ;}
+[ -d /mnt/nas ] && cdn() { cd /mnt/nas ;}
+[ -d "$UDIR/urepo" ] && cdr() { cd "$UDIR/urepo" ;}
+[ -d "$UDIR/usync" ] && cds() { cd "$UDIR/usync" ;}
+cdt() { cd "$TMPDIR" ;}
+cdu() { cd "$UDIR" ;}
+[ -d /mnt/nas/share/videos ] && cdv() { cd /mnt/nas/share/videos ;}
+[ -d "$UDIR/www" ] && cdw() { cd "$UDIR/www" ;}
 
-is_bin diff && diff() { command diff --color=auto "$@"; }
+is_bin diff && diff() { command diff --color=auto "$@" ;}
 
-is_bin ffmpeg && ffmpeg() { command ffmpeg -hide_banner "$@"; }
-is_bin ffplay && ffplay() { command ffplay -hide_banner "$@"; }
-is_bin ffprobe && ffprobe() { command ffprobe -hide_banner "$@"; }
+if is_bin ffmpeg; then
+    ffmpeg() { command ffmpeg -hide_banner "$@" ;}
+    is_bin ffplay && ffplay() { command ffplay -hide_banner "$@" ;}
+    is_bin ffprobe && ffprobe() { command ffprobe -hide_banner "$@" ;}
+fi
 
-grep() { command grep --color=auto "$@"; }
+grep() { command grep --color=auto "$@" ;}
 
-is_bin gpg && gpg() { command gpg --no-greeting -q "$@"; }
+is_bin gpg && gpg() { command gpg --no-greeting -q "$@" ;}
 
-ip() { command ip -color=auto "$@"; }
+ip() { command ip -color=auto "$@" ;}
 
-lls() { ls --color=always | less -R; }
-ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@"; }
-ls1() { ls -1 "$@"; }
-lsl() { ls -l "$@"; }
-lss() { ls -s "$@"; }
+lls() { ls --color=always | less -R ;}
+ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@" ;}
+ls1() { ls -1 "$@" ;}
+lsl() { ls -l "$@" ;}
+lss() { ls -s "$@" ;}
 
 lsblk() {
     if printf '%s\n' "$@" | grep -Fxq -- '-O'; then
@@ -178,26 +176,26 @@ lsblk() {
     fi
 }
 
-is_bin minicom && minicom() { command minicom -F ' /dev/%D | %T | %C ' "$@"; }
+is_bin minicom && minicom() { command minicom -F ' /dev/%D | %T | %C ' "$@" ;}
 
-is_bin pactree && pactree() { command pactree -a "$@"; }
+is_bin pactree && pactree() { command pactree -a "$@" ;}
 
 is_bin ranger && ranger() {
     command ranger --choosedir="$TMPDIR/rangerdir.txt" "$@"
     cd "$(cat $TMPDIR/rangerdir.txt)"
 }
 
-reset() { tput reset; }
+reset() { tput reset ;}
 
-is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@"; }
+is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@" ;}
 
-is_bin tmux && tmux() { command tmux -2 "$@"; }
+is_bin tmux && tmux() { command tmux -2 "$@" ;}
 
-is_bin tt && tt() { command tt -notheme -noskip -blockcursor -nohighlight "$@"; }
+is_bin tt && tt() { command tt -notheme -noskip -blockcursor -nohighlight "$@" ;}
 
-is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@"; }
+is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@" ;}
 
-is_bin zathura && zathura() { command zathura --fork "$@"; }
+is_bin zathura && zathura() { command zathura --fork "$@" ;}
 
 ## functions: commands ::
 calc() {

@@ -1,7 +1,7 @@
 #!/bin/sh
 ## ~/.xprofile ::
 
-#[ -f "$HOME/.profile" ] && . "$HOME/.profile"
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
 [ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
 [ -f "$HOME/.Xmodmap" ] && xmodmap "$HOME/.Xmodmap"
 [ -f "$HOME/.xhost" ] && . "$HOME/.xhost"

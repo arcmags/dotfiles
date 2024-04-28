@@ -39,13 +39,13 @@ opt_input=
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
 msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg_ask() { printf "\e[1;38;5;10m:> \e[0;38;5;15m$1\e[0m " "${@:2}" ;}
 msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg2() { printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
 
 ## main() ::
 #trap <cleanup_function> EXIT
+trap 'printf "\n"; error "caught SIGINT"' INT
 while [ -n "$arg" ]; do case "$arg" in
     -Y|--yes) flg_yes=true; arg="${args[((++a))]}" ;;
     -H|--help) print_help; exit 0 ;;
@@ -66,8 +66,7 @@ for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
 fi; done
 
 if [ "$flg_yes" != true ]; then
-    msg_ask 'print args? [Y/n]'
-    read -r ans
+    read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m''print args? [Y/n] '$'\e[0m' ans
     [ -z "$ans" ] || [ "${ans,,}" = 'y' ] || [ "${ans,,}" = 'yes' ] && flg_yes=true
 fi
 

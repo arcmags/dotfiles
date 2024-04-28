@@ -64,7 +64,7 @@ highlight TabLineSel ctermfg=10 ctermbg=4 cterm=bold
 
 highlight LineNr ctermfg=5 ctermbg=default
 
-highlight CurrLine ctermfg=default ctermbg=5 cterm=none
+highlight CurrLine ctermfg=default ctermbg=5 cterm=combine
 
 highlight CmdLine ctermfg=7 ctermbg=0 cterm=none
 

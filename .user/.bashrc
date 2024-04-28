@@ -23,6 +23,7 @@ cd-() { cd - >/dev/null || return 1; }
 [ -d "$UDIR/.user" ] && cd.() { cd "$UDIR/.user"; }
 cd..() { cd ..; }
 cd/() { cd / || return 1; }
+is_bin ffmpeg && ffmpeg-mp3() { for arg in "$@"; do ffmpeg -i "$arg" "${arg%.*}.mp3"; done ;}
 is_bin yt-dlp && yt-dlp-audio() { command yt-dlp -f 'ba[ext=m4a]' -x "$@"; }
 
 ## functions: commands ::

@@ -32,10 +32,8 @@ ffmpeg_caption-delogo-fade() {
     font_outline='black'
     convert -pointsize 64 -background '#00000000' -fill DeepPink -font ComicBook-Bold \
       -strokewidth 3 -stroke navy -size 1000x caption:"$caption" -trim tmp.png
-    #ffmpeg -loop 1 -i tmp.png -vframes 400 -vf 'fade=out:300:99:alpha=1' -c:v png \
     ffmpeg -loop 1 -i tmp.png -vframes 336 -vf 'fade=out:224:112:alpha=1' -c:v png \
       -pix_fmt rgba -y tmp.mov
-    #printf "ffmpeg -i $vid_in -ss $ss -to $to -crf 22 -vf $vf -af $af -y $vid_out\n"
     ffmpeg -ss $ss -i "$vid_in" -to $to -crf 22 -vf "$vf" -af "$af" -y "$vid_out"
     rm -f tmp.mov tmp.png
 }
