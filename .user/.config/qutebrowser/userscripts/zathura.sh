@@ -17,14 +17,14 @@ USAGE
         :hint links userscript zathura.sh
 
 REQUIREMENTS
-    zathura must be installed.
+    wget
+    zathura
 HELPDOC
 }
 
 # internal control:
 url="$QUTE_URL"
 file="${url##*/}"
-file_ext="$(printf '%s' "${file##*.}" | tr '[:upper:]' '[:lower:]')"
 
 ## functions ::
 msg() {
@@ -45,17 +45,11 @@ if [ -z "$QUTE_FIFO" ]; then
     exit 0
 fi
 
-# check file extension:
-if [ "$file_ext" != 'pdf' ]; then
-    msg_error "[zathura] $file"
-    exit 0
-fi
-
 cd "$QUTE_DOWNLOAD_DIR"
 
 # download file:
-if [ ! -e "$file" ] && ! curl -s -o "$file" "$url"; then
-    msg_error "[curl] $url"
+if [ ! -e "$file" ] && ! wget -q "$url"; then
+    msg_error "[wget] $url"
     exit 0
 fi
 
