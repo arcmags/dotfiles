@@ -1,0 +1,97 @@
+#!/bin/bash
+## img-sharp.bash ::
+
+print_help() {
+cat <<'HELPDOC'
+NAME
+    img-sharp - sharpen images
+
+SYNOPSIS
+    img-sharp [OPTION...] [ARG...]
+
+DESCRIPTION
+    Imagemagick sharpen wrapper.
+
+OPTIONS
+    -J, --jpg
+        Output to jpg file.
+
+    -P, --png
+        Output to png file.
+
+    -s, --sharpen LEVEL
+        Set sharpen level.
+
+    -H, --help
+        Print help.
+HELPDOC
+}
+
+# control:
+def_level='0x1'
+ext=
+img=
+img_out=
+reqs=(magick)
+
+# args:
+a=0 arg="$1" args=("$@")
+opt_level=
+flg_quiet=false
+opt_type=
+
+## functions ::
+error() { msg_error "$@"; exit 5 ;}
+msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg2() { printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+
+## main() ::
+while [ -n "$arg" ]; do case "$arg" in
+    -H|--help) print_help; exit 0 ;;
+    -J|--jpg) opt_type='jpg'; arg="${args[((++a))]}" ;;
+    -P|--png) opt_type='png'; arg="${args[((++a))]}" ;;
+    -Q|--quiet) flg_quiet=true ;;
+    -s|--sharpen)
+        [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 3
+        opt_level="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -[HJPQ]*)
+        [[ ! "${arg:2:1}" =~ [HJPQs] ]] && error "unknown option: ${arg:2:1}"
+        args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
+    -[s]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+    --) ((a++)); break ;;
+    *) break ;;
+esac; done
+args=("${args[@]:a}")
+
+for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
+    error "missing requirement: $req"
+fi; done
+
+[ -z "$opt_level" ] && opt_level="$def_level"
+
+for img in "${args[@]}"; do
+    if [ -n "$opt_type" ]; then
+        ext="$opt_type"
+    else
+        ext="${img##*.}"
+        ext="${ext,,}"
+        if [ -z "$ext" ] || [ "$ext" = 'jpeg' ]; then
+            ext='jpg'
+        fi
+    fi
+    img_out="${img%.*}_s${opt_level}.${ext}"
+
+    flg_success=false
+    magick "$img" -sharpen "$opt_level" "$img_out" &>/dev/null && flg_success=true
+
+    [ "$flg_quiet" = 'true' ] && continue
+    if [ "$flg_success" = 'true' ]; then
+        msg "$img -> $img_out"
+    else
+        msg_error "$img"
+    fi
+done
+
+# vim:ft=bash

@@ -128,6 +128,9 @@ while read file_in; do
         sleep 0.5
     done
     sleep 1
+    if file -b "$dir_in/$file_in" | grep -q JPEG; then
+        ext='jpg'
+    fi
     if [ -f "$dir_in/$file_in" ]; then
         md5=$(md5sum "$dir_in/$file_in" | cut -c1-32)
         m=0

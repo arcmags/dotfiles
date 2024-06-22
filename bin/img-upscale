@@ -34,8 +34,8 @@ msg2() {
 if ! command -v waifu2x-ncnn-vulkan &>/dev/null; then
    msg_error 'waifu2x-ncnn-vulkan is not installed'
    exit 3
-elif ! command -v convert &>/dev/null; then
-   msg_error 'convert is not installed'
+elif ! command -v magick &>/dev/null; then
+   msg_error 'magick is not installed'
    exit 3
 fi
 
@@ -109,7 +109,7 @@ for img in "$@"; do
                 continue
             fi
             if [ "$ext" = 'jpg' ]; then
-                convert "$img_tmp" -quality "$jpg_quality" "$img_out"
+                magick "$img_tmp" -quality "$jpg_quality" "$img_out"
             else
                 cp "$img_tmp" "$img_out"
             fi

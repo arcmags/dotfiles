@@ -13,7 +13,7 @@ DESCRIPTION
     Bash example/template script. Prints input arguments.
 
 OPTIONS
-    -i --input INPUT
+    -i, --input INPUT
         Set opt_input=INPUT
 
     -Y, --yes

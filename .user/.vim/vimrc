@@ -335,6 +335,7 @@ nnoremap <leader>Fs <cmd>setl et<bar>retab<cr>
 
 # remove trailing whitespace and leading/trailing blank lines:
 nnoremap <leader>Ft <scriptcmd>TextTrim()<cr>
+nnoremap <leader>FT <scriptcmd>TextTrim('!')<cr>
 
 # remove carriage returns, set encoding=utf-8 format=unix nobomb, replace tabs with spaces:
 nnoremap <leader>Fu <scriptcmd>TextToUnix()<cr>
@@ -469,7 +470,7 @@ command! BufTmp BufTmp()
 command! -nargs=? -complete=help Help Help(<q-args>)
 command! TextJoinBlankLines TextJoinBlankLines()
 command! TextToUnix TextToUnix()
-command! TextTrim TextTrim()
+command! -bang TextTrim TextTrim(<q-bang>)
 command! -range TextToAscii TextToAscii('n', <line1>, <line2>)
 command! -bang Write Write(<q-bang>)
 
@@ -924,7 +925,7 @@ def TextToAscii(mode = 'n', start = -1, end = -1)
     endfor
 enddef
 
-def TextTrim()
+def TextTrim(bang = '')
     # remove trailing whitespace and leading/trailing blank lines:
     if ! &modifiable
         return
@@ -932,7 +933,9 @@ def TextTrim()
     const pos = getpos('.')
     sil keepp :%s/\s\+$//e
     sil keepp :%s/\($\n\s*\)\+\%$//e
-    sil keepp :%s/\%^\n\+//e
+    if bang == '!'
+        sil keepp :%s/\%^\n\+//e
+    endif
     setpos('.', pos)
 enddef
 

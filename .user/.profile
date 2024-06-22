@@ -187,6 +187,8 @@ is_bin ranger && ranger() {
 
 reset() { tput reset ;}
 
+is_bin run0 && run0() { command run0 --background= "$@" ;}
+
 is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@" ;}
 
 is_bin tmux && tmux() { command tmux -2 "$@" ;}
