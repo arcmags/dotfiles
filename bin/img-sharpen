@@ -1,0 +1,121 @@
+#!/bin/bash
+## img-sharpen ::
+
+print_help() {
+cat <<'HELPDOC'
+NAME
+    img-sharpen - sharpen images
+
+SYNOPSIS
+    img-sharp [OPTION...] <IMAGE...>
+
+DESCRIPTION
+    Sharpen images with imagemagick.
+
+OPTIONS
+    -J, --jpg
+        Output to jpg file.
+
+    -P, --png
+        Output to png file.
+
+    -Q, --quiet
+        Suppress all messages.
+
+    -V, --verbose
+        Print executed commands.
+
+    -q, --quality LEVEL
+        Set jpg quality level (0-100, default=92).
+
+    -s, --sigma, --sharpen LEVEL
+        Set sharpen sigma level (0.0+, default=1).
+
+    -H, --help
+        Print help.
+HELPDOC
+}
+
+# control:
+ext=
+flg_success=false
+img=
+img_out=
+reqs=(identify magick)
+
+# args:
+a=0 arg="$1" args=("$@")
+flg_quiet=false
+flg_verbose=false
+opt_level=1
+opt_qual=92
+opt_type=
+
+## functions ::
+error() { msg_error "$@"; exit 5 ;}
+msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_cmd() { printf "\e[1;38;5;12m $ \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s\e[0m' "${@:2}")" ;}
+is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
+
+## main() ::
+while [ -n "$arg" ]; do case "$arg" in
+    -H|--help) print_help; exit 0 ;;
+    -J|--jpg) opt_type='jpg'; arg="${args[((++a))]}" ;;
+    -P|--png) opt_type='png'; arg="${args[((++a))]}" ;;
+    -Q|--quiet) flg_quiet=true; flag_verbose=false; arg="${args[((++a))]}" ;;
+    -V|--verbose) flg_quiet=false; flg_verbose=true; arg="${args[((++a))]}" ;;
+    -q|--quality)
+        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
+        opt_qual="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -s|--sigma|--sharpen)
+        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
+        opt_level="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -[HJPQV]*)
+        [[ ! "${arg:2:1}" =~ [HJPQVqs] ]] && error "unknown option: ${arg:2:1}"
+        args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
+    -[qs]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+    --) ((a++)); break ;;
+    *) break ;;
+esac; done
+args=("${args[@]:a}")
+
+for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
+    error "missing requirement: $req"
+fi; done
+
+# set radius and sigma sharpen value:
+[[ ! "$opt_level" =~ .*x.* ]] && opt_level="0x$opt_level"
+
+# check options:
+[[ ! "$opt_level" =~ ^[0-9]+x[0-9](\.[0-9]*)?$ ]] && error "invalid sharpen level: $opt_level"
+[[ ! "$opt_qual" =~ ^([1-9]|[1-9][0-9]|100)$ ]] && error "invalid jpg quality: $opt_qual"
+
+for img in "${args[@]}"; do
+    ! is_img "$img" && msg_error "invalid image: $img" && continue
+
+    # set output image name and extension:
+    if [ -n "$opt_type" ]; then
+        ext="$opt_type"
+    else
+        ext="${img##*.}"
+        ext="${ext,,}"
+        [ -z "$ext" ] || [ "$ext" = 'jpeg' ] && ext='jpg'
+    fi
+    img_out="${img%.*}_s${opt_level//./-}.${ext}"
+
+    # sharpen image:
+    flg_success=false
+    [ "$flg_quiet" = 'false' ] && msg_to "$img" "$img_out"
+    if [ "$ext" = 'jpg' ]; then
+        [ "$flg_verbose" = true ] && msg_cmd "magick $img -sharpen $opt_level -quality $opt_qual $img_out"
+        magick "$img" -sharpen "$opt_level" -quality "$opt_qual" "$img_out" &>/dev/null && flg_success=true
+    else
+        [ "$flg_verbose" = true ] && msg_cmd "magick $img -sharpen $opt_level $img_out"
+        magick "$img" -sharpen "$opt_level" "$img_out" &>/dev/null && flg_success=true
+    fi
+    [ "$flg_quiet" = 'false' ] && [ "$flg_success" = 'false' ] &&  msg_error "magick error: $img"
+done
+
+# vim:ft=bash

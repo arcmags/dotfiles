@@ -270,7 +270,7 @@ address_mac() {
 
 ## images ::
 is_img() {
-    identify "$1" &>/dev/null
+    [ -f "$1" ] && identify -quiet "$1" &>/dev/null
 }
 
 img_size() {

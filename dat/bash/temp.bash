@@ -39,7 +39,9 @@ opt_input=
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
 msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg_cmd() { printf "\e[1;38;5;12m $ \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
 msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
+msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s\e[0m' "${@:2}")" ;}
 msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg2() { printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
 
@@ -50,7 +52,7 @@ while [ -n "$arg" ]; do case "$arg" in
     -Y|--yes) flg_yes=true; arg="${args[((++a))]}" ;;
     -H|--help) print_help; exit 0 ;;
     -i|--input)
-        [ $# -le $((a+1)) ] && msg_error "arg required: $arg" && exit 3
+        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
         opt_input="${args[((++a))]}"; arg="${args[((++a))]}" ;;
     -[HY]*)
         [[ ! "${arg:2:1}" =~ [HYi] ]] && error "unknown option: ${arg:2:1}"
