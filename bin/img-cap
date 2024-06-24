@@ -14,13 +14,12 @@ flag_verbose=false
 opt_img_in=
 opt_img_out=
 opt_bg_alpha=75
-opt_cap_pos='ne'
+opt_cap_pos='nw'
 opt_cap_align=
 opt_cap_w=35
 opt_cap_x=0
 opt_cap_y=0
-#opt_font_color='DodgerBlue'
-opt_font_color='fuchsia'
+opt_font_color='DodgerBlue'
 opt_font_name='ComicBook-Bold'
 opt_font_size=24
 opt_stroke_color='blue4'
@@ -457,7 +456,7 @@ if [[ -n "${convert_args[0]}" ]]; then
     cmd_exec convert "$opt_img_in" -set colorspace sRGB \
         "${convert_args[@]}" "$opt_img_out"
     # remove dir_temp:
-    cmd_exec rm -rf "$dir_temp"
+    #cmd_exec rm -rf "$dir_temp"
 fi
 
 # vim:ft=bash

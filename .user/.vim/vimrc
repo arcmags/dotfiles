@@ -328,12 +328,14 @@ vnoremap <leader>fa <scriptcmd>TextToAscii('v')<cr>
 nnoremap <leader>Fa <scriptcmd>TextToAscii('n', 1, line('$'))<cr>
 
 # combine multiple blank lines:
-nnoremap <leader>Fl <scriptcmd>TextJoinBlankLines()<cr>
+nnoremap <leader>Fj <scriptcmd>TextJoinBlankLines()<cr>
 
 # convert all tabs to spaces, use &tabstop for width calculation:
 nnoremap <leader>Fs <cmd>setl et<bar>retab<cr>
 
 # remove trailing whitespace and leading/trailing blank lines:
+nnoremap <leader>ft mz<cmd>keepp s/\s\s\+/ /ge<cr>`z
+vnoremap <leader>ft mz<esc><cmd>'<,'>keepp s/\%V\s\s\+\%V/ /ge<cr>`z
 nnoremap <leader>Ft <scriptcmd>TextTrim()<cr>
 nnoremap <leader>FT <scriptcmd>TextTrim('!')<cr>
 
@@ -341,12 +343,12 @@ nnoremap <leader>FT <scriptcmd>TextTrim('!')<cr>
 nnoremap <leader>Fu <scriptcmd>TextToUnix()<cr>
 
 # sort lines:
-nnoremap <leader>S mzvip<esc><cmd>'<,'>sort<cr>`z
-vnoremap <leader>S <esc><cmd>'<,'>sort<cr>
+nnoremap <leader>S mzvip<esc><cmd>'<,'>sort l<cr>`z
+vnoremap <leader>S <esc><cmd>'<,'>sort l<cr>
 
 # sort lines starting from first alphanumeric character:
-nnoremap <leader>s mzvip<esc><cmd>'<,'>sort /^[^A-Za-z0-9]*/<cr>`z
-vnoremap <leader>s <esc><cmd>'<,'>sort /^[^a-za-z0-9]*/<cr>
+nnoremap <leader>s mzvip<esc><cmd>'<,'>sort l /^[^A-Za-z0-9]*/<cr>`z
+vnoremap <leader>s <esc><cmd>'<,'>sort l /^[^a-za-z0-9]*/<cr>
 
 # join lines:
 nnoremap <leader>J vipJ
@@ -390,8 +392,8 @@ vnoremap <leader>f. J<esc><cmd>'<,'>keepp s/[.!?]\zs /\2\r/ge<cr>
 nnoremap <leader>fd <scriptcmd>DateUpdate()<cr>
 
 # capitalize first letter of every word:
-nnoremap <leader>ft mz<cmd>keepp s/\<\(\w\)\(\w*\)/\u\1\L\2/g<cr>`z
-vnoremap <leader>ft mz<esc><cmd>keepp s/\%V\<\(\w\)\(\w*\)\%V/\u\1\L\2/g<cr>`z
+nnoremap <leader>fc mz<cmd>keepp s/\<\(\w\)\(\w*\)/\u\1\L\2/ge<cr>`z
+vnoremap <leader>fc mz<esc><cmd>'<,'>keepp s/\%V\<\(\w\)\(\w*\)\%V/\u\1\L\2/ge<cr>`z
 
 ## mapping: del, yank, put ::
 # delete without yanking:
