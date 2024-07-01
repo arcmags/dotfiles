@@ -413,4 +413,19 @@ wget_html() {
     fi
 }
 
+## random ::
+rand_text() {
+    local len="${1:-72}" t=0 text= words=/usr/share/dict/words
+    if [ -f "$words" ]; then
+        text="$(sed "/[^a-z]/d" "$words" | sort -R | head -n$len | tr '\n' ' ' | cut -c1-$len)"
+    else
+        text="$(cat /dev/random | tr -cd 'a-z' | head -c$len)"
+        while [ $t -lt $len ]; do
+            t=$((RANDOM % 7 + 4 + t))
+            text="${text:0:$t} ${text:$((t+1))}"
+        done
+    fi
+    printf '%s\n' "$text"
+}
+
 # vim:ft=bash

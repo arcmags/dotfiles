@@ -334,7 +334,7 @@ nnoremap <leader>Fj <scriptcmd>TextJoinBlankLines()<cr>
 nnoremap <leader>Fs <cmd>setl et<bar>retab<cr>
 
 # remove trailing whitespace and leading/trailing blank lines:
-nnoremap <leader>ft mz<cmd>keepp s/\s\s\+/ /ge<cr>`z
+nnoremap <leader>ft mz<cmd>keepp s/\s\s\+/ /ge<bar>keepp s/\s$//ge<cr>`z
 vnoremap <leader>ft mz<esc><cmd>'<,'>keepp s/\%V\s\s\+\%V/ /ge<cr>`z
 nnoremap <leader>Ft <scriptcmd>TextTrim()<cr>
 nnoremap <leader>FT <scriptcmd>TextTrim('!')<cr>

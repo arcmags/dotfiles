@@ -140,6 +140,7 @@ msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s\e[0m' "${@:2}")" ;}
 is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
 
 cmd_exec() { [ "$flg_verbose" = true ] && msg_cmd "$@"; "$@" ;}
+
 cmd_exec_magick() {
     cmd_exec magick -gravity "$cap_align" -background '#00000000' \
         -font "$opt_font" -fill "$opt_fc" -strokewidth $stroke_w -stroke "$opt_sc" \
@@ -179,9 +180,9 @@ while [ -n "$arg" ]; do case "$arg" in
         [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
         opt_tmp="${args[((++a))]}"; arg="${args[((++a))]}"
         case "$opt_tmp" in
-            c|center) cmds+=(opt_align=center) ;;
-            r|right) cmds+=(opt_align=west) ;;
-            l|left) cmds+=(opt_align=east) ;;
+            c|center) cmds+=(opt_align=c) ;;
+            r|right) cmds+=(opt_align=w) ;;
+            l|left) cmds+=(opt_align=e) ;;
             *) error "invalid alignment: $opt_tmp" ;;
         esac ;;
     -b|--bg|--background)
@@ -274,7 +275,7 @@ args=("${args[@]:a}")
 
 # check image:
 [ ${#args[@]} -eq 0 ] && error 'no input image'
-is_img "${args[0]}" || error "invalid image: $img"
+is_img "${args[0]}" || error "invalid image: ${args[0]}"
 
 # set image, image_width, image_height:
 img="${args[0]}"
@@ -283,13 +284,16 @@ img_h="${img_w#* }"
 img_w="${img_w% *}"
 
 # set caption padding:
-cap_pad=$((img_w/100))
+cap_pad=$((img_w/250))
 
 dir_tmp="$(mktemp -d)"
 [ "$flg_keep" = false ] && trap "rm -r $dir_tmp" EXIT
 
+# execute commands:
 for cmd in "${cmds[@]}"; do
-    if [ "$cmd" = mk_cap ]; then
+    if [[ "$cmd" =~ ^(flg|opt)_.+=.*$ ]]; then
+        declare "$cmd"
+    elif [ "$cmd" = mk_cap ]; then
         ((c++))
         cap_file=$(printf '%s/cap_%02d.png' "$dir_tmp" $c)
         cap_w=$((img_w*opt_width/100-cap_pad*2))
@@ -398,7 +402,6 @@ for cmd in "${cmds[@]}"; do
 
         # opt_bg:
         if [ $opt_bg -ne 0 ]; then
-            cap_pad=$((img_w/250))
             cap_w=$((cap_w+cap_pad*2))
             cap_h=$((cap_h+cap_pad*2))
             cap_box="roundrectangle 0,0,$cap_w,$cap_h,$((cap_pad*2)),$((cap_pad*2))"
@@ -468,8 +471,6 @@ for cmd in "${cmds[@]}"; do
         cap_h_last=$cap_h
         cap_align_last_last=$cap_align
 
-    else
-        eval "$(printf ' %q' "$cmd")"
     fi
 done
 

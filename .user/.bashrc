@@ -57,7 +57,7 @@ if is_bin transmission-remote; then
     fi
 fi
 
-## execute ::
+## commands ::
 if command -v termset &>/dev/null && [[ "$TERM" =~ linux|linux-16color ]]; then
     termset
 fi
