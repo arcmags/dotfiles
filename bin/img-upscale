@@ -121,7 +121,8 @@ fi
 [[ ! "$opt_qual" =~ ^([1-9]|[1-9][0-9]|100)$ ]] && error "invalid jpg quality: $opt_qual"
 
 # set cleanup trap:
-trap "rm -f '$img_tmp'" EXIT
+trap exit INT
+trap 'rm -f "$img_tmp"' EXIT
 
 for img in "${args[@]}"; do
     ! is_img "$img" && msg_error "invalid image: $img" && continue

@@ -59,8 +59,8 @@ export PS2='\[\e[0m\] '
 
 is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
 
-export SUDO_PROMPT="$(printf '\e[1;38;5;9m:: \e[0;38;5;15mpassword: \e[0m')"
-su() { printf '\e[1;38;5;9m:: \e[0;38;5;15m'; command su "$@" ;}
+export SUDO_PROMPT="$(printf '\e[1;38;5;9m:> \e[0;38;5;15mpassword: \e[0m')"
+su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@" ;}
 
 command_not_found_handle() {
     printf '\e[1;38;5;11mC:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127

@@ -29,13 +29,13 @@ OPTIONS
         Print executed commands.
 
     -Y, --yes
-        Overwrite files without prompting.
+        Overwrite output files without prompting.
 
     -o, --output FILE
         Set output filename.
 
     -q, --quality LEVEL
-        Set jpg quality level (0-100, default=92).
+        Set jpg quality level (0-100, default=0). 0 uses imagemagick's default.
 
     -s, --sigma, --sharpen LEVEL
         Set sharpen sigma level (0.0+, default=1).
@@ -58,7 +58,7 @@ flg_verbose=false
 flg_yes=false
 flg_no=false
 opt_level=1
-opt_qual=92
+opt_qual=0
 opt_type=
 opt_out=
 
@@ -130,13 +130,9 @@ for img in "${args[@]}"; do
 
     # prompt/exit:
     if [ -e "$img_out" ]; then
-        if [ "$flg_no" = true ]; then
-            continue
-        elif [ "$flg_yes" = true ]; then
-            :
-        else
-            read -erp $'\e[1;38;5;10m'': '$'\e[0;38;5;15m''overwrite '"$img_out"'? [y/N] '$'\e[0m' ans
-            [ -z "$ans" ] && continue
+        [ "$flg_no" = true ] && continue
+        if [ "$flg_yes" = false ]; then
+            read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m''overwrite '"$img_out"'? [y/N] '$'\e[0m' ans
             [ "${ans,,}" != y ] && [ "${ans,,}" != yes ] && continue
         fi
     fi
