@@ -804,7 +804,7 @@ def HTMLToggle(bang = '')
               '&amp;', '\&', 'g'), '&gt;', '>', 'g'), '&lt;', '<', 'g')
         else
             text1 = substitute(substitute(substitute(text0,
-              "&", '\&amp;', 'g'), '>', '\&gt;', 'g'), '<', '\&lt;', 'g')
+              '&', '\&amp;', 'g'), '>', '\&gt;', 'g'), '<', '\&lt;', 'g')
         endif
         if text0 != text1
             silent setline(line, text1)

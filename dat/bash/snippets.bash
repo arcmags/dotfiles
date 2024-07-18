@@ -202,11 +202,16 @@ debug() {
 
 ## PATH, bin, command ::
 path_add() {
-    # add $1 to the end of PATH unless it is already in PATH:
+    # posix compatible way to add $1 to the end of $PATH if it isn't already:
     case ":$PATH:" in
         *:"$1":*) ;;
         *) export PATH="$1${PATH:+:$PATH}" ;;
     esac
+}
+
+path_add() {
+    # posix compatible way to add $1 to the end of $PATH if it isn't already:
+    expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
 }
 
 is_bin() (
@@ -217,9 +222,8 @@ is_bin() (
     return 1
 )
 # Why?
-# `which` is not posix and may have differing implementations. `command -v/-V
-# CMD` returns true if there is a shell function CMD even if no executable CMD
-# exists within $PATH.
+# `which` is not posix and may have differing implementations.
+# `command -v/-V CMD` returns true if there is an alias or function CMD.
 
 is_command() {
     command -v "$1" &>/dev/null
@@ -236,8 +240,7 @@ is_root() {
 
 status_internet() {
     ping -q -c1 -W2 google.com &>/dev/null ||
-    ping -q -c1 -W2 archlinux.org &>/dev/null ||
-    ping -q -c1 -W4 google.com &>/dev/null
+    ping -q -c1 -W2 archlinux.org &>/dev/null
 }
 
 status_ntp() {

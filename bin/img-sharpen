@@ -1,8 +1,7 @@
 #!/bin/bash
 ## img-sharpen ::
 
-print_help() {
-cat <<'HELPDOC'
+print_help() { cat <<'HELPDOC'
 NAME
     img-sharpen - sharpen images
 
@@ -43,50 +42,50 @@ OPTIONS
     -H, --help
         Print help.
 HELPDOC
-}
+}; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 1 ;}
 
-# control:
-ext=
-img=
-img_out=
-reqs=(identify magick)
+## control ::
+deps=(identify magick)
 
 # args:
 a=0 arg="$1" args=("$@")
+flg_no=false
 flg_quiet=false
 flg_verbose=false
 flg_yes=false
-flg_no=false
 opt_level=1
-opt_qual=0
-opt_type=
 opt_out=
+opt_qual=92
+opt_type=
 
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
-msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
-msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s\e[0m' "${@:2}")" ;}
+is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
+msg() { printf '\e[1;38;5;12m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
+msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
+msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s' "${@:2}")" ;}
+msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 
 ## main() ::
+trap exit INT
 while [ -n "$arg" ]; do case "$arg" in
-    -H|--help) print_help; exit 0 ;;
-    -J|--jpg) opt_type='jpg'; arg="${args[((++a))]}" ;;
+    -H|--help) print_help; exit ;;
+    -J|--jpg) opt_type=jpg; arg="${args[((++a))]}" ;;
     -N|--no) flg_no=true; flg_yes=false; arg="${args[((++a))]}" ;;
-    -P|--png) opt_type='png'; arg="${args[((++a))]}" ;;
+    -P|--png) opt_type=png; arg="${args[((++a))]}" ;;
     -Q|--quiet) flg_quiet=true; flag_verbose=false; arg="${args[((++a))]}" ;;
     -V|--verbose) flg_quiet=false; flg_verbose=true; arg="${args[((++a))]}" ;;
     -Y|--yes) flg_no=false; flg_yes=true; arg="${args[((++a))]}" ;;
     -o|--output)
-        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
+        [ $# -le $((a+1)) ] && error "arg required: $arg"
         opt_out="${args[((++a))]}"; arg="${args[((++a))]}" ;;
     -q|--quality)
-        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
+        [ $# -le $((a+1)) ] && error "arg required: $arg"
         opt_qual="${args[((++a))]}"; arg="${args[((++a))]}" ;;
     -s|--sigma|--sharpen)
-        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
+        [ $# -le $((a+1)) ] && error "arg required: $arg"
         opt_level="${args[((++a))]}"; arg="${args[((++a))]}" ;;
     -[HJNPQVY]*)
         [[ ! "${arg:2:1}" =~ [HJNPQVYoqs] ]] && error "unknown option: ${arg:2:1}"
@@ -97,38 +96,32 @@ while [ -n "$arg" ]; do case "$arg" in
 esac; done
 args=("${args[@]:a}")
 
-for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
-    error "missing requirement: $req"
-fi; done
-
-# set sharpen level, jpg quality:
-[[ ! "$opt_level" =~ .*x.* ]] && opt_level="0x$opt_level"
+# check dependencies:
+for dep in "${deps[@]}"; do is_cmd "$dep" || error "missing dep: $dep"; done
 
 # check options:
-[[ ! "$opt_level" =~ ^[0-9]+\.?[0-9]*x[0-9]+\.?[0-9]*$ ]] && error "invalid sharpen level: $opt_level"
+[[ ! "$opt_level" =~ ^[0-9]+\.?[0-9]*$ ]] && error "invalid sharpen level: $opt_level"
 [[ ! "$opt_qual" =~ ^(0|[1-9][0-9]?|100)$ ]] && error "invalid jpg quality: $opt_qual"
 [ ${#args[@]} -gt 1 ] && [ -n "$opt_out" ] && error "cannot set output with multiple inputs"
 
 for img in "${args[@]}"; do
-    ! is_img "$img" && msg_error "invalid image: $img" && continue
+    is_img "$img" || { msg_error "invalid image: $img"; continue ;}
 
     # set output image name and extension:
     if [ -n "$opt_out" ]; then
-        img_out="$opt_out"
-        ext="${img_out##*.}"
-        ext="${ext,,}"
+        img_out="$opt_out"; ext="${img_out##*.}"; ext="${ext,,}"
     else
         if [ -n "$opt_type" ]; then
             ext="$opt_type"
         else
-            ext="${img##*.}"
-            ext="${ext,,}"
-            [ -z "$ext" ] || [ "$ext" = 'jpeg' ] && ext='jpg'
+            ext="${img##*.}"; ext="${ext,,}"
+            [ "$ext" = jpeg ] && ext=jpg
+            [ "$ext" != jpg ] && [ "$ext" != png ] && ext=jpg
         fi
         img_out="${img%.*}_s$opt_level.$ext"
     fi
 
-    # prompt/exit:
+    # prompt/continue:
     if [ -e "$img_out" ]; then
         [ "$flg_no" = true ] && continue
         if [ "$flg_yes" = false ]; then
@@ -138,7 +131,7 @@ for img in "${args[@]}"; do
     fi
 
     # sharpen image:
-    cmd=(magick "$img" -sharpen "$opt_level")
+    cmd=(magick "$img" -sharpen "0x$opt_level")
     [ "$ext" = 'jpg' ] && [ "$opt_qual" -ne 0 ] && cmd+=(-quality "$opt_qual")
     cmd+=("$img_out")
     [ "$flg_quiet" = 'false' ] && msg_to "$img" "$img_out"

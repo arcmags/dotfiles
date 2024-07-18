@@ -1,8 +1,7 @@
 #!/bin/bash
 ## ~/bin/futf ::
 
-print_help() {
-cat <<'HELPDOC'
+print_help() { cat <<'HELPDOC'
 NAME
     futf
 

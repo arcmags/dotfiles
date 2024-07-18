@@ -1,8 +1,7 @@
 #!/bin/bash
 ## usync ::
 
-print_help() {
-cat <<'HELPDOC'
+print_help() { cat <<'HELPDOC'
 NAME
     usync - push/pull changes from remote source
 
@@ -54,7 +53,6 @@ CONFIG
 
         user
             Remote user. If blank, inherit from ssh alias.
-
 
 REQUIREMENTS
     rsync, ssh, yq

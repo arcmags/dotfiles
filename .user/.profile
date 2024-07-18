@@ -29,17 +29,13 @@ upwd() {
 
 ## utils ::
 is_bin() (
-    [ -z "$1" ] && return 1
     IFS=':'
     for dir in $PATH; do [ -f "$dir/$1" ] && [ -x "$dir/$1" ] && return 0; done
     return 1
 )
 
 path_add() {
-    case ":$PATH:" in
-        *:"$1":*) ;;
-        *) export PATH="$1${PATH:+:$PATH}" ;;
-    esac
+    expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
 }
 
 ## path ::

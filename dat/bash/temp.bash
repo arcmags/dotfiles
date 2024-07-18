@@ -1,8 +1,7 @@
 #!/bin/bash
 ## temp.bash ::
 
-print_help() {
-cat <<'HELPDOC'
+print_help() { cat <<'HELPDOC'
 NAME
     temp.bash - print args
 
@@ -22,14 +21,14 @@ OPTIONS
     -H, --help
         Print help.
 HELPDOC
-}
+}; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
 
-## internal control ::
+## control ::
+deps=()
 dir_script="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
 file_script="$(basename "$BASH_SOURCE")"
 path_script="$(realpath "$BASH_SOURCE")"
 pid_script="$$"
-reqs=()
 
 # args:
 a=0 arg="$1" args=("$@")
@@ -38,22 +37,23 @@ opt_input=
 
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
-msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
-msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s\e[0m' "${@:2}")" ;}
-msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-msg2() { printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
+is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
+msg() { printf '\e[1;38;5;12m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg2() { printf '\e[1;38;5;12m > \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
+msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
+msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s' "${@:2}")" ;}
+msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 
 ## main() ::
-#trap <cleanup_function> EXIT
-trap 'printf "\n"; error "caught SIGINT"' INT
+trap exit INT
 while [ -n "$arg" ]; do case "$arg" in
     -Y|--yes) flg_yes=true; arg="${args[((++a))]}" ;;
     -H|--help) print_help; exit 0 ;;
     -i|--input)
-        [ $# -le $((a+1)) ] && error "arg required: $arg" && exit 3
+        [ $# -le $((a+1)) ] && error "arg required: $arg"
         opt_input="${args[((++a))]}"; arg="${args[((++a))]}" ;;
     -[HY]*)
         [[ ! "${arg:2:1}" =~ [HYi] ]] && error "unknown option: ${arg:2:1}"
@@ -64,11 +64,12 @@ while [ -n "$arg" ]; do case "$arg" in
 esac; done
 args=("${args[@]:a}")
 
-for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
-    error "missing requirement: $req"
-fi; done
+# check dependencies:
+for dep in "${deps[@]}"; do is_cmd "$dep" || error "missing dep: $dep"; done
 
-if [ "$flg_yes" != true ]; then
+#trap <cleanup_function> EXIT
+
+if [ "$flg_yes" = false ]; then
     read -erp $'\e[1;38;5;10m'': '$'\e[0;38;5;15m''print args? [Y/n] '$'\e[0m' ans
     [ -z "$ans" ] || [ "${ans,,}" = 'y' ] || [ "${ans,,}" = 'yes' ] && flg_yes=true
 fi

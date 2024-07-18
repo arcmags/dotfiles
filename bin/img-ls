@@ -4,8 +4,7 @@
 # Display image thumbnails in sixel compatible terminals.
 # [unfinished]
 
-print_help() {
-cat <<'HELPDOC'
+print_help() { cat <<'HELPDOC'
 NAME
     img-ls - display images in terminal via sixel graphics
 

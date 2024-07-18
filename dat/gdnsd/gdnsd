@@ -1,11 +1,9 @@
 #!/bin/bash
 
 ## gdnsd ::
-# (C) 2023 Chris Magyar
-# GNU General Public License v3
 
-# TODO: command line args
-# TODO: allow running as non-root
+# XXX: As of May 2024 godaddy no longer allows API access for users with less
+# XXX: than 50 domains. This project is discontinued indefinitely.
 
 print_help() {
 printf '\e[0;38;5;15m'

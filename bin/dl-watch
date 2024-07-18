@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ## dl-watch ::
-print_help() {
-cat <<'HELPDOC'
+print_help() { cat <<'HELPDOC'
 NAME
     dl-watch - rename/move newly written files in watched directory
 
