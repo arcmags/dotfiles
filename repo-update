@@ -188,7 +188,7 @@ if [ "$flg_gitpush" = 'true' ]; then
         msg_warn 'not a git repo'
     else
         git -C "$dir_script" add --all
-        git -C "$dir_script" commit -S -m "repo-update $(date +'%F %R')"
+        GPG_TTY=$(tty) git -C "$dir_script" commit -S -m "repo-update $(date +'%F %R')"
         git -C "$dir_script" push -v
     fi
 fi
