@@ -1,0 +1,28 @@
+## ~/.config/text-gen.yml ::
+
+src: <you rule>.
+
+## sentences ::
+you rule: [<you are> <the shit>, <you are> <killing it>, <you kick ass>]
+
+## phrases ::
+the shit: [awesome, <totally> awesome, the shit]
+killing it: [killing it, <absolutely> killing it]
+you kick ass: [<you are> kicking <ass>, you kick <ass>]
+
+## conjunctions ::
+wanna: [[wanna, want to], [3,1]]
+want to: [[wanna, want to], [1,3]]
+you're: [[you're, you are], [3,1]]
+you are: [[you're, you are], [1,3]]
+
+## nouns ::
+ass: [[ass, butt], [3,1]]
+
+## adjectives ::
+totally: [[absolutely, totally], [1,5]]
+absolutely: [[absolutely, totally, utterly], [4,1,2]]
+
+## verbs ::
+
+## adverbs ::

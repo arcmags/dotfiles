@@ -2,8 +2,8 @@
 ## ~/.profile ::
 
 ## user setup: UDIR, UHOST, upwd() ::
-export UDIR="$HOME/user"
 export HOME_REALPATH="$(realpath "$HOME")"
+export UDIR="$HOME/user"
 export UDIR_REALPATH="$(realpath "$UDIR")"
 UHOST="$HOSTNAME"
 [ -f '/etc/hostname' ] && UHOST="$(cat /etc/hostname)"

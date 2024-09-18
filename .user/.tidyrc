@@ -4,6 +4,6 @@ anchor-as-name: false
 drop-empty-elements: false
 gnu-emacs: true
 quiet: true
-tab-size: 4
+tab-size: 2
 tidy-mark: false
 wrap: 80

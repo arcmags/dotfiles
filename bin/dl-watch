@@ -97,7 +97,7 @@ else
         dir_in='/'
     fi
     # ERROR: dir out cannout be dir in:
-    if [ "$dir_in" = "$dir_out"]; then
+    if [ "$dir_in" = "$dir_out" ]; then
         msg_error 'input and output directories cannot be the same'
         exit 3
     fi
@@ -111,7 +111,6 @@ fi
 i=$({ ls "$dir_out"; cut -c35- <"$dir_out/index.txt"; } | grep -Po '^0*\K[0-9]+' | sort -n | tail -n1)
 i="${i:-0}"
 
-cd "$dir_out"
 msg 'watching directory: %s' "$dir_in"
 inotifywait -m -e close_write --format '%f' "$dir_in" 2>/dev/null | \
 while read file_in; do

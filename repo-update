@@ -56,6 +56,7 @@ files_src=(
     .user/.config/qutebrowser/greasemonkey/
     .user/.config/qutebrowser/userscripts/
     .user/.config/ranger/
+    .user/.config/text-gen.yml
     .user/.config/ttyper/
     .user/.config/vifm/colors/
     .user/.config/vifm/vifmrc

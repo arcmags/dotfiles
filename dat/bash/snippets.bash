@@ -107,6 +107,11 @@ msg_error() {
     printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
 
+msg_good() {
+    [ "$flg_quiet" = 'true' ] && return
+    printf "\e[1;38;5;10m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
+}
+
 msg_warn() {
     printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
 }
@@ -294,12 +299,8 @@ img_size_set() {
 
 ## arrays, strings, numbers ::
 arr_contains() {
-    # check if array var $1 contains $2:
-    local arr e
-    eval "arr=(\"\${$1[@]}\")"
-    for e in "${arr[@]}"; do
-        [ "$2" = "$e" ] && return 0
-    done
+    local e m="$1"; shift
+    for e; do [ "$e" = "$m" ] && return 0; done
     return 1
 }
 

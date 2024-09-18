@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+
+"""NAME
+    text-gen - generate randomized phrase
+
+USAGE
+    text-gen [OPTION...] [PHRASE...]
+
+DESCRIPTION
+    phrase.py generates randomized phrases from PHRASE. phrase.py uses a
+    special phrase dictionary that maps tags to phrases.
+
+    The phrase dictionary is a dictionary with strings as keys that map to lists
+    of phrases. A list of phrases may include a tuple for weighted random choice.
+
+    PHRASE is a string that may contain tags. Tags are strings enclosed in
+    <...>. If a tag has a corresponding key in the phrase dictionary, the tag
+    is replaced with a randomly selected phrase from it's list.
+
+    PHRASES may also contain inline phrase lists to randomly select from.
+
+    The special tag <src> is the default phrase used if none is given.
+
+OPTIONS
+    -f, --file FILE
+        Parse phrase dictionary from yaml FILE. May be used multiple times.
+
+    -n, --num NUM
+        Generate NUM output text phrases. (default: 1)
+
+    -A, --all
+        Print every possible phrase.
+
+    -V, --verbose
+        Print intermediate text.
+
+    -H, --help
+        Print help.
+"""
+
+import argparse
+import os
+import random
+import re
+import sys
+import yaml
+
+class PhraseDict:
+    """Phrase Dictionary used to generate randomized phrases
+    """
+
+    def __init__(self, pdict: dict = None) -> None:
+        self.pdict = pdict
+        if self.pdict is None:
+            self.pdict = {
+                'src': ['random <phrase> <generator>'],
+                'phrase': ['phrase', 'sentence'],
+                'generator': [['<builder>', 'generator'], (10, 20)],
+                'builder': [['builder', 'maker'], (20, 10)]
+            }
+
+    def add_pdict(self, ndict: dict = None) -> None:
+        self.pdict.update(ndict)
+
+    def clear_pdict(self) -> None:
+        self.pdict = {}
+
+    def get_pdict(self) -> str:
+        return str(self.pdict)
+
+    def format_pdict(self) -> None:
+        for tag in self.pdict:
+            if type(self.pdict[tag]) is str:
+                self.pdict[tag] = [self.pdict[tag]]
+
+    def get_tag(self, tag) -> list:
+        tag_list = [tag]
+        if tag in self.pdict:
+            if type(self.pdict[tag][0]) is list:
+                tag_list = self.pdict[tag][0]
+            else:
+                tag_list = self.pdict[tag]
+        return tag_list
+
+    def get_text(self, tag) -> str:
+        text = tag
+        if tag in self.pdict:
+            if (type(self.pdict[tag][0]) is list and
+                    len(self.pdict[tag]) == 2 and
+                    len(self.pdict[tag][0]) == len(self.pdict[tag][1])):
+                text = random.choices(self.pdict[tag][0], weights=self.pdict[tag][1])[0]
+            else:
+                text = random.choice(self.pdict[tag])
+        return text
+
+    def get_phrases(self, text) -> list:
+        p = re.compile(r'^([^<]*)<([^>]*)>(.*)')
+        phrases = [text]
+        i = 0
+        while i < len(phrases):
+            m = re.match(p, phrases[i])
+            if m is None:
+                i = i + 1
+            else:
+                phrases = phrases[0:i] + [m.group(1) + x + m.group(3) for x in self.get_tag(m.group(2))] + phrases[i+1:]
+                if i > 10000:
+                    msg_warn('truncating output to 10000 lines')
+                    break
+        phrases = sorted(set(phrases))
+        return phrases
+
+    def get_phrase(self, text, verbose=False) -> str:
+        p = re.compile(r'^([^<]*)<([^>]*)>(.*)')
+        while (m := re.match(p, text)) is not None:
+            if verbose:
+                print(text)
+            text = re.sub(r' +', ' ', m.group(1) + self.get_text(m.group(2)) + m.group(3))
+        return text
+
+class CustomHelpFormatter(argparse.HelpFormatter):
+    """Subclass of argparse.HelpFormatter. Widens command
+    column to 32 characters and shortens command documentation:
+        '-o ARG, --opt ARG'  ->  '-o, --opt ARG'
+    """
+    def __init__(self, prog, indent=2, max_help=32, width=None):
+        super().__init__(prog, indent, max_help, width)
+    def _format_action_invocation(self, action):
+        if not action.option_strings:
+            default = self._get_default_metavar_for_positional(action)
+            metavar, = self._metavar_formatter(action, default)(1)
+            parts = [str(p) for p in self._metavar_formatter(action, default)(1)]
+        else:
+            parts = [', '.join(action.option_strings)]
+            if action.nargs != 0:
+                default = self._get_default_metavar_for_optional(action)
+                parts += [self._format_args(action, default)]
+        return ' '.join(parts)
+
+def capitalize(text) -> str:
+    r = re.split(r'([.!?] *)', text)
+    if len(r) > 1:
+        text = re.sub(r' +([.!?])', r'\1', ''.join([i[:1].upper() + i[1:] for i in r]))
+    text = re.sub(r' +,', r',', text)
+    return text
+
+def error(msg='') -> None:
+    msg_error(msg)
+    sys.exit(1)
+
+def msg(msg='') -> None:
+    print(f'\033[1;38;5;12m=> \033[0;38;5;15m{msg}\033[0m')
+
+def msg_error(msg='') -> None:
+    print(f'\033[1;38;5;9mE: \033[0;38;5;15m{msg}\033[0m', file=sys.stderr)
+
+def msg_warn(msg='') -> None:
+    print(f'\033[1;38;5;11mW: \033[0;38;5;15m{msg}\033[0m', file=sys.stderr)
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description='Generate randomized phrase.', add_help=False, formatter_class=CustomHelpFormatter)
+    parser.add_argument('-f', '--file', metavar='FILE', action='append', default=[], help='yaml file')
+    parser.add_argument('-n', '--num', metavar='NUM', type=int, default=1, help='count')
+    parser.add_argument('-A', '--all', action='store_true', help='print all possible phrases')
+    parser.add_argument('-V', '--verbose', action='store_true', help='print intermediate text')
+    parser.add_argument('-h', action='help', help='display short help')
+    parser.add_argument('-H', '--help', action='store_true', help='display help')
+    parser.add_argument("text", metavar='TEXT', nargs="*", default=['<src>'], help="seed phrase")
+    args = parser.parse_args()
+
+    if args.help:
+        print(__doc__)
+        return 0
+
+    if os.path.isfile(os.getenv('HOME') + '/.config/text-gen.yml'):
+        args.file = [os.getenv('HOME') + '/.config/text-gen.yml'] + args.file
+
+    pdict = PhraseDict()
+    if len(args.file) > 0:
+        pdict.clear_pdict()
+        for file in args.file:
+            try:
+                with open(file, 'r') as f:
+                    text = f.read()
+                    try:
+                        data = yaml.safe_load(text)
+                        pdict.add_pdict(data)
+                        pdict.format_pdict()
+                    except:
+                        error(f'strictyaml error: {file}')
+            except:
+                error(f'file error: {file}')
+
+    if args.all:
+        phrases = pdict.get_phrases(' '.join(args.text))
+        for p in phrases:
+            print(capitalize(p))
+    else:
+        for i in range(0, args.num):
+            print(capitalize(pdict.get_phrase(' '.join(args.text), verbose=args.verbose)))
+        return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
