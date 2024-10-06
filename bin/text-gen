@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 """NAME
-    text-gen - generate randomized phrase
+    text-gen - generate random text
 
 USAGE
     text-gen [OPTION...] [PHRASE...]
 
 DESCRIPTION
-    phrase.py generates randomized phrases from PHRASE. phrase.py uses a
+    text-gen generates structured random text from input. text-gen uses a
     special phrase dictionary that maps tags to phrases.
 
     The phrase dictionary is a dictionary with strings as keys that map to lists

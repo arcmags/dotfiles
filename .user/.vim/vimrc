@@ -71,7 +71,7 @@ set scrolloff=8
 set showcmd cmdheight=1
 set showtabline=1 tabline=%!TabLine()
 set signcolumn=number
-set wrap whichwrap+=h,l,s,<,>,[,] linebreak
+set wrap whichwrap+=h,l,s,<,>,[,] nolinebreak
 set wildmenu wildoptions=pum wildignore=*.o,*.pyc,*/.git/*,*/.hg/*,*/.svn/*,*/.DS_Store
 set switchbuf=uselast
 

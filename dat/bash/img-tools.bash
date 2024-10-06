@@ -1,17 +1,11 @@
 #!/bin/bash
 ## img-tools.bash ::
 
-## internal ::
-msg() {
-    [ "$flag_quiet" = 'true' ] && return
-    printf "\e[1;38;5;12m==> \e[0;38;5;15m$1\e[0m\n" "${@:2}"
-}
+msg() { printf '\e[1;38;5;12m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
+msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s' "${@:2}")" ;}
+msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 
-msg_error() {
-    printf "\e[1;38;5;9m==> ERROR: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2
-}
-
-## functions ::
 img-sharpen-test() {
     local values=(0.8 1 1.2 1.4 1.8 2.2 2.8)
     local ext='png'
@@ -47,6 +41,27 @@ img-test-feh() {
     img-upscale -P "$1"
     img-sharpen-test -J "$file_base"_u20*.png
     feh "$file_base"*
+}
+
+gif-upscale() {
+    [ ! -f "$1" ] && return 1
+    local dir_org="$PWD"
+    local dir_tmp="$(mktemp -d)"
+    local name="$(basename "$1")"
+    name="${name%.*}"
+    cp "$1" "$dir_tmp"
+    cd "$dir_tmp"
+    msg_to "$1" '...png'
+    magick *.gif -coalesce %03d.png
+    img-upscale *.png
+    mkdir ups
+    mv *_u2*.png ups
+    cd ups
+    msg_to '...png' "${name}_u.gif"
+    magick *.png -delay 10 -loop 0 out.gif
+    cp out.gif "${dir_org}/${name}_u.gif"
+    cd "$dir_org"
+    rm -r "$dir_tmp"
 }
 
 # vim:ft=bash

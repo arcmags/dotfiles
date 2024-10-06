@@ -12,7 +12,7 @@ GM_addStyle(`
     .ytd-promoted-sparkles-web-renderer {
         display: none !important;
     }
-`)
+`);
 
 document.addEventListener('load', () => {
     try { document.querySelector('.ad-showing video').currentTime = 99999 } catch {}
