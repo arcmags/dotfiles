@@ -45,6 +45,8 @@ path_add "$UDIR/local/bin"
 path_add "$HOME/bin"
 
 ## environment ::
+command_not_found_handle() { printf '\e[1;38;5;11mC:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127 ;}
+
 export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 export PS2='\[\e[0m\] '
 
@@ -57,10 +59,6 @@ is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && expor
 
 export SUDO_PROMPT="$(printf '\e[1;38;5;9m:> \e[0;38;5;15mpassword: \e[0m')"
 su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@" ;}
-
-command_not_found_handle() {
-    printf '\e[1;38;5;11mC:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127
-}
 
 [ "$TERM" = 'linux' ] && export TERM='linux-16color'
 
@@ -196,30 +194,20 @@ is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim 
 is_bin zathura && zathura() { command zathura --fork "$@" ;}
 
 ## functions: commands ::
-calc() {
-    printf 'scale=3;%s\n' "$*" | bc -l
-}
+is_bin bc && calc() { printf 'scale=3;%s\n' "$*" | bc -l ;}
 
 cdtt() {
     d=1
-    while [ -e "$TMPDIR/tmp$d" ]; do
-        d=$((d+1))
-    done
+    while [ -e "$TMPDIR/tmp$d" ]; do d=$((d+1)); done
     mkdir "$TMPDIR/tmp$d"
     [ -n "$1" ] && cp -r "$@" "$TMPDIR/tmp$d"
     cd "$TMPDIR/tmp$d"
     unset d
 }
 
-if is_bin gpgconf; then
-    gpgreset() {
-        gpgconf --kill gpg-agent
-    }
-fi
+is_bin gpgconf && gpgreset() { gpgconf --kill gpg-agent ;}
 
-reload() {
-    . "$HOME/.profile"
-}
+reload() { . "$HOME/.profile" ;}
 
 if [ -n "$DISPLAY" ] && is_bin import; then
     screenshot() (
@@ -233,21 +221,21 @@ elif [ -z "$DISPLAY" ] && is_bin fbgrab && groups | grep -q '\bvideo\b'; then
     )
 fi
 
+[ -n "$DISPLAY" ] && is_bin import &&  screenshot() (
+    png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
+    import -window root "$png_screen" && printf '%s\n' "$png_screen"
+)
+[ -z "$DISPLAY" ] && is_bin fbgrab && groups | grep -qw 'video' && screenshot() (
+    png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
+    fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
+)
+
 if is_bin nc; then
     tb() (
-        url=
-        if [ -n "$1" ]; then
-            url="$(cat "$@" | nc termbin.com 9999 | tr -d '\0')"
-        else
-            url="$(nc termbin.com 9999 | tr -d '\0')"
-        fi
-        if [ -z "$url" ]; then
-            return 1
-        fi
+        url="$(nc termbin.com 9999 | tr -d '\0')"
+        [ -z "$url" ] && return 1
         printf '%s\n' "$url"
-        if [ -n "$DISPLAY" ] && is_bin xclip; then
-            printf '%s' "$url" | xclip
-        fi
+        [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url" | xclip
     )
 fi
 
@@ -280,9 +268,7 @@ termset() {
     fi
 }
 
-titleset() {
-    [ -n "$1" ] && printf '\033]0;%s\007' "$*"
-}
+titleset() { [ -n "$1" ] && printf '\033]0;%s\007' "$*" ;}
 
 if is_bin vim; then
     uvim() {
@@ -295,15 +281,9 @@ if is_bin vim; then
 fi
 
 if [ -n "$DISPLAY" ] && is_bin xclip; then
-    xclip() {
-        command xclip -sel clipboard "$@"
-    }
-    xyank() {
-        xclip
-    }
-    xput() {
-        xclip -o
-    }
+    xclip() { xyank "$@" ;}
+    xyank() { command xclip -sel clipboard "$@" ;}
+    xput() { xclip -o ;}
 fi
 
 # vim:ft=sh
