@@ -209,18 +209,6 @@ is_bin gpgconf && gpgreset() { gpgconf --kill gpg-agent ;}
 
 reload() { . "$HOME/.profile" ;}
 
-if [ -n "$DISPLAY" ] && is_bin import; then
-    screenshot() (
-        png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
-        import -window root "$png_screen" && printf '%s\n' "$png_screen"
-    )
-elif [ -z "$DISPLAY" ] && is_bin fbgrab && groups | grep -q '\bvideo\b'; then
-    screenshot() (
-        png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
-        fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
-    )
-fi
-
 [ -n "$DISPLAY" ] && is_bin import &&  screenshot() (
     png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
     import -window root "$png_screen" && printf '%s\n' "$png_screen"
@@ -230,14 +218,12 @@ fi
     fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
 )
 
-if is_bin nc; then
-    tb() (
-        url="$(nc termbin.com 9999 | tr -d '\0')"
-        [ -z "$url" ] && return 1
-        printf '%s\n' "$url"
-        [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url" | xclip
-    )
-fi
+is_bin nc && tb() (
+    url="$(nc termbin.com 9999 | tr -d '\0')"
+    [ -z "$url" ] && return 1
+    printf '%s\n' "$url"
+    [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url" | xclip
+)
 
 tempcp() {
     mkdir -p "$TMPDIR/temp"
