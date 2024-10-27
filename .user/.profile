@@ -150,9 +150,11 @@ if is_bin ffmpeg; then
     is_bin ffprobe && ffprobe() { command ffprobe -hide_banner "$@" ;}
 fi
 
-grep() { command grep --color=auto "$@" ;}
+is_bin git && git() { GPG_TTY=$(tty) command git "$@" ;}
 
 is_bin gpg && gpg() { command gpg --no-greeting -q "$@" ;}
+
+grep() { command grep --color=auto "$@" ;}
 
 ip() { command ip -color=auto "$@" ;}
 

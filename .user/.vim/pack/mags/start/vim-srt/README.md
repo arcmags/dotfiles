@@ -14,10 +14,10 @@ Install using a plugin manager, or use vim's builtin package support:
 
 ## Usage
 
-Strip all trailing whitespaces, remove leading and trailing blank lines, merge
-repeated blank lines, fix syntax errors, and renumber all subtitles.
-Optionally convert file to unix, change encoding to utf-8, and replace tabs
-with spaces:
+Strip trailing whitespaces, remove leading and trailing blank lines, merge
+repeated blank lines, fix timecode syntax errors, add missing spaces after
+leading dashes, and renumber all subtitles. Optionally convert file to unix,
+change encoding to utf-8, and replace tabs with spaces:
 
     :SRTClean
 
@@ -48,10 +48,3 @@ Convert text to ASCII with transliteration (requires `iconv`):
 `g:srt_unix` - Convert file to unix with `:SRTClean`. default: true
 
 `g:srt_utf8` - Set encoding to utf-8 with `:SRTClean`. default: true
-
-<!--metadata:
-author: Chris Magyar
-description: Vim9script subtitle file plugin.
-keywords: vim, vim9script, plugin, subtitle, srt
-css: ../../../../../../dat/css/main.css
--->

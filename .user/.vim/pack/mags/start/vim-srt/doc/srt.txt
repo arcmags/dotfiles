@@ -6,17 +6,28 @@ renumber, and adjust subtitle timecodes.
 COMMANDS                                                *srt-commands*
 
                                                         *:SRTClean*
-:SRTClean       Strip all trailing whitespaces, remove leading and trailing
-                blank lines, merge repeated blank lines, fix syntax errors,
-                and renumber all subtitles.  Optionally convert file to unix,
-                change encoding to utf-8, and replace tabs with spaces.
+:SRTClean       Strip trailing whitespaces, remove leading and trailing blank
+                lines, merge repeated blank lines, fix timestamp syntax errors,
+                add missing spaces after leading dashes, and renumber all
+                subtitles.  Optionally convert file to unix, change encoding
+                to utf-8, and replace tabs with spaces.
 
                                                         *:SRTNumber*
 :SRTNumber      Renumber subtitles.
 
                                                         *:SRTShift*
 :SRTShift {num} Shift all subtitle timecodes by {num} milliseconds.
-                May be positive or negative.
+
+                                                        *:SRTSkew*
+:SRTSkew[!] {timecode1} {num1} {timecode2} {num2}
+                Apply linear skew to all subtitle timecodes.
+
+                A skew function is calculated from two timecodes ({timecode1}
+                and {timecode2}) and their corresponding shift values ({num1}
+                and {num2}) in milliseconds.
+
+                If [!] is specified, the skew function is calculated using
+                {timecode1} and {timecode2} as video times, not subtitle times.
 
 :[range]SRTToAscii                                      *:SRTToAscii*
                 Convert lines in [range] to ASCII with transliteration.
@@ -38,4 +49,4 @@ SETTINGS                                                *srt-settings*
 
 *g:srt_utf8*      Set encoding to utf-8 with :SRTClean.  default: true
 
- vim:ts=4:et:ft=help
+ vim:ts=4:et:ft=help:
