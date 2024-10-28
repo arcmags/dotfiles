@@ -7,10 +7,13 @@ COMMANDS                                                *srt-commands*
 
                                                         *:SRTClean*
 :SRTClean       Strip trailing whitespaces, remove leading and trailing blank
-                lines, merge repeated blank lines, fix timestamp syntax errors,
-                add missing spaces after leading dashes, and renumber all
-                subtitles.  Optionally convert file to unix, change encoding
-                to utf-8, and replace tabs with spaces.
+                lines, merge repeated blank lines, fix timecode syntax errors,
+                add missing spaces after leading dashes, combine musical notes
+                and pound symbols and add missing spaces around them, remove
+                blank subtitles, renumber all subtitles.
+
+                Optionally convert file to unix, change encoding to utf-8, and
+                replace tabs with spaces:
 
                                                         *:SRTNumber*
 :SRTNumber      Renumber subtitles.

@@ -1,4 +1,6 @@
 #!/bin/sh
+## ~/.config/wal/templates/colors-tty.sh ::
+
 if [ "$TERM" = 'linux' ] || [ "$TERM" = 'linux-16color' ]; then
     printf '%b' '\e]P0{color0.strip}
                  \e]P1{color1.strip}

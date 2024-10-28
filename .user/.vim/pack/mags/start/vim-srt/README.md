@@ -16,14 +16,19 @@ Install using a plugin manager, or use vim's builtin package support:
 
 Strip trailing whitespaces, remove leading and trailing blank lines, merge
 repeated blank lines, fix timecode syntax errors, add missing spaces after
-leading dashes, and renumber all subtitles. Optionally convert file to unix,
-change encoding to utf-8, and replace tabs with spaces:
+leading dashes, combine musical notes and pound symbols and add missing spaces
+around them, remove blank subtitles, renumber all subtitles. Optionally convert
+file to unix, change encoding to utf-8, and replace tabs with spaces:
 
     :SRTClean
 
 Renumber subtiles:
 
     :SRTNumber
+
+Skew all subtitle timecodes, calculated from two timecodes and offsets:
+
+    :SRTSkew <TIME> <NUMBER> <TIME> <NUMBER>
 
 Shift all subtitle timescodes by NUMBER milliseconds (positive or negative):
 

@@ -55,6 +55,6 @@ if is_bin transmission-remote; then
 fi
 
 ## execute commands ::
-command -v termset &>/dev/null && [[ "$TERM" =~ linux|linux-16color ]] && termset
+command -v termset &>/dev/null && termset
 
 # vim:ft=bash

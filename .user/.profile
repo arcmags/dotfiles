@@ -235,24 +235,23 @@ tempcp() {
 }
 
 termset() {
+    if [ -f "$HOME/.cache/wal/colors.sh" ]; then
+        . "$HOME/.cache/wal/colors.sh"
+    elif [ -f "$UDIR/.user/.cache/wal/colors.sh" ]; then
+        . "$UDIR/.user/.cache/wal/colors.sh"
+    fi
     if [ "$TERM" = 'linux' ] || [ "$TERM" = 'linux-16color' ]; then
         if [ -f "$HOME/.cache/wal/colors-tty.sh" ]; then
             sh "$HOME/.cache/wal/colors-tty.sh"
         elif [ -f "$UDIR/.user/.cache/wal/colors-tty.sh" ]; then
             sh "$UDIR/.user/.cache/wal/colors-tty.sh"
-        else
-            return 1
         fi
     elif [ -z "$TMUX" ]; then
         if [ -f "$HOME/.cache/wal/sequences" ]; then
             cat "$HOME/.cache/wal/sequences"
         elif [ -f "$UDIR/.user/.cache/wal/sequences" ]; then
             cat "$UDIR/.user/.cache/wal/sequences"
-        else
-            return 1
         fi
-    else
-        return 1
     fi
 }
 

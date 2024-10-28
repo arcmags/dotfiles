@@ -1,7 +1,7 @@
 vim9script
 ## srt.vim - filetype plugin for working with subtitle files ::
 # maintainer: Chris Magyar <c.magyar.ec@gmail.com>
-# updated: 2024-10-26
+# updated: 2024-10-27
 
 if !exists('g:srt_maps') || g:srt_maps
     nnoremap <buffer> <localleader>m <scriptcmd>SRTClean()<cr>
@@ -10,12 +10,12 @@ endif
 
 command! SRTClean SRTClean()
 command! SRTNumber SRTNumber()
-command! -nargs=1 SRTShift SRTShift(<args>)
-command! -bang -nargs=* SRTSkew SRTSkewCmd(<q-bang>, <f-args>)
+command! -nargs=1 SRTShift SRTShift(<f-args>)
+command! -bang -nargs=* SRTSkew SRTSkew(<q-bang>, <f-args>)
 command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
 
 # TODO: functions to remove <font color>, <b>, <i>?
-# TODO: function to skew timestamps
+# TODO: remove alignments?
 
 def MsToTime(ms: number): string
     # convert milliseconds to timestamp:
@@ -68,6 +68,8 @@ def SRTClean()
         setlocal expandtab
         retab
     endif
+    # TODO: instead of all this, try parsing subtitles as objects:
+    # TODO: populate scan/warn/error results in quickfix window
     # strip trailing whitespaces:
     sil keepp :%s/\s\+$//e
     # merge repeated blank lines:
@@ -76,27 +78,38 @@ def SRTClean()
     sil keepp :%s/\($\n\s*\)\+\%$//e
     # remove leading blank lines:
     sil keepp :%s/\%^\n\+//e
-    # fix timestamps with bad syntax:
-    sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d\)\s*-\?>\+\s*\(\d\+:\d\d:\d\d,\d\d\d\)$/\1 --> \2/e
-    sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d\)\s*---\+>\+\s*\(\d\+:\d\d:\d\d,\d\d\d\)$/\1 --> \2/e
+    # fix incorrect timestamp arrows:
+    sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d\)\s*\(\|-\|---\+\)>\+\s*\(\d\+:\d\d:\d\d,\d\d\d\)$/\1 --> \3/e
     # remove blank lines between indexes and timecodes:
-    sil keepp :%s/\(\%^\|\n\)\(\d\+\n\)\n/\1\2/e
+    sil keepp :%s/\(\%^\|\n\)\(\d\+\n\)\n\+/\1\2/e
     # remove blank lines between timecodes and text:
-    sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d --> \d\+:\d\d:\d\d,\d\d\d\n\)\n/\1/e
+    sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d --> \d\+:\d\d:\d\d,\d\d\d\n\)\n\+\([^0-9]\+\)$/\1\2/e
+    # remove blank lines between text:
+    sil keepp :%s/\(\n\)\n\+\([^0-9]\)/\1\2/e
     # add missing space after leading dashes:
     sil keepp :%s/^-\([^ -]\)/- \1/e
     # make every utf-8 note character an eighth note:
-    sil keepp :%s/[\d9833\d9834\d9835\d9836]\+/\=nr2char(9834)/ge
-    # merge repeated eighth notes:
-    sil keepp :%s/\%d9834[\d9834 ]\{-}\%d9834/\=nr2char(9834)/ge
-    # add missing space before eighth notes at ends of lines:
-    sil keepp :%s/^\(.\+\)\([^ ]\)\(\%d9834\)$/\1\2 \3/ge
-    # merge repeated pound symbols:
-    sil keepp :%s/#[# ]\{-}#/#)/ge
-    # add missing space before pound symbols at ends of lines:
-    sil keepp :%s/^\(.\+\)\([^ ]\)#$/\1\2 #/ge
+    sil keepp :%s/[\u2669\u266a\u266b\u266c]\+/\=nr2char(0x266a)/ge
+    # merge repeated eighth notes and pound symbols:
+    sil keepp :%s/\([\u266a#]\)[\u266a# ]\+/\1/ge
+    # add missing space after eighth note or pound symbol at start of lines:
+    sil keepp :%s/^\([\u266a#]\)\([^ ]\)/\1 \2/ge
+    # add missing space before eigth note or pound symbol at end of lines:
+    sil keepp :%s/^\(.\+\)\([^ ]\)\([\u266a#]\)$/\1\2 \3/ge
+    # remove lines with only eigth notes or pound symbols:
+    sil! keepp g/^[#\u266a]$/d
+    # remove blank subtitles:
+    sil! keepp g/^\d\+\n\d\d:\d\d:\d\d,\d\d\d --> \d\d:\d\d:\d\d,\d\d\d\n^$/d 3
+    # strip trailing whitespaces:
+    sil keepp :%s/\s\+$//e
+    # merge repeated blank lines:
+    sil! keepp g/^\n\{2,}/d
+    # remove trailing blank lines:
+    sil keepp :%s/\($\n\s*\)\+\%$//e
+    # remove leading blank lines:
+    sil keepp :%s/\%^\n\+//e
     # renumber subtitles:
-    call SRTNumber()
+    SRTNumber()
     setpos('.', pos)
 enddef
 
@@ -117,36 +130,34 @@ def SRTNumber()
     endfor
 enddef
 
-def SRTShift(ms_shift: number)
+def SRTShift(ms: string)
     # shift subtitle timecode by milliseconds:
+    const s = str2nr(ms)
     var text0 = ''
     var times = []
-    var ms = 0
     for line in range(1, line('$'))
         text0 = getline(line)
         if match(text0, '^\d\+:\d\d:\d\d,\d\d\d --> \d\+:\d\d:\d\d,\d\d\d$') >= 0
             times = split(text0, ' --> ')
-            map(times, (key, val) => MsToTime(TimeToMs(val) + ms_shift))
+            map(times, (key, val) => MsToTime(TimeToMs(val) + s))
             silent setline(line, times[0] .. ' --> ' .. times[1])
         endif
     endfor
 enddef
 
-def SRTSkewCmd(bang: string, t1: string, s1: string, t2: string, s2: string)
-    # command wrapper for SRTSkew:
-    if bang == '!'
-        SRTSkew(TimeToMs(t1) - str2nr(s1), str2nr(s1), TimeToMs(t2) - str2nr(s2), str2nr(s2))
-    else
-        SRTSkew(TimeToMs(t1), str2nr(s1), TimeToMs(t2), str2nr(s2))
-    endif
-enddef
-
-def SRTSkew(t1: number, s1: number, t2: number, s2: number)
-    # skew subtitle timecodes:
+def SRTSkew(bang: string, st1: string, ss1: string, st2: string, ss2: string)
+    const t1 = TimeToMs(st1)
+    const s1 = str2nr(ss1)
+    const t2 = TimeToMs(st2)
+    const s2 = str2nr(ss2)
+    var m = ((t2 + s2) - (t1 + s1)) / (t2 - t1 + 0.0)
+    var b = t1 + s1 - m * t1
     var text0 = ''
     var times = []
-    const m = ((t2 + s2) - (t1 + s1)) / (t2 - t1 + 0.0)
-    const b = t1 + s1 - m * t1
+    if bang == '!'
+        m = (t2 - t1) / ((t2 - s2) - (t1 - s1) + 0.0)
+        b = t1 + s1 - m * t1
+    endif
     for line in range(1, line('$'))
         text0 = getline(line)
         if match(text0, '^\d\+:\d\d:\d\d,\d\d\d --> \d\+:\d\d:\d\d,\d\d\d$') >= 0
@@ -167,7 +178,7 @@ def SRTToAscii(mode = 'n', start = -1, end = -1)
         echohl none
         return
     endif
-    const subs = [['[\d9833\d9834\d9835\d9836]', '#']]
+    const subs = [['[\u2669\u266a\u266b\u266c]', '#']]
     var line0 = line('.')
     var line1 = line0
     if mode == 'v'
