@@ -1,0 +1,57 @@
+#!/bin/bash
+
+## ttr ::
+# - attach/create tmux session with 4 panes:
+# - nvpn, transmission-daemon -f, watch transmission-remote -l, bash
+
+cmd='ttorrent'
+
+## main ::
+set -e
+
+if [ -n "$TMUX" ]; then
+    if [ "$(tmux display-message -p '#S')" = "$cmd" ]; then
+        sleep 0.5
+        tmux split-window -v nvpn
+        tmux select-pane -T npvn -t 2
+        sleep 4
+        tmux split-window -v transmission-daemon -f
+        tmux select-pane -T transmission-daemon -t 3
+        tmux split-window -v watch -w transmission-remote -l
+        tmux select-pane -T transmission-remote -t 4
+        tmux swap-pane -s 2 -t 4
+        tmux select-layout even-vertical
+        tmux select-pane -t 1
+        tr-add-all() {
+            find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent' | while read -r t; do
+                if transmission-remote -a "$t" &>/dev/null; then
+                    rm "$t"
+                else
+                    printf 'E: %s\n' "$t" >&2
+                fi
+            done
+        }
+        tr-rm-all() {
+            for t in $(transmission-remote -j -l | jq '.arguments.torrents.[].id'); do
+                transmission-remote -t $t -r &>/dev/null
+            done
+        }
+        tr-rm-done() {
+            for t in $(transmission-remote -j -l | \
+              jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
+                transmission-remote -t $t -r &>/dev/null
+            done
+        }
+        export -f tr-add-all tr-rm-all tr-rm-done
+        exec bash -i
+    else
+        printf 'E: already in a tmux session\n' >&2
+        exit 1
+    fi
+elif tmux -L "$cmd" has-session >/dev/null 2>&1; then
+    exec tmux -L "$cmd" attach-session
+else
+    exec tmux -L "$cmd" new-session -s "$cmd" "$cmd"
+fi
+
+# vim:ft=sh

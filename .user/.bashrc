@@ -29,32 +29,7 @@ is_bin yt-dlp && yt-dlp-audio() { command yt-dlp -f 'ba[ext=m4a]' -x "$@" ;}
 ## functions: commands ::
 reload() { [ -f "$HOME/.inputrc" ] && bind -f "$HOME/.inputrc"; . "$HOME/.bashrc" ;}
 
-if is_bin transmission-remote; then
-    transmission-remote-addall() {
-        find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent' | while read -r t; do
-            if transmission-remote -a "$t" &>/dev/null; then
-                rm "$t"
-            else
-                printf 'E: %s\n' "$t" >&2
-            fi
-        done
-    }
-    if is_bin jq; then
-        transmission-remote-rmall() {
-            for t in $(transmission-remote -j -l | jq '.arguments.torrents.[].id'); do
-                transmission-remote -t $t -r &>/dev/null
-            done
-        }
-        transmission-remote-rmdone() {
-            for t in $(transmission-remote -j -l | \
-              jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
-                transmission-remote -t $t -r &>/dev/null
-            done
-        }
-    fi
-fi
-
 ## execute commands ::
-command -v termset &>/dev/null && termset
+tty | grep /dev/tty -q && command -v termset &>/dev/null && termset
 
 # vim:ft=bash

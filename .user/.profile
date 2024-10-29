@@ -45,7 +45,7 @@ path_add "$UDIR/local/bin"
 path_add "$HOME/bin"
 
 ## environment ::
-command_not_found_handle() { printf '\e[1;38;5;11mC:\e[0;38;5;15m %s\e[0m\n' "$1"; return 127 ;}
+command_not_found_handle() { printf '\e[1;38;5;11mC: \e[0;38;5;15m%s\e[0m\n' "$1"; return 127 ;}
 
 export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 export PS2='\[\e[0m\] '
@@ -144,11 +144,9 @@ cdu() { cd "$UDIR" ;}
 
 is_bin diff && diff() { command diff --color=auto "$@" ;}
 
-if is_bin ffmpeg; then
-    ffmpeg() { command ffmpeg -hide_banner "$@" ;}
-    is_bin ffplay && ffplay() { command ffplay -hide_banner "$@" ;}
-    is_bin ffprobe && ffprobe() { command ffprobe -hide_banner "$@" ;}
-fi
+is_bin ffmpeg && ffmpeg() { command ffmpeg -hide_banner "$@" ;}
+is_bin ffplay && ffplay() { command ffplay -hide_banner "$@" ;}
+is_bin ffprobe && ffprobe() { command ffprobe -hide_banner "$@" ;}
 
 is_bin git && git() { GPG_TTY=$(tty) command git "$@" ;}
 
@@ -159,8 +157,8 @@ grep() { command grep --color=auto "$@" ;}
 ip() { command ip -color=auto "$@" ;}
 
 lls() { ls --color=always | less -R ;}
-ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@" ;}
 ls1() { ls -1 "$@" ;}
+ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@" ;}
 lsl() { ls -l "$@" ;}
 lss() { ls -s "$@" ;}
 
@@ -185,7 +183,13 @@ reset() { tput reset ;}
 
 is_bin run0 && run0() { command run0 --background= "$@" ;}
 
-is_bin stylelint && stylelint() { command stylelint -f unix -c ~/.stylelintrc.yml "$@" ;}
+is_bin stylelint && stylelint() {
+    if [ -f "$HOME/.stylelintrc.yml" ]; then
+        command stylelint -f unix -c "$HOME/.stylelintrc.yml" "$@"
+    else
+        command stylelint -f unix "$@"
+    fi
+}
 
 is_bin tmux && tmux() { command tmux -2 "$@" ;}
 
@@ -196,36 +200,48 @@ is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim 
 is_bin zathura && zathura() { command zathura --fork "$@" ;}
 
 ## functions: commands ::
-is_bin bc && calc() { printf 'scale=3;%s\n' "$*" | bc -l ;}
-
-cdtt() {
-    d=1
-    while [ -e "$TMPDIR/tmp$d" ]; do d=$((d+1)); done
-    mkdir "$TMPDIR/tmp$d"
-    [ -n "$1" ] && cp -r "$@" "$TMPDIR/tmp$d"
-    cd "$TMPDIR/tmp$d"
-    unset d
+calc() {
+    is_bin bc || error 'missing dep: bc'
+    printf 'scale=3;%s\n' "$*" | bc -l
 }
 
-is_bin gpgconf && gpgreset() { gpgconf --kill gpg-agent ;}
+cdtt() {
+    dir_tmp="$(mktemp -d tmp.XXX)"
+    [ -n "$1" ] && cp -r "$@" "$dir_tmp"
+    cd "$dir_tmp"
+    unset "$dir_tmp"
+}
+
+error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2; return 2 ;}
+
+gpgreset() {
+    is_bin gpgconf || error 'missing dep: gpgconf'
+    gpgconf --kill gpg-agent
+}
 
 reload() { . "$HOME/.profile" ;}
 
-[ -n "$DISPLAY" ] && is_bin import &&  screenshot() (
+screenshot() {
     png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
-    import -window root "$png_screen" && printf '%s\n' "$png_screen"
-)
-[ -z "$DISPLAY" ] && is_bin fbgrab && groups | grep -qw 'video' && screenshot() (
-    png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
-    fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
-)
+    if [ -n "$DISPLAY" ]; then
+        is_bin import || error 'missing dep: import'
+        import -window root "$png_screen" && printf '%s\n' "$png_screen"
+    else
+        is_bin fbgrab || error 'missing dep: fbgrab'
+        groups | grep -qw 'video' || error 'not in group: video'
+        fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
+    fi
+    unset png_screen
+}
 
-is_bin nc && tb() (
-    url="$(nc termbin.com 9999 | tr -d '\0')"
-    [ -z "$url" ] && return 1
-    printf '%s\n' "$url"
-    [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url" | xclip
-)
+tb() {
+    is_bin nc || error 'missing dep: nc'
+    url_tb="$(nc termbin.com 9999 | tr -d '\0')"
+    [ -z "$url_tb" ] && error 'connection error'
+    printf '%s\n' "$url_tb"
+    [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url_tb" | xclip
+    unset url_tb
+}
 
 tempcp() {
     mkdir -p "$TMPDIR/temp"
@@ -235,42 +251,32 @@ tempcp() {
 }
 
 termset() {
-    if [ -f "$HOME/.cache/wal/colors.sh" ]; then
-        . "$HOME/.cache/wal/colors.sh"
-    elif [ -f "$UDIR/.user/.cache/wal/colors.sh" ]; then
-        . "$UDIR/.user/.cache/wal/colors.sh"
-    fi
-    if [ "$TERM" = 'linux' ] || [ "$TERM" = 'linux-16color' ]; then
-        if [ -f "$HOME/.cache/wal/colors-tty.sh" ]; then
-            sh "$HOME/.cache/wal/colors-tty.sh"
-        elif [ -f "$UDIR/.user/.cache/wal/colors-tty.sh" ]; then
-            sh "$UDIR/.user/.cache/wal/colors-tty.sh"
-        fi
+    if tty | grep /dev/tty -q; then
+        [ -f "$UDIR/.user/.cache/wal/colors-tty.sh" ] && sh "$UDIR/.user/.cache/wal/colors-tty.sh"
+        [ -f "$HOME/.cache/wal/colors-tty.sh" ] && sh "$HOME/.cache/wal/colors-tty.sh"
     elif [ -z "$TMUX" ]; then
-        if [ -f "$HOME/.cache/wal/sequences" ]; then
-            cat "$HOME/.cache/wal/sequences"
-        elif [ -f "$UDIR/.user/.cache/wal/sequences" ]; then
-            cat "$UDIR/.user/.cache/wal/sequences"
-        fi
+        [ -f "$UDIR/.user/.cache/wal/sequences" ] && cat "$UDIR/.user/.cache/wal/sequences"
+        [ -f "$HOME/.cache/wal/sequences" ] && cat "$HOME/.cache/wal/sequences"
     fi
 }
 
 titleset() { [ -n "$1" ] && printf '\033]0;%s\007' "$*" ;}
 
-if is_bin vim; then
-    uvim() {
-        if [ -f "$UDIR/.user/.vim/.uvim" ]; then
-            vim -c "source $UDIR/.user/.vim/.uvim" "$@"
-        else
-            vim "$@"
-        fi
-    }
-fi
+uvim() {
+    is_bin vim || error 'missing dep: vim'
+    if [ -f "$UDIR/.user/.vim/.uvim" ]; then
+        vim -c "source $UDIR/.user/.vim/.uvim" "$@"
+    else
+        vim "$@"
+    fi
+}
 
-if [ -n "$DISPLAY" ] && is_bin xclip; then
-    xclip() { xyank "$@" ;}
-    xyank() { command xclip -sel clipboard "$@" ;}
-    xput() { xclip -o ;}
-fi
+xclip() {
+    is_bin xclip || error 'missing dep: xclip'
+    [ -z "$DISPLAY" ] && error 'no display'
+    command xclip -sel clipboard "$@"
+}
+xput() { xclip -o ;}
+xyank() { xclip ;}
 
 # vim:ft=sh

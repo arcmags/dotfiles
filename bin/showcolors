@@ -37,25 +37,4 @@ else
     done
 fi
 
-if { [ "$1" = '-H' ] || [ "$1" = '--hex' ] ;} && [ -n "$color0" ] && [ -n "$color15" ]; then
-    printf "\e[38;5;0m$block$block$block$block %02d %s\n" 0 "$color0"
-    printf "\e[38;5;1m$block$block$block$block %02d %s\n" 1 "$color1"
-    printf "\e[38;5;2m$block$block$block$block %02d %s\n" 2 "$color2"
-    printf "\e[38;5;3m$block$block$block$block %02d %s\n" 3 "$color3"
-    printf "\e[38;5;4m$block$block$block$block %02d %s\n" 4 "$color4"
-    printf "\e[38;5;5m$block$block$block$block %02d %s\n" 5 "$color5"
-    printf "\e[38;5;6m$block$block$block$block %02d %s\n" 6 "$color6"
-    printf "\e[38;5;7m$block$block$block$block %02d %s\n" 7 "$color7"
-    printf "\e[38;5;8m$block$block$block$block %02d %s\n" 8 "$color8"
-    printf "\e[38;5;9m$block$block$block$block %02d %s\n" 9 "$color9"
-    printf "\e[38;5;10m$block$block$block$block %02d %s\n" 10 "$color10"
-    printf "\e[38;5;11m$block$block$block$block %02d %s\n" 11 "$color11"
-    printf "\e[38;5;12m$block$block$block$block %02d %s\n" 12 "$color12"
-    printf "\e[38;5;13m$block$block$block$block %02d %s\n" 13 "$color13"
-    printf "\e[38;5;14m$block$block$block$block %02d %s\n" 14 "$color14"
-    printf "\e[38;5;15m$block$block$block$block %02d %s\n" 15 "$color15"
-
-
-fi
-
 # vim:ft=bash
