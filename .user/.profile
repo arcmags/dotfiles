@@ -206,7 +206,7 @@ calc() {
 }
 
 cdtt() {
-    dir_tmp="$(mktemp -d tmp.XXX)"
+    dir_tmp="$(mktemp -d "$TMPDIR/tmp.XXX")"
     [ -n "$1" ] && cp -r "$@" "$dir_tmp"
     cd "$dir_tmp"
     unset "$dir_tmp"

@@ -171,8 +171,13 @@ def main() -> int:
         print(__doc__)
         return 0
 
-    if os.path.isfile(os.getenv('HOME') + '/.config/text-gen.yml'):
-        args.file = [os.getenv('HOME') + '/.config/text-gen.yml'] + args.file
+    xdg_config_home = './'
+    if os.getenv('XDG_CONFIG_HOME') is not None:
+        xdg_config_home = os.getenv('XDG_CONFIG_HOME')
+    elif os.getenv('HOME') is not None:
+        xdg_config_home = os.getenv('HOME') + '/.config'
+    if os.path.isfile(xdg_config_home + '/text-gen.yml'):
+        args.file = [xdg_config_home + '/text-gen.yml'] + args.file
 
     pdict = PhraseDict()
     if len(args.file) > 0:

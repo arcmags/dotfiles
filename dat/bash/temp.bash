@@ -49,7 +49,7 @@ msg2_good() { printf '\e[1;38;5;10m > \e[0;38;5;15m%s\e[0m\n' "$*" ;}
 msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s' "${@:2}")" ;}
 msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 
-## main() ::
+## main ::
 trap exit INT
 while [ -n "$arg" ]; do case "$arg" in
     -Y|--yes) flg_yes=true; arg="${args[((++a))]}" ;;

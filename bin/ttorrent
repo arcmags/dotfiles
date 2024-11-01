@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## ttr ::
+## ttorrent ::
 # - attach/create tmux session with 4 panes:
 # - nvpn, transmission-daemon -f, watch transmission-remote -l, bash
 
@@ -22,7 +22,7 @@ if [ -n "$TMUX" ]; then
         tmux swap-pane -s 2 -t 4
         tmux select-layout even-vertical
         tmux select-pane -t 1
-        tr-add-all() {
+        ttorrent-add-all() {
             find "$TMPDIR/in" -maxdepth 1 -iname '*.torrent' | while read -r t; do
                 if transmission-remote -a "$t" &>/dev/null; then
                     rm "$t"
@@ -31,18 +31,26 @@ if [ -n "$TMUX" ]; then
                 fi
             done
         }
-        tr-rm-all() {
+        ttorrent-rm-all() {
             for t in $(transmission-remote -j -l | jq '.arguments.torrents.[].id'); do
                 transmission-remote -t $t -r &>/dev/null
             done
         }
-        tr-rm-done() {
+        ttorrent-rm-done() {
             for t in $(transmission-remote -j -l | \
               jq '.arguments.torrents.[] | select(.status == 6) | .id'); do
                 transmission-remote -t $t -r &>/dev/null
             done
         }
-        export -f tr-add-all tr-rm-all tr-rm-done
+        ttorrent-quit() {
+            tmux send-keys -t 2 C-c
+            tmux send-keys -t 2 C-c
+            while [ $(tmux list-panes | wc -l) -gt 2 ]; do sleep 1; done
+            tmux send-keys -t 2 C-c
+            while [ $(tmux list-panes | wc -l) -gt 1 ]; do sleep 1; done
+            exit
+        }
+        export -f ttorrent-add-all ttorrent-rm-all ttorrent-rm-done ttorrent-quit
         exec bash -i
     else
         printf 'E: already in a tmux session\n' >&2
