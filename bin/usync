@@ -22,9 +22,6 @@ COMMANDS
     pull
         Pull changes from remote source.
 
-    status
-        Print config status.
-
 OPTIONS
     -D, --dryrun
         Perform dry run making no changes.
@@ -93,6 +90,7 @@ flg_pull=false
 flg_push=false
 flg_verbose=false
 flg_status=false
+flg_debug=false
 
 ## functions ::
 is_cmd() { command -v "$1" &>/dev/null ;}
@@ -110,7 +108,7 @@ while [ -n "$arg" ]; do case "$arg" in
     init) flg_init=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
     pull) flg_pull=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
     push) flg_push=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
-    status) flg_status=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    --debug) flg_debug=true; arg="${args[((++a))]}" ;;
     -D|--dryrun) flg_dryrun=true; arg="${args[((++a))]}" ;;
     -V|--verbose) flg_verbose=true; arg="${args[((++a))]}" ;;
     -H|--help) print_help; exit 0 ;;
@@ -181,14 +179,14 @@ if [ -n "$port" ]; then
     [[ $port =~ ^[1-9][0-9]*$ ]] && [ $port -lt 65536 ] || error "invalid port: $port"
 fi
 
-# print config status:
-if [ "$flg_status" = true ]; then
-    printf "\e[0;38;5;12musync root: \e[0;38;5;15m$PWD\n"
-    printf "\e[0;38;5;12mremote dir: \e[0;38;5;15m$dir\n"
-    printf "\e[0;38;5;12mremote url: \e[0;38;5;15m$url\n"
-    printf "\e[0;38;5;12mremote user: \e[0;38;5;15m$user\n"
-    printf "\e[0;38;5;12mremote port: \e[0;38;5;15m$port\n"
-    printf "\e[0;38;5;12mexcludes:\e[0;38;5;15m\n"
+# print debugging info:
+if [ "$flg_debug" = true ]; then
+    printf "repo: $PWD\n"
+    printf "dir: $dir\n"
+    printf "url: $url\n"
+    printf "user: $user\n"
+    printf "port: $port\n"
+    printf "excludes:\n"
     for e in "${excludes[@]}"; do printf "  $e\n"; done
     exit 0
 fi

@@ -9,6 +9,7 @@ is_cmd() { command -v "$1" &>/dev/null ;}
 ## control ::
 cmd='irssi'
 deps=(ssh tmux)
+host="$HOSTNAME"
 remote='arch-nas'
 script="$(basename "$0")"
 session="${cmd%% *}"
@@ -21,9 +22,13 @@ set -e
 # dependency error:
 for dep in "${deps[@]}"; do is_cmd "$dep" || error "not found: $dep"; done
 
+# resolve hostname:
+[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
+
 # ssh into remote and run script there:
 if [ -n "$remote" ] && [ "$remote" != 'localhost' ] &&
-[ "$remote" != '127.0.0.1' ] && [ "$(hostname)" != "$remote" ]; then
+[ "$remote" != '127.0.0.1' ] && [ "$remote" != "$host" ]; then
     exec ssh -t "$remote" "bash -li -c $script"
 fi
 
@@ -35,7 +40,7 @@ if tmux -L "$socket" has-session -t "$session" >/dev/null 2>&1; then
 else
     tmux -L "$socket" new-session -d -s "$session" "$cmd"
     tmux -L "$socket" select-pane -T "$session"
-    [ -n "$settings" ] && tmux -L "$socket" $settings
+    for setting in "${settings[@]}"; do tmux -L "$socket" set $setting; done
     exec tmux -L "$socket" attach-session -t "$session"
 fi
 
