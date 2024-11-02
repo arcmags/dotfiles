@@ -1,18 +1,25 @@
-#!/bin/sh
+#!/bin/bash
 
 ## tvim ::
 # Attach/create vim tmux session.
 
+## functions ::
+is_cmd() { command -v "$1" &>/dev/null ;}
+
 ## control ::
 cmd='vim'
+deps=(ssh tmux)
 remote=
 script="$(basename "$0")"
 session="${cmd%% *}"
-settings='set status off; set pane-border-status off'
+settings=('status off' 'pane-border-status off')
 socket="$session"
 
 ## main ::
 set -e
+
+# dependency error:
+for dep in "${deps[@]}"; do is_cmd "$dep" || error "not found: $dep"; done
 
 # ssh into remote and run script there:
 if [ -n "$remote" ] && [ "$remote" != 'localhost' ] &&

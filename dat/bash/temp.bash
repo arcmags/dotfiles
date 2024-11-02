@@ -68,7 +68,7 @@ esac; done
 args=("${args[@]:a}")
 
 # dependency error:
-for dep in "${deps[@]}"; do is_cmd "$dep" || error "missing dep: $dep"; done
+for dep in "${deps[@]}"; do is_cmd "$dep" || error "not found: $dep"; done
 
 #trap <cleanup_function> EXIT
 
