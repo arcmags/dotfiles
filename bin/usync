@@ -22,6 +22,9 @@ COMMANDS
     pull
         Pull changes from remote source.
 
+    status
+        Print config status.
+
 OPTIONS
     -D, --dryrun
         Perform dry run making no changes.
@@ -36,7 +39,7 @@ OPTIONS
         Use config FILE. Don't search parent dirs if FILE does not exist.
 
 CONFIG
-    .usync - yaml file defining usync repo, may contain following keys:
+    .usync - strict-yaml file defining usync repo, may contain following keys:
 
         dir
             Remote directory. Must be a full path. Required.
@@ -55,59 +58,59 @@ CONFIG
             Remote user. If blank, inherit from ssh alias.
 
 REQUIREMENTS
-    rsync, ssh, yq
+    rsync, ssh
 HELPDOC
 }
 
-# TODO: list/query action
-
-## internal control ::
-a=0 arg="$1" args=("$@")
+## control ::
 args_rsync=('-azz' '--protect-args' '--info=copy1,del1,name1' '--delete')
-arr_config=()
-cfg_ssh=
+arr_conf=()
+conf_ssh=
+
+lines=
 cmd_ssh='ssh'
 dir=
 exclude=
 excludes=()
-file_config='.usync'
-flg_dryrun=false
-flg_init=false
-flg_local=false
-flg_pull=false
-flg_push=false
-flg_verbose=false
+conf='.usync'
 host="$HOSTNAME"
 n_actions=0
 opt_config=
 port=
-reqs=(rsync ssh yq)
+deps=(rsync ssh)
 url=
 url_dir=
 user=
 args_sed=(-e 's/deleting /\o033[1;38;5;9m - \o033[0;38;5;15m/'
     -e '/ - /! s/^/\o033[1;38;5;10m + \o033[0;38;5;15m/')
+is_local=false
 
-[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
-[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
+# args:
+a=0 arg="$1" args=("$@")
+flg_dryrun=false
+flg_init=false
+flg_pull=false
+flg_push=false
+flg_verbose=false
+flg_status=false
 
 ## functions ::
+is_cmd() { command -v "$1" &>/dev/null ;}
 msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg2() { printf '   \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
+[ $EUID -eq 0 ] && msg_cmd() { printf '\e[1;38;5;9m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
 msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-msg_cmd() {
-    local clr=$'\e[1;38;5;10m' txt=' $'
-    [ $EUID -eq 0 ] && clr=$'\e[1;38;5;9m' txt=' #'
-    [ "$flg_dryrun" = true ] && clr=$'\e[1;38;5;11m'
-    printf '%s%s \e[0;38;5;15m%s\e[0m\n' "$clr" "$txt" "$(printf '%q ' "$@")"
-}
 error() { msg_error "$@"; exit 5 ;}
+
 
 ## main ::
 while [ -n "$arg" ]; do case "$arg" in
     init) flg_init=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
     pull) flg_pull=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
     push) flg_push=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
+    status) flg_status=true; arg="${args[((++a))]}"; ((n_actions++)) ;;
     -D|--dryrun) flg_dryrun=true; arg="${args[((++a))]}" ;;
     -V|--verbose) flg_verbose=true; arg="${args[((++a))]}" ;;
     -H|--help) print_help; exit 0 ;;
@@ -123,82 +126,95 @@ while [ -n "$arg" ]; do case "$arg" in
 esac; done
 args=("${args[@]:a}")
 
-for req in "${reqs[@]}"; do if ! command -v "$req" &>/dev/null; then
-    error "missing requirement: $req"
-fi; done
+# dependency error:
+for dep in "${deps[@]}"; do is_cmd "$dep" || error "missing dep: $dep"; done
 
+# args error:
 [ ${#args[@]} -gt 0 ] && error "unknown args: ${args[*]}"
 [ $n_actions -eq 0 ] || [ $n_actions -gt 1 ] && error 'too many/no actions given'
 
-file_config="${opt_config:-$file_config}"
+# set config file from command line option:
+conf="${opt_config:-$conf}"
+
+# resolve hostname:
+[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 
 if [ "$flg_init" = true ]; then
-    [ -f "$file_config" ] && error "already exists: $file_config"
-    touch "$file_config"
-    { printf '## %s ::\n\n' "$(realpath "$file_config")"
+    # create new .usync file in current directory:
+    [ -f "$conf" ] && error "already exists: $conf"
+    touch "$conf"
+    { printf '## %s ::\n\n' "$(realpath "$conf")"
     printf 'dir: %s\nurl: localhost\n\nexclude:\n- /local\n- .git\n\n' "$PWD"
-    printf '# vim:ft=yaml\n' ;} > "$file_config"
+    printf '# vim:ft=yaml\n' ;} > "$conf"
     exit 0
 fi
 
-if [ -z "$opt_config" ]; then
-    while [ ! -f "$file_config" ] && [ "$PWD" != '/' ]; do
-        cd ..
-    done
-    [ ! -f "$file_config" ] && error 'not a usync repository'
+# config file from command line option not found:
+[ -n "$opt_conf" ] && [ ! -f "$conf" ] && error "file not found: $conf"
 
-elif [ ! -f "$file_config" ]; then
-    error "file not found: $file_config"
-fi
+# cd to nearest parent directory that contains config file:
+[ -z "$opt_config" ] && { while [ ! -f "$conf" ] && [ "$PWD" != '/' ]; do cd ..; done ;}
+[ ! -f "$conf" ] && error 'not a usync repository'
 
-mapfile -t arr_config < <(yq -r \
-'.dir//"", .port//"", .url//"", .user//"", .exclude[]' 2>/dev/null "$file_config")
-[ ${#arr_config[@]} -lt 4 ] && error "yaml error: $file_config"
-dir="${arr_config[0]}"
-port="${arr_config[1]}"
-url="${arr_config[2]}"
-user="${arr_config[3]}"
-excludes=("${arr_config[@]:4}")
+# parse config:
+mapfile -t lines < <(sed -E -e 's/(^\s+|\s+$)//g' -e '/^(#|$|-$)/d' "$conf")
+in_exclude=false
+for line in "${lines[@]}"; do
+    if [ "$in_exclude" = true ]; then
+        [[ "$line" =~ ^-\ +(.*) ]] && excludes+=("${BASH_REMATCH[1]}") && continue
+        in_exclude=false
+    fi
+    [[ "$line" =~ ^dir:\ +(.*) ]] && dir="${BASH_REMATCH[1]}" && continue
+    [[ "$line" =~ ^port:\ +(.*) ]] && port="${BASH_REMATCH[1]}" && continue
+    [[ "$line" =~ ^url:\ +(.*) ]] && url="${BASH_REMATCH[1]}" && continue
+    [[ "$line" =~ ^user:\ +(.*) ]] && user="${BASH_REMATCH[1]}" && continue
+    [ "$line" = 'exclude:' ] && in_exclude=true && continue
+done
 [ "${dir:0:1}" = '~' ] && dir="$HOME${dir:1}"
 [ "${dir: -1}" = '/' ] && dir="${dir:0:-1}"
 
+# config errors:
 [ -z "$url" ] && error 'no url'
 [ -z "$dir" ] && error 'no directory'
 if [ -n "$port" ]; then
-    if [[ ! $port =~ ^[1-9][0-9]*$ ]] || [ "$port" -gt 65535 ]; then
-        error "invalid port: $port"
-    fi
+    [[ $port =~ ^[1-9][0-9]*$ ]] && [ $port -lt 65536 ] || error "invalid port: $port"
 fi
 
+# print config status:
+if [ "$flg_status" = true ]; then
+    printf "\e[0;38;5;12musync root: \e[0;38;5;15m$PWD\n"
+    printf "\e[0;38;5;12mremote dir: \e[0;38;5;15m$dir\n"
+    printf "\e[0;38;5;12mremote url: \e[0;38;5;15m$url\n"
+    printf "\e[0;38;5;12mremote user: \e[0;38;5;15m$user\n"
+    printf "\e[0;38;5;12mremote port: \e[0;38;5;15m$port\n"
+    printf "\e[0;38;5;12mexcludes:\e[0;38;5;15m\n"
+    for e in "${excludes[@]}"; do printf "  $e\n"; done
+    exit 0
+fi
+
+# check if remote is on localhost:
 if [[ "$url" =~ ^localhost|$host|127.0.0.1$ ]]; then
-    flg_local=true
-    if [ "$(realpath "$dir")" = "$(realpath "$PWD")" ]; then
-        msg_warn 'remote: no action taken'
-        exit 0
-    fi
+    [ "$(realpath "$dir")" = "$(realpath "$PWD")" ] && msg_warn 'remote' && exit 0
+    is_local=true
 fi
 
-if [ "$flg_local" != true ]; then
-    cfg_ssh="$(ssh -G "$url")"
-    if [ -n "$port" ] && [ "$(grep -Po '^port \K.*' <<<"$cfg_ssh")" != "$port" ]; then
-        cmd_ssh+=" -p $port"
-    fi
-    if [ -n "$user" ] && [ "$(grep -Po '^user \K.*' <<<"$cfg_ssh")" != "$user" ]; then
-        cmd_ssh+=" -l $user"
-    fi
-    if [ "$cmd_ssh" != 'ssh' ]; then
-        args_rsync+=('-e' "$cmd_ssh")
-    fi
+# check ssh config for port and user settings, set ssh command passed to rsync:
+if [ "$is_local" != true ]; then
+    conf_ssh="$(ssh -G "$url")"
+    [ -n "$port" ] && [ "$(grep -Po '^port \K.*' <<<"$conf_ssh")" != "$port" ] && cmd_ssh+=" -p $port"
+    [ -n "$user" ] && [ "$(grep -Po '^user \K.*' <<<"$conf_ssh")" != "$user" ] && cmd_ssh+=" -l $user"
+    [ "$cmd_ssh" != 'ssh' ] && args_rsync+=('-e' "$cmd_ssh")
 fi
 
-for exclude in "${excludes[@]}"; do
-    args_rsync+=('--exclude' "$exclude")
-done
+# add excludes to rsync args:
+for exclude in "${excludes[@]}"; do args_rsync+=('--exclude' "$exclude"); done
+
 [ "$flg_dryrun" = true ] && args_rsync+=('--dry-run')
-[ "$flg_local" = true ] && url_dir="$dir" || url_dir="$url:$dir"
+[ "$is_local" = true ] && url_dir="$dir" || url_dir="$url:$dir"
 
 if [ "$flg_push" = true ]; then
-    if [ "$flg_local" = true ]; then
+    if [ "$is_local" = true ]; then
         mkdir -p "$dir"
     else
         args_rsync+=('--rsync-path' "mkdir -p '$dir' && rsync")
@@ -220,5 +236,7 @@ fi
 [ "$flg_verbose" = true ] && msg_cmd rsync "${args_rsync[@]}"
 
 rsync "${args_rsync[@]}" | sed -E -e '/\/$/d' -e '/^created /d' "${args_sed[@]}"
+
+[ "$flg_dryrun" = true ] && msg_warn 'dryrun'
 
 # vim:ft=bash

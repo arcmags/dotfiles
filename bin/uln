@@ -51,20 +51,10 @@ HELPDOC
 # TODO: add option to select between absolute/relative links
 # TODO: list/query action
 
-## internal control ::
-a=0
-arg="$1"
-args=("$@")
-arr_config=()
+## control ::
 dest=
 dpath=
-file_config='.uln'
-file_path=
-flg_copy=false
-flg_dryrun=false
-flg_init=false
-flg_link=false
-flg_srcs=false
+conf='.uln'
 host="$HOSTNAME"
 line=
 lines=
@@ -75,20 +65,23 @@ sname=
 spath=
 src=
 srcs=()
+in_src=false
 
-[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
-[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
+# args:
+a=0 arg="$1" args=("$@")
+flg_copy=false
+flg_dryrun=false
+flg_init=false
+flg_link=false
 
 ## functions ::
+is_cmd() { command -v "$1" &>/dev/null ;}
 msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
+msg2() { printf '\e[1;38;5;12m > \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
+[ $EUID -eq 0 ] && msg_cmd() { printf '\e[1;38;5;9m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
 msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-msg_cmd() {
-    local clr=$'\e[1;38;5;10m' txt=' $'
-    [ $EUID -eq 0 ] && clr=$'\e[1;38;5;9m' txt=' #'
-    [ "$flg_dryrun" = true ] && clr=$'\e[1;38;5;11m'
-    printf '%s%s \e[0;38;5;15m%s\e[0m\n' "$clr" "$txt" "$(printf '%q ' "$@")"
-}
 error() { msg_error "$@"; exit 5 ;}
 
 ## main ::
@@ -110,45 +103,46 @@ while [ -n "$arg" ]; do case "$arg" in
 esac; done
 args=("${args[@]:a}")
 
+# args error:
 [ ${#args[@]} -gt 0 ] && error "unknown args: ${args[*]}"
 [ $n_acts -eq 0 ] && error 'no action'
 [ $n_acts -gt 1 ] && error 'too many actions'
 
 # set config file from command line option:
-file_config="${opt_config:-$file_config}"
+conf="${opt_config:-$conf}"
+
+# resolve hostname:
+[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 
 if [ "$flg_init" = true ]; then
     # create new .uln file in current directory:
-    [ -f "$file_config" ] && error "$file_config already exists"
-    touch "$file_config"
-    { printf '## %s ::\n\n' "$(realpath "$file_config")"
-    printf 'dest: %s\n\nsrcs:\n\n# vim:ft=yaml\n' "$HOME" ;} > "$file_config"
+    [ -f "$conf" ] && error "$conf already exists"
+    touch "$conf"
+    { printf '## %s ::\n\n' "$(realpath "$conf")"
+    printf 'dest: %s\n\nsrcs:\n\n# vim:ft=yaml\n' "$HOME" ;} > "$conf"
     exit 0
 fi
 
-# config not found:
-[ ! -f "$file_config" ] && error "config not found: $file_config"
+# config file not found:
+[ ! -f "$conf" ] && error "config not found: $conf"
 
 # parse config:
-mapfile -t lines < <(sed -E -e 's/(^\s+|\s+$)//g' -e '/^(#|$|-$)/d' "$file_config")
-flg_srcs=false
+mapfile -t lines < <(sed -E -e 's/(^\s+|\s+$)//g' -e '/^(#|$|-$)/d' "$conf")
+in_src=false
 for line in "${lines[@]}"; do
-    if [ "$flg_srcs" = true ]; then
+    if [ "$in_src" = true ]; then
         [[ "$line" =~ ^-\ +(.*) ]] && srcs+=("${BASH_REMATCH[1]}") && continue
-        flg_srcs=false
+        in_src=false
     fi
     [[ "$line" =~ ^dest:\ +(.*) ]] && dest="${BASH_REMATCH[1]}" && continue
-    [ "$line" = 'srcs:' ] && flg_srcs=true && continue
+    [ "$line" = 'srcs:' ] && in_src=true && continue
 done
+[ "${dest:0:1}" = '~' ] && dest="$HOME${dest:1}"
+[ "${dest: -1}" = '/' ] && dest="${dest:0:-1}"
 
 # no destination directory:
 [ -z "$dest" ] && error 'no destination directory'
-
-# substitute leading ~ in destination directory with $HOME:
-[ "${dest:0:1}" = '~' ] && dest="$HOME${dest:1}"
-
-# remove trailing slash from destination directory:
-[ "${dest: -1}" = '/' ] && dest="${dest:0:-1}"
 
 for src in "${srcs[@]}"; do
     # TODO: need to check if any src contains any src:

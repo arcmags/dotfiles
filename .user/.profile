@@ -5,25 +5,16 @@
 export HOME_REALPATH="$(realpath "$HOME")"
 export UDIR="$HOME/user"
 export UDIR_REALPATH="$(realpath "$UDIR")"
-UHOST="$HOSTNAME"
+export UHOST="$HOSTNAME"
 [ -f '/etc/hostname' ] && UHOST="$(cat /etc/hostname)"
 [ -f '/etc/hostname-' ] && UHOST="$(cat /etc/hostname-)"
-export UHOST
 
 upwd() {
     PWD_REALPATH="$(realpath "$PWD")"
-    case "$PWD" in
-        "$UDIR"*) printf '%s' "-${PWD#"$UDIR"}" ;;
+    case "$PWD_REALPATH" in
         "$UDIR_REALPATH"*) printf '%s' "-${PWD#"$UDIR_REALPATH"}" ;;
-        "$HOME"*) printf '%s' "~${PWD#"$HOME"}" ;;
         "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-        *) case "$PWD_REALPATH" in
-            "$UDIR"*) printf '%s' "-${PWD_REALPATH#"$UDIR"}" ;;
-            "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
-            "$HOME"*) printf '%s' "~${PWD_REALPATH#"$HOME"}" ;;
-            "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-            *) printf '%s' "$PWD" ;;
-        esac ;;
+        *) printf '%s' "$PWD" ;;
     esac
 }
 
@@ -76,11 +67,7 @@ export SYSTEMD_EDITOR="$EDITOR"
 
 export DICTIONARY='en_US'
 
-if [ -f "$HOME/.lscolors" ]; then
-    eval "$(dircolors "$HOME/.lscolors")"
-else
-    eval "$(dircolors)"
-fi
+[ -f "$HOME/.lscolors" ] && eval "$(dircolors "$HOME/.lscolors")" || eval "$(dircolors)"
 
 export GREP_COLORS='mt=38;5;3:mc=48;5;3;38;5;0:fn=38;5;14:ln=38;5;8:bn=38;5;4:se=1;38;5;5'
 
@@ -96,7 +83,7 @@ export CDHISTSIZE=16
 
 export JQ_COLORS='0;38;5;6:0;38;5;11:0;38;5;11:0;38;5;3:0;38;5;10:0;38;5;13:0;38;5;13:0;38;5;12'
 
-LESS='-i -x4 -M -R -~ --mouse --wheel-lines=4 --intr=q$ -PM ?f%f:[stdin]. ?m(%i/%m) .| %L lines | ?eBot:%Pb\%. | %lt-%lb $'
+export LESS='-i -x4 -M -R -~ --mouse --wheel-lines=4 --intr=q$ -PM ?f%f:[stdin]. ?m(%i/%m) .| %L lines | ?eBot:%Pb\%. | %lt-%lb $'
 if less --help | grep -q 'use-color'; then
     LESS="$LESS"' --use-color -DsG$ -DdB$ -DuC$ -DkG$ -DEGb$ -DNK$ -DPGb$ -DSyb$ -DRK$ -DMg$'
 else
@@ -109,7 +96,6 @@ else
     export LESS_TERMCAP_us="$(printf '\e[38;5;14m')"
 fi
 LESS="$LESS"' +Gg'
-export LESS
 
 export MANPAGER='less -m'
 export MANLESS=' man $MAN_PN | %L lines | ?eBot:%pb\%. | %lt-%lb '
@@ -209,7 +195,7 @@ cdtt() {
     dir_tmp="$(mktemp -d "$TMPDIR/tmp.XXX")"
     [ -n "$1" ] && cp -r "$@" "$dir_tmp"
     cd "$dir_tmp"
-    unset "$dir_tmp"
+    unset dir_tmp
 }
 
 error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2; return 2 ;}

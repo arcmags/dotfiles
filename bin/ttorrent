@@ -1,8 +1,9 @@
 #!/bin/bash
 
 ## ttorrent ::
-# - attach/create tmux session with 4 panes:
+# Attach/create tmux session with 4 panes:
 # - nvpn, transmission-daemon -f, watch transmission-remote -l, bash
+# TODO: redo...
 
 cmd='ttorrent'
 
