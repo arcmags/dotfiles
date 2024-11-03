@@ -57,7 +57,7 @@ dpath=
 conf='.uln'
 host="$HOSTNAME"
 line=
-lines=
+lines=()
 n_acts=0
 opt_config=
 sdir=
@@ -111,7 +111,7 @@ args=("${args[@]:a}")
 # set config file from command line option:
 conf="${opt_config:-$conf}"
 
-# resolve hostname:
+# resolve host:
 [ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
 [ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 

@@ -1,20 +1,20 @@
 #!/bin/bash
-## tirssi ::
+## t{cmd} ::
 
 print_help() { cat <<'HELPDOC'
 NAME
-    tirssi - attach/create tmux irssi session
+    t{cmd} - attach/create tmux {cmd} session
 
 SYNOPSIS
-    tirssi [OPTION...]
+    t{cmd} [OPTION...]
 
 DESCRIPTION
-    Create tmux irssi session (if it doesn't exist) and attach to it.
+    Create tmux {cmd} session (if it doesn't exist) and attach to it.
     Optionally run script on remote host over ssh.
 
 OPTIONS
     -r, --remote HOST
-        Set remote hostname. (default: arch-nas)
+        Set remote hostname. (default: localhost)
 
     -H, --help
         Print help.
@@ -22,10 +22,10 @@ HELPDOC
 }; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
 
 ## control ::
-cmd='irssi'
+cmd='{cmd}'
 deps=(ssh tmux)
 host="$HOSTNAME"
-remote='arch-nas'
+remote='localhost'
 script="$(basename "$0")"
 session="${cmd%% *}"
 settings=('status off' 'pane-border-status off')

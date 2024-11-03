@@ -231,7 +231,7 @@ tb() {
 
 tempcp() {
     mkdir -p "$TMPDIR/temp"
-    find "$UDIR/dat" -maxdepth 2 -regex '.*/temp\.[a-z]*' | while IFS= read -r temp; do
+    find "$UDIR/dat" -maxdepth 2 -regex '.*/temp[._].+' | while IFS= read -r temp; do
         cp "$temp" "$TMPDIR/temp"
     done
 }
