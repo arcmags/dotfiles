@@ -89,6 +89,7 @@ channels = (
   { chatnet = "libera"; name = "#archlinux-offtopic"; autojoin = "no"; },
   { chatnet = "libera"; name = "#archlinux-security"; autojoin = "no"; },
   { chatnet = "libera"; name = "#archlinuxarm"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#aurutils"; autojoin = "yes"; },
   { chatnet = "libera"; name = "#bash"; autojoin = "yes"; },
   { chatnet = "libera"; name = "#bitcoin"; autojoin = "no"; },
   { chatnet = "libera"; name = "#c"; autojoin = "yes"; },

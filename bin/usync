@@ -9,8 +9,10 @@ SYNOPSIS
     usync <COMMAND> [OPTION...]
 
 DESCRIPTION
-    Usync is an rsync wrapper controlled via config file. Usync searches the
-    current and parent directories for a .usync file and executes COMMAND.
+    Usync is an rsync wrapper controlled by a simple config file. Usync
+    searches the current and parent directories for a .usync file that defines
+    a remote rsync host. COMMAND is executed in root directory containing
+    .usync file.
 
 COMMANDS
     init
@@ -23,20 +25,35 @@ COMMANDS
         Pull changes from remote source.
 
 OPTIONS
+    -c, --config <FILE>
+        Use config FILE.
+
+    -d, --dir <DIRECTORY>
+        Set remote directory.
+
+    -e, --exclude <PATTERN>
+        Add to exclude patterns.
+
+    -p, --port <PORT>
+        Set port number.
+
+    -r, --url, --remote <URL>
+        Set remote url.
+
+    -u, --user <USER>
+        Set remote user.
+
     -D, --dryrun
         Perform dry run making no changes.
+
+    -V, --verbose
+        Print shell commands.
 
     -H, --help
         Display this help.
 
-    -V, --verbose
-        Show rsync command.
-
-    -c, --config <FILE>
-        Use config FILE.
-
 CONFIG
-    .usync - strict-yaml file containing the following keys:
+    .usync - yaml file containing the following keys:
 
         url
             Remote repo url. May be an ssh alias. (required)
@@ -57,16 +74,16 @@ CONFIG
 REQUIREMENTS
     rsync, ssh
 HELPDOC
-}
+}; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
 
 ## control ::
-args_rsync=('-azz' '--protect-args' '--info=copy1,del1,name1' '--delete')
+args_rsync=(-azz --protect-args --info=copy1,del1,name1 --delete)
 args_sed=(-e 's/deleting /\o033[1;38;5;9m - \o033[0;38;5;15m/'
     -e '/ - /! s/^/\o033[1;38;5;10m + \o033[0;38;5;15m/')
 conf='.usync'
 deps=(rsync ssh)
 dir=
-exclude=()
+excludes=()
 host="$HOSTNAME"
 lines=()
 n_cmds=0
@@ -75,62 +92,72 @@ url=
 url_dir=
 user=
 
-# args:
-a=0 arg="$1" args=("$@")
-flg_debug=false
+## args ::
 flg_dryrun=false
 flg_init=false
 flg_pull=false
 flg_push=false
-flg_status=false
 flg_verbose=false
 opt_config=
+opt_dir=
+opt_port=
+opt_url=
+opt_user=
+opt_excludes=()
+
+## args: parse ::
+a=0 arg="$1" args=("$@") pargs=() opt=
+parse_flg() { arg="${args[((++a))]}" ;}
+parse_opt() {
+    [ ${#args[@]} -le $((a+1)) ] && error "arg required: $arg"
+    opt="${args[((++a))]}"; arg="${args[((++a))]}"
+}
 
 ## functions ::
+error() { msg_error "$@"; exit 5 ;}
 is_cmd() { command -v "$1" &>/dev/null ;}
 msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg2() { printf '   \e[0;38;5;15m%s\e[0m\n' "$*" ;}
-msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
+msg_cmd() {
+    [ $EUID -eq 0 ] && printf '\e[1;38;5;9m #' || printf '\e[1;38;5;12m $'
+    printf ' \e[0;38;5;15m'; for a in "${@:1:1}"; do printf '%q' "$a"; done
+    for a in "${@:2}"; do printf ' %q' "$a"; done; printf '\e[0m\n'
+}
 msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-error() { msg_error "$@"; exit 5 ;}
-
 
 ## main ::
 while [ -n "$arg" ]; do case "$arg" in
-    init) flg_init=true; arg="${args[((++a))]}"; ((n_cmds++)) ;;
-    pull) flg_pull=true; arg="${args[((++a))]}"; ((n_cmds++)) ;;
-    push) flg_push=true; arg="${args[((++a))]}"; ((n_cmds++)) ;;
-    --debug) flg_debug=true; arg="${args[((++a))]}" ;;
-    -D|--dryrun) flg_dryrun=true; arg="${args[((++a))]}" ;;
-    -V|--verbose) flg_verbose=true; arg="${args[((++a))]}" ;;
+    init) parse_flg; flg_init=true; ((n_cmds++)) ;;
+    pull) parse_flg; flg_pull=true; ((n_cmds++)) ;;
+    push) parse_flg; flg_push=true; ((n_cmds++)) ;;
+    -D|--dryrun|--dry-run) parse_flg; flg_dryrun=true ;;
+    -V|--verbose) parse_flg; flg_verbose=true ;;
     -H|--help) print_help; exit 0 ;;
-    -c|--config)
-        [ $# -le $((a+1)) ] && error "arg required: $arg"
-        opt_config="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -c|--config) parse_opt; opt_config="$opt" ;;
+    -d|--dir|--directory) parse_opt; opt_dir="$opt" ;;
+    -e|--exclude) parse_opt; opt_excludes+=("$opt") ;;
+    -p|--port) parse_opt; opt_port="$opt" ;;
+    -r|--url|--remote) parse_opt; opt_url="$opt" ;;
+    -u|--user) parse_opt; opt_user="$opt" ;;
     -[DVH]*)
-        [[ ! "${arg:2:1}" =~ [DVHc] ]] && error "unknown option: ${arg:2:1}"
+        [[ ! "${arg:2:1}" =~ [DVHcdepru] ]] && error "unknown option: ${arg:2:1}"
         args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
-    -[c]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
+    -[cdepru]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
     --) ((a++)); break ;;
     *) break ;;
 esac; done
-args=("${args[@]:a}")
+pargs=("${args[@]:a}")
 
 # dependency error:
-for dep in "${deps[@]}"; do is_cmd "$dep" || error "missing dep: $dep"; done
+for d in "${deps[@]}"; do is_cmd "$d" || error "missing dep: $d"; done
 
 # args error:
-[ ${#args[@]} -gt 0 ] && error "unknown args: ${args[*]}"
+[ ${#pargs[@]} -gt 0 ] && error "unknown args: ${pargs[*]}"
 [ $n_cmds -eq 0 ] && msg_warn 'no command' && exit 9
 [ $n_cmds -gt 1 ] && error 'too many commands'
 
 # set config file from command line option:
 conf="${opt_config:-$conf}"
-
-# resolve hostname:
-[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
-[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 
 if [ "$flg_init" = true ]; then
     # create new .usync file in current directory:
@@ -146,23 +173,33 @@ fi
 [ -n "$opt_conf" ] && [ ! -f "$conf" ] && error "file not found: $conf"
 
 # cd to nearest parent directory that contains config file:
-[ -z "$opt_config" ] && { while [ ! -f "$conf" ] && [ "$PWD" != '/' ]; do cd ..; done ;}
+if [ -z "$opt_config" ]; then
+    while [ ! -f "$conf" ] && [ "$PWD" != '/' ]; do cd ..; done
+fi
 [ ! -f "$conf" ] && error 'not a usync repository'
 
 # parse config:
 mapfile -t lines < <(sed -E -e 's/(^\s+|\s+$)//g' -e '/^(#|$|-$)/d' "$conf")
 in_exclude=false
-for line in "${lines[@]}"; do
+for l in "${lines[@]}"; do
     if [ "$in_exclude" = true ]; then
-        [[ "$line" =~ ^-\ +(.*) ]] && exclude+=("${BASH_REMATCH[1]}") && continue
+        [[ "$l" =~ ^-\ +(.*) ]] && excludes+=("${BASH_REMATCH[1]}") && continue
         in_exclude=false
     fi
-    [[ "$line" =~ ^dir:\ +(.*) ]] && dir="${BASH_REMATCH[1]}" && continue
-    [[ "$line" =~ ^port:\ +(.*) ]] && port="${BASH_REMATCH[1]}" && continue
-    [[ "$line" =~ ^url:\ +(.*) ]] && url="${BASH_REMATCH[1]}" && continue
-    [[ "$line" =~ ^user:\ +(.*) ]] && user="${BASH_REMATCH[1]}" && continue
-    [ "$line" = 'exclude:' ] && in_exclude=true && continue
+    [[ "$l" =~ ^dir:\ +(.*) ]] && dir="${BASH_REMATCH[1]}" && continue
+    [[ "$l" =~ ^port:\ +(.*) ]] && port="${BASH_REMATCH[1]}" && continue
+    [[ "$l" =~ ^url:\ +(.*) ]] && url="${BASH_REMATCH[1]}" && continue
+    [[ "$l" =~ ^user:\ +(.*) ]] && user="${BASH_REMATCH[1]}" && continue
+    [ "$l" = 'exclude:' ] && in_exclude=true && continue
 done
+
+# set config from command line options:
+dir="${opt_dir:-$dir}"
+port="${opt_port:-$port}"
+url="${opt_url:-$url}"
+user="${opt_user:-$user}"
+
+# replace leading ~ with $HOME and remove trailing / from dir:
 [ "${dir:0:1}" = '~' ] && dir="$HOME${dir:1}"
 [ "${dir: -1}" = '/' ] && dir="${dir:0:-1}"
 
@@ -170,62 +207,76 @@ done
 [ -z "$url" ] && error 'no url'
 [ -z "$dir" ] && error 'no directory'
 if [ -n "$port" ]; then
-    [[ $port =~ ^[1-9][0-9]*$ ]] && [ $port -lt 65536 ] || error "invalid port: $port"
+    if [[ ! $port =~ ^[1-9][0-9]*$ ]] || [ $port -gt 65535 ]; then
+        error "invalid port: $port"
+    fi
 fi
 
-# resolve url:
+# resolve host and url:
+[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 [[ "$url" =~ ^(|$host|127.0.0.1)$ ]] && url='localhost'
-
-# print debugging info:
-if [ "$flg_debug" = true ]; then
-    printf "repo: $PWD\ndir: $dir\nurl: $url\n"
-    [ -n "$user" ] && printf "user: $user\n"
-    [ -n "$port" ] && printf "port: $port\n"
-    [ -n "$exclude" ] && { printf 'exclude:';printf ' %s' "${exclude[@]}";printf '\n';}
-fi
-
-# in remote repo:
-if [ "$url" = 'localhost' ] && [ "$(realpath "$dir")" = "$(realpath "$PWD")" ]; then
-    msg_warn 'remote repo: no action taken'
-    exit 0
-fi
 
 # set url_dir and add user/port to rsync ssh command:
 url_dir="$dir"
-if [ "$url" != 'localhost' ]; then
+if [ "$url" = 'localhost' ]; then
+    # remote is a file:
+    [ -f "$dir" ] && error "not a directory: $dir"
+    # inside remote:
+    if [ -d "$dir" ] && [ "$(realpath "$dir")" = "$(realpath "$PWD")" ]; then
+        msg_warn 'remote repo: no action taken'
+        exit 0
+    fi
+else
     url_dir="$url:$dir"
     if [ -n "$port" ] || [ -n "$user" ]; then
-        args_rsync+=('-e' "ssh${port:+ -p $port}${user:+ -u $user}")
+        args_rsync+=('-e' "ssh${port:+ -p $port}${user:+ -l $user}")
     fi
 fi
 
 # add excludes to rsync args:
-for exclude in "${exclude[@]}"; do args_rsync+=('--exclude' "$exclude"); done
+for e in "${excludes[@]}"; do args_rsync+=('--exclude' "$e"); done
+for e in "${opt_excludes[@]}"; do args_rsync+=('--exclude' "$e"); done
 
-# add --dry-run to rsync args:
-[ "$flg_dryrun" = true ] && args_rsync+=('--dry-run')
-
-# set rsync push args:
-if [ "$flg_push" = true ]; then
-    [ "$url" != 'localhost' ] && args_rsync+=('--rsync-path' "mkdir -p '$dir' && rsync")
-    args_rsync+=("$PWD/" "$url_dir")
-    msg 'pushing %q to %q ...' "$PWD/" "$url_dir/"
-
-# set rsync pull args:
-elif [ "$flg_pull" = true ]; then
-    args_rsync+=("$url_dir/" "$PWD")
-    msg 'pulling %q from %q ...' "$PWD/" "$url_dir/"
-fi
-
-# set dryrun output color to yellow:
+# add --dry-run to rsync args and set output color to yellow:
 if [ "$flg_dryrun" = true ]; then
+    args_rsync+=('--dry-run')
     args_sed=(-e 's/deleting /\o033[1;38;5;11m - \o033[0;38;5;15m/'
         -e '/ - /! s/^/\o033[1;38;5;11m + \o033[0;38;5;15m/')
 fi
 
+# set rsync push args:
+if [ "$flg_push" = true ]; then
+    msg 'pushing %q to %q ...' "$PWD/" "$url_dir/"
+    if [ "$url" = 'localhost' ]; then
+        # create local directory:
+        if [ ! -d "$dir" ] && [ "$flg_dryrun" != true ]; then
+            [ "$flg_verbose" = true ] && msg_cmd mkdir -p "$dir"
+            mkdir -p "$dir"
+        fi
+    elif [ "$flg_dryrun" != true ]; then
+        # create remote directory:
+        args_rsync+=('--rsync-path' "mkdir -p '$dir' && rsync")
+    fi
+    args_rsync+=("$PWD/" "$url_dir")
+
+# set rsync pull args:
+elif [ "$flg_pull" = true ]; then
+    msg 'pulling %q from %q ...' "$PWD/" "$url_dir/"
+    args_rsync+=("$url_dir/" "$PWD")
+fi
+
+# create local directory:
+if [ "$flg_push" = true ] && [ "$url" = 'localhost' ] && [ ! -d "$dir" ]; then
+    if [ "$flg_dryrun" != true ]; then
+        [ "$flg_verbose" = true ] && msg_cmd mkdir -p "$dir"
+        mkdir -p "$dir"
+    fi
+fi
+
 # rsync:
 [ "$flg_verbose" = true ] && msg_cmd rsync "${args_rsync[@]}"
-rsync "${args_rsync[@]}" | sed -E -e '/\/$/d' -e '/^created /d' "${args_sed[@]}"
+rsync "${args_rsync[@]}" | sed -Ee '/\/$/d' -e '/^created /d' "${args_sed[@]}"
 
 # dryrun warning:
 [ "$flg_dryrun" = true ] && msg_warn 'dryrun'

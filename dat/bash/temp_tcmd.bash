@@ -38,6 +38,7 @@ opt_remote=
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
 is_cmd() { command -v "$1" &>/dev/null ;}
+msg_debug() { printf "[%d] %s\n" $BASH_LINENO "$*" ;}
 msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 
 ## main ::

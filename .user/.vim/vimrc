@@ -426,7 +426,7 @@ endif
 # vim:
 noremap <leader><c-l> <cmd>source ~/.vim/vimrc<bar>runtime! plugin/*.vim<cr><cmd>echo 'vim reloaded'<cr>
 
-# set options:
+# set/toggle options:
 nnoremap <expr> <leader><space> '<cmd>' .. (v:hlsearch ? 'noh' : 'set hls') .. '<cr>'
 nnoremap <expr> <leader>t<c-n> '<cmd>setl ' .. ( &nu <bar><bar> &rnu ? 'nonu nornu' : 'nu rnu') .. '<cr>'
 nnoremap <expr> <leader>tS '<cmd>setl scl=' .. (&scl == 'no' ? 'number' : 'no') .. '<cr><cmd>setl scl?<cr>'
@@ -446,20 +446,23 @@ nnoremap <leader>tn <cmd>setl number!<bar>setl nu?<cr>
 nnoremap <leader>tp <cmd>setl paste!<bar>setl paste?<cr>
 nnoremap <leader>ts <cmd>setl spell!<bar>setl spell?<cr>
 nnoremap <leader>tw <cmd>setl wrap!<bar>setl wrap?<cr>
+# TODO: toggle statusbar?
+# TODO: different mapping for toggle buflisted?
 
+# TODO: T for global toggles, something else/nothing for query?
 # query:
-nnoremap <leader>TM <cmd>setl modifiable?<cr>
-nnoremap <leader>TR <cmd>setl readonly?<cr>
-nnoremap <leader>TS <cmd><cmd>setl signcolumn?<cr>
-nnoremap <leader>TW <cmd>setl textwidth?<cr>
-nnoremap <leader>Tf <cmd>setl filetype?<cr>
-nnoremap <leader>Th <scriptcmd>HiGroupQuery()<cr>
-nnoremap <leader>Tl <cmd>setl buflisted?<cr>
-nnoremap <leader>Tp <cmd>setl paste?<cr>
-nnoremap <leader>Ts <cmd>setl spell?<cr>
-nnoremap <leader>Tt <cmd>set showtabline?<cr>
-nnoremap <leader>Tw <cmd>setl wrap?<cr>
-nnoremap <leader>Tz <cmd>setl scrolloff?<cr>
+#nnoremap <leader>TM <cmd>setl modifiable?<cr>
+#nnoremap <leader>TR <cmd>setl readonly?<cr>
+#nnoremap <leader>TS <cmd><cmd>setl signcolumn?<cr>
+#nnoremap <leader>TW <cmd>setl textwidth?<cr>
+#nnoremap <leader>Tf <cmd>setl filetype?<cr>
+#nnoremap <leader>Th <scriptcmd>HiGroupQuery()<cr>
+#nnoremap <leader>Tl <cmd>setl buflisted?<cr>
+#nnoremap <leader>Tp <cmd>setl paste?<cr>
+#nnoremap <leader>Ts <cmd>setl spell?<cr>
+#nnoremap <leader>Tt <cmd>set showtabline?<cr>
+#nnoremap <leader>Tw <cmd>setl wrap?<cr>
+#nnoremap <leader>Tz <cmd>setl scrolloff?<cr>
 
 ## commands ::
 command! -bang BufLast BufLast(<q-bang>)

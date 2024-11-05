@@ -31,10 +31,17 @@ pid_script="$$"
 remote='localhost'
 script="$(basename "$0")"
 
-# args:
-a=0 arg="$1" args=("$@")
+## args ::
 flg_verbose=false
 opt_remote=
+
+## args: parse ::
+a=0 arg="$1" args=("$@") pargs=() opt= flg=
+parse_flg() { arg="${args[((++a))]}" ;}
+parse_opt() {
+    [ ${#args[@]} -le $((a+1)) ] && error "arg required: $arg"
+    opt="${args[((++a))]}"; arg="${args[((++a))]}"
+}
 
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
@@ -43,8 +50,12 @@ is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
 msg() { printf '\e[1;38;5;12m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
 msg2() { printf '\e[1;38;5;12m > \e[0;38;5;15m%s\e[0m\n' "$*" ;}
-msg_cmd() { [ $EUID -eq 0 ] && printf '\e[1;38;5;9m #' || printf '\e[1;38;5;12m $'
-    printf '\e[0;38;5;15m'; printf ' %q' "$@"; printf '\e[0m\n' ;}
+msg_cmd() {
+    [ $EUID -eq 0 ] && printf '\e[1;38;5;9m #' || printf '\e[1;38;5;12m $'
+    printf ' \e[0;38;5;15m'; for a in "${@:1:1}"; do printf '%q' "$a"; done
+    for a in "${@:2}"; do printf ' %q' "$a"; done; printf '\e[0m\n'
+}
+msg_debug() { printf "[%d] %s\n" $BASH_LINENO "$*" ;}
 msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 msg_good() { printf '\e[1;38;5;10m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
 msg2_good() { printf '\e[1;38;5;10m > \e[0;38;5;15m%s\e[0m\n' "$*" ;}
@@ -54,11 +65,9 @@ msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 ## main ::
 trap exit INT
 while [ -n "$arg" ]; do case "$arg" in
-    -V|--verbose) flg_verbose=true; arg="${args[((++a))]}" ;;
+    -V|--verbose) parse_flg; flg_verbose=true ;;
     -H|--help) print_help; exit 0 ;;
-    -r|--remote)
-        [ $# -le $((a+1)) ] && error "arg required: $arg"
-        opt_remote="${args[((++a))]}"; arg="${args[((++a))]}" ;;
+    -r|--remote) parse_opt; opt_remote="$opt" ;;
     -[HV]*)
         [[ ! "${arg:2:1}" =~ [HVr] ]] && error "unknown option: ${arg:2:1}"
         args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
@@ -66,7 +75,7 @@ while [ -n "$arg" ]; do case "$arg" in
     --) ((a++)); break ;;
     *) break ;;
 esac; done
-args=("${args[@]:a}")
+pargs=("${args[@]:a}")
 
 # dependency error:
 for dep in "${deps[@]}"; do is_cmd "$dep" || error "not found: $dep"; done
@@ -79,11 +88,10 @@ remote="${opt_remote:-$remote}"
 
 #trap <cleanup_function> EXIT
 
-read -erp $'\e[1;38;5;10m'': '$'\e[0;38;5;15m''print args? [Y/n] '$'\e[0m' ans
+read -erp $'\e[1;38;5;10m'': '$'\e[0;38;5;15m''print pargs? [Y/n] '$'\e[0m' ans
 if [ -z "$ans" ] || [ "${ans,,}" = 'y' ] || [ "${ans,,}" = 'yes' ]; then
-    [ "$flg_verbose" = true ] && msg_cmd printf '%s\n' "${args[@]}"
-    printf '%s\n' "${args[@]}"
-    exit
+    for a in "${pargs[@]}"; do printf '%q ' "$a"; done
+    [ ${#pargs[@]} -gt 0 ] && printf '\n'
 fi
 
 # vim:ft=bash

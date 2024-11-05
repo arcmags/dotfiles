@@ -23,33 +23,35 @@ COMMANDS
         Copy files defined in .uln file.
 
 OPTIONS
+    -c, --config <FILE>
+        Read config from FILE instead of .uln default.
+
     -D, --dry-run
         Perform trial run making no changes.
 
     -H, --help
         Display this help.
 
-    -c, --config <FILE>
-        Read config from FILE instead of .uln default.
-
 FILES
-    .uln - strict-yaml file containing following keys:
+    .uln - yaml file containing the following keys:
 
         dest
-            Link/copy destination directory. Required.
+            Link/copy destination directory. (required)
 
         srcs
-            Source files.
+            List of source files. (required)
 
 HOSTNAME
     The file linked/copied may be dependent upon HOSTNAME by appending
-    _HOSTNAME to filename. For example, if FILE.EXT is in srcs, a link to
-    FILE_HOSTNAME.EXT will be created, if it exists, instead of FILE.EXT.
+    _HOSTNAME to filename.
+
+    For example, if FILE.EXT is in srcs and a FILE_HOSTNAME.EXT exists, uln
+    will link/copy that file instead of FILE.EXT.
 HELPDOC
-}
+}; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
 
 # TODO: add option to select between absolute/relative links
-# TODO: list/query action
+# TODO: --verbose option?
 
 ## control ::
 dest=
@@ -58,8 +60,7 @@ conf='.uln'
 host="$HOSTNAME"
 line=
 lines=()
-n_acts=0
-opt_config=
+n_cmds=0
 sdir=
 sname=
 spath=
@@ -73,22 +74,26 @@ flg_copy=false
 flg_dryrun=false
 flg_init=false
 flg_link=false
+opt_config=
 
 ## functions ::
+error() { msg_error "$@"; exit 5 ;}
 is_cmd() { command -v "$1" &>/dev/null ;}
 msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg2() { printf '\e[1;38;5;12m > \e[0;38;5;15m%s\e[0m\n' "$*" ;}
-msg_cmd() { printf '\e[1;38;5;12m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
-[ $EUID -eq 0 ] && msg_cmd() { printf '\e[1;38;5;9m $\e[0;38;5;15m'; printf ' %q' "$@"; printf '\n' ;}
+msg2() { printf '   \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_cmd() {
+    [ $EUID -eq 0 ] && printf '\e[1;38;5;9m #' || printf '\e[1;38;5;12m $'
+    printf ' \e[0;38;5;15m'; for a in "${@:1:1}"; do printf '%q' "$a"; done
+    for a in "${@:2}"; do printf ' %q' "$a"; done; printf '\e[0m\n'
+}
 msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
 msg_warn() { printf "\e[1;38;5;11mW: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-error() { msg_error "$@"; exit 5 ;}
 
 ## main ::
 while [ -n "$arg" ]; do case "$arg" in
-    init) flg_init=true; arg="${args[((++a))]}"; ((n_acts++)) ;;
-    link) flg_link=true; arg="${args[((++a))]}"; ((n_acts++)) ;;
-    copy) flg_copy=true; arg="${args[((++a))]}"; ((n_acts++)) ;;
+    init) flg_init=true; arg="${args[((++a))]}"; ((n_cmds++)) ;;
+    link) flg_link=true; arg="${args[((++a))]}"; ((n_cmds++)) ;;
+    copy) flg_copy=true; arg="${args[((++a))]}"; ((n_cmds++)) ;;
     -D|--dryrun) flg_dryrun=true; arg="${args[((++a))]}" ;;
     -H|--help) print_help; exit 0 ;;
     -c|--config)
@@ -105,15 +110,11 @@ args=("${args[@]:a}")
 
 # args error:
 [ ${#args[@]} -gt 0 ] && error "unknown args: ${args[*]}"
-[ $n_acts -eq 0 ] && error 'no action'
-[ $n_acts -gt 1 ] && error 'too many actions'
+[ $n_cmds -eq 0 ] && msg_warn 'no command' && exit 9
+[ $n_cmds -gt 1 ] && error 'too many commands'
 
 # set config file from command line option:
 conf="${opt_config:-$conf}"
-
-# resolve host:
-[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
-[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 
 if [ "$flg_init" = true ]; then
     # create new .uln file in current directory:
@@ -144,9 +145,12 @@ done
 # no destination directory:
 [ -z "$dest" ] && error 'no destination directory'
 
-for src in "${srcs[@]}"; do
-    # TODO: need to check if any src contains any src:
+# resolve host:
+[ -f '/etc/hostname' ] && host="$(cat /etc/hostname)"
+[ -f '/etc/hostname-' ] && host="$(cat /etc/hostname-)"
 
+for src in "${srcs[@]}"; do
+    # TODO: check if any src contains any src:
     # remove trailing slash from src file/dir:
     [ "${src: -1}" = '/' ] && src="${src:0:-1}"
 
