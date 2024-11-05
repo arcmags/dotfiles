@@ -75,7 +75,7 @@ parse_opt() {
 parse_flgopt() {
     case "$arg" in
         -[H$arg_flgs]*)
-            [[ "H$arg_flgs$arg_opts" =~ "${arg:2:1}" ]] ||error_opt "-${arg:2:1}"
+            [[ "H$arg_flgs$arg_opts" =~ ${arg:2:1} ]] ||error_opt "-${arg:2:1}"
             args[a--]="-${arg:2}"
             arg="${arg:0:2}" ;;
         -[$arg_opts]*)
