@@ -15,7 +15,7 @@ hnmain.style.background = colorBg1;
 
 var tds = document.getElementsByTagName('td');
 for (let i = 0; i < tds.length; i++) {
-    if (tds[i].bgColor == '#ff6600') {
+    if (tds[i].bgColor.toLowerCase() == '#ff6600') {
         tds[i].bgColor = colorBar;
     };
 };
@@ -24,7 +24,6 @@ var imgs = document.getElementsByTagName('img');
 for (let i = 0; i < imgs.length; i++) {
     imgs[i].src = 'data:,';
 };
-
 
 GM_addStyle(`
     :root {
@@ -39,16 +38,50 @@ GM_addStyle(`
         --color-heading: #66b0ff;
         --color-link: #32a6a6;
     }
+
+    body, td, input, textarea, .default, .title, .pagetop, .comment {
+        font-size: 14px !important;
+    }
+    .admin, .admin td {
+        font-size: 12px !important;
+    }
+    .subtext, .subtext td {
+        font-size: 10px !important;
+    }
+
     body, input, textarea {
         background: var(--color-bg) !important;
     }
-    a {
+    body {
+        color: var(--color-fg) !important;
+    }
+    input, textarea {
+        color: var(--color-bar) !important;
+        border-color: var(--color-bar) !important;
+        border-style: solid !important;
+    }
+
+    input[type='submit'] {
+        background: var(--color-bar) !important;
+        border-color: var(--color-bg) !important;
+        color: var(--color-heading) !important;
+    }
+    input[type='submit']:hover {
+        background: var(--color-bg1) !important;
+        border-color: var(--color-bar) !important;
+        border-style: solid !important;
+        color: var(--color-active) !important;
+    }
+
+    a, .pagetop a:visited, .yclinks a:visited,
+    a[href='https://www.ycombinator.com/apply/']:visited {
         color: var(--color-heading) !important;
     }
     a:visited {
         color: var(--color-link) !important;
     }
-    a:hover {
+    a:hover, .pagetop a:hover, .yclinks a:hover,
+    a[href='https://www.ycombinator.com/apply/']:hover {
         color: var(--color-active) !important;
     }
 `);

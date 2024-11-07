@@ -6,7 +6,7 @@ NAME
     usync - push/pull changes from remote source
 
 SYNOPSIS
-    usync <COMMAND> [OPTION...]
+    usync COMMAND [OPTION...]
 
 DESCRIPTION
     Usync is an rsync wrapper controlled by a simple config file. Usync

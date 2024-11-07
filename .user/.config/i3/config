@@ -33,7 +33,7 @@ bar {
         focused_workspace  $bg0     $ui0    $fg1
         active_workspace   $bg0     $bg1    $ui0
         inactive_workspace $bg0     $bg1    $fg0
-        urgent_workspace   $fg1     $bg1    $ui1
+        urgent_workspace   $ui0     $bg1    $ui0
     }
     font pango:$font $size
     i3bar_command i3bar
@@ -51,7 +51,7 @@ for_window [all] title_format " <b>%title</b>"
 client.focused          $bg1    $bg1    $ui1    $ui0    $ui0
 client.focused_inactive $bg1    $bg1    $ui1    $bg1    $bg1
 client.unfocused        $bg1    $bg1    $fg0    $bg1    $bg1
-client.urgent           $bg1    $ui0    $fg1    $ui0    $ui0
+client.urgent           $bg1    $ui0    $ui1    $ui0    $ui0
 
 # compositor:
 $exec picom -b
