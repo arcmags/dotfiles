@@ -31,16 +31,17 @@ HELPDOC
 
 ## config ::
 remote='localhost'
-DEBUG="${DEBUG:-0}"
-VERBOSE="${VERBOSE:-0}"
-NOCOLOR="${NOCOLOR:-0}"
-QUIET="${QUIET:-0}"
+debug=0
+verbose=0
+nocolor=0
+quiet=0
 
 # args:
-opts=(-r: --remote: -D --debug -Q --quiet -V --verbose -H --help --nocolor DEBUG)
+opts=(-r: --remote: -D --debug -Q --quiet -V --verbose -H --help --nocolor)
+opts_long=('remote:' 'debug' 'verbose' 'help' 'nocolor' 'quiet')
+opts_short='r:VHQD'
 
 # internal:
-args=("$@")
 deps=()
 lhost="$HOSTNAME"
 path_script="$(realpath "$BASH_SOURCE")"
@@ -67,13 +68,12 @@ fi
 clear_colors() { unset blue bold green off red white yellow ;}
 
 ## messages ::
-# TODO: make these take format strings?
-msg() { ((QUIET)) && return; printf "$blue$bold=> $off$white%s$off\n" "$*" ;}
-msg2() { ((QUIET)) && return; printf "$blue$bold > $off$white%s$off\n" "$*" ;}
-msg_debug() { ((DEBUG)) && printf "$yellow[%d] $off%s\n" $BASH_LINENO "$*" ;}
+msg() { ((quiet)) && return; printf "$blue$bold=> $off$white%s$off\n" "$*" ;}
+msg2() { ((quiet)) && return; printf "$blue$bold > $off$white%s$off\n" "$*" ;}
+msg_debug() { printf "$yellow[%d] $off%s\n" $BASH_LINENO "$*" ;}
 msg_error() { printf "$red${bold}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_warn() { printf "$yellow${bold}W: $off$white%s$off\n" "$*" >&2 ;}
-msg_good() { ((QUIET)) &&return;printf "$green$bold=> $off$white%s$off\n" "$*";}
+msg_good() { ((quiet)) &&return;printf "$green$bold=> $off$white%s$off\n" "$*";}
 msg_cmd() { [ $EUID -eq 0 ] && printf "$red$bold #" || printf "$blue$bold $"
     printf "$off$white"; printf ' %q' "$@"; printf "$off\n" ;}
 
@@ -91,24 +91,34 @@ cmd_exec() { ((verbose)) && msg_cmd "$@"; "$@" ;}
 input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
 
 ## arg parser ::
-# TODO: allow --option=value in addition to --option value?
 # usage:
-#   args=("$@"); opts=(-f --for -b: --bar: help)
-#   parse_args
+#   opts_short='fb:H'
+#   opts_long=('foo' 'bar:' 'help')
+#   parse_args "$opt_short" "${opts_long[@]}" -- "$@"
 #   set -- "${args_parsed[@]}"
 parse_args() {
     args_parsed=()
-    local a=0 opt= sflgs= sopts= sflgopts= arg="${args[0]}"
-    local -a lflgs=() lopts=()
-    for opt in "${opts[@]}"; do case "$opt" in
-        -?) sflgs="$sflgs${opt:1}" ;;
-        -?:) sopts="$sopts${opt:1:1}" ;;
-        *:) lopts+=("${opt:0:((${#opt}-1))}") ;;
-        *) lflgs+=("$opt") ;;
-    esac; done
+    local a=0 i=0 arg= sflgs= sopts= sflgopts="$1"
+    local -a args=() lflgs=() lopts=()
+
+    shift
+    while [ -n "$1" ]; do case "$1" in
+        --) shift; break ;;
+        *:) lopts+=("${1:0:((${#1}-1))}") ;;
+        *) lflgs+=("$1") ;;
+    esac; shift; done
+    args=("$@"); arg="$1"
+    while [ $i -lt ${#sflgopts} ]; do
+        if [ "${sflgopts:((i+1)):1}" = ':' ]; then
+            sopts="${sflgopts:$i:1}$sopts"; ((i++))
+        else
+            sflgs="${sflgopts:$i:1}$sflgs"
+        fi
+        ((i++))
+    done
+
     sflgopts="$sflgs$sopts"
     while [ -n "$arg" ]; do
-        msg "$arg"
         case "$arg" in
             -[$sflgs]*)
                 if [ ${#arg} -eq 2 ]; then
@@ -126,16 +136,17 @@ parse_args() {
                 fi
                 arg="${args[((++a))]}" ;;
             --) ((a++)); break ;;
-            *)
-                if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
+            --*)
+                if [[ " ${lflgs[*]} " =~ " ${arg:2} " ]]; then
                     args_parsed+=("$arg")
-                elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
+                elif [[ " ${lopts[*]} " =~ " ${arg:2} " ]]; then
                     [ ${#args[@]} -le $((a+1)) ] && error_optarg "$arg"
                     args_parsed+=("$arg" "${args[((++a))]}")
                 else
                     break
                 fi
                 arg="${args[((++a))]}" ;;
+            *) break ;;
         esac
     done
     args_parsed+=('--' "${args[@]:a}")
@@ -148,22 +159,20 @@ trap exit INT
 [ ! -t 1 ] || [ ! -t 2 ] || ((nocolor)) && clear_colors
 
 # parse args:
-parse_args
+msg_debug "$*"
+parse_args "$opts_short" "${opts_long[@]}" -- "$@"
 set -- "${args_parsed[@]}"
 
 while [ -n "$1" ]; do case "$1" in
     -r|--remote) shift; remote="$1" ;;
-    -D|--debug|DEBUG) DEBUG=1 ;;
-    -Q|--quiet) QUIET=1; VERBOSE=0 ;;
-    -V|--verbose) QUIET=0; VERBOSE=1 ;;
+    -D|--debug) debug=1 ;;
+    -Q|--quiet) quiet=1; verbose=0 ;;
+    -V|--verbose) quiet=0; verbose=1 ;;
     --nocolor) clear_colors ;;
     -H|--help) print_help; exit 0 ;;
     --) shift; break ;;
 esac; shift; done
-msg_debug "${args_parsed[*]}"
-
-msg "${args_parsed[*]}"
-msg "${args_parsed[@]}"
+((debug)) && msg_debug "${args_parsed[*]}"
 
 # dependency error:
 for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
