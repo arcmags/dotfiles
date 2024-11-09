@@ -81,6 +81,7 @@ msg_cmd() { [ $EUID -eq 0 ] && printf "$red$bold #" || printf "$blue$bold $"
 error() { msg_error "$@"; exit 5 ;}
 error_opt() { error "unrecognized option: $*" ;}
 error_optarg() { error "option requires an argument: $*" ;}
+error_flg() { error "option does not take argument: $*" ;}
 
 ## tests ::
 is_cmd() { command -v "$1" &>/dev/null ;}
@@ -91,7 +92,6 @@ cmd_exec() { ((verbose)) && msg_cmd "$@"; "$@" ;}
 input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
 
 ## arg parser ::
-# TODO: allow --option=value in addition to --option value?
 # usage:
 #   args=("$@"); opts=(-f --for -b: --bar: help)
 #   parse_args
@@ -108,8 +108,8 @@ parse_args() {
     esac; done
     sflgopts="$sflgs$sopts"
     while [ -n "$arg" ]; do
-        msg "$arg"
         case "$arg" in
+            --) ((a++)); break ;;
             -[$sflgs]*)
                 if [ ${#arg} -eq 2 ]; then
                     args_parsed+=("$arg"); arg="${args[((++a))]}"
@@ -125,7 +125,14 @@ parse_args() {
                     args_parsed+=("${arg:0:2}" "${arg:2}")
                 fi
                 arg="${args[((++a))]}" ;;
-            --) ((a++)); break ;;
+            *=*)
+                [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] &&error_flg "${arg%%=*}"
+                if [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]]; then
+                    args_parsed+=("${arg%%=*}" "${arg#*=}")
+                else
+                    break
+                fi
+                arg="${args[((++a))]}" ;;
             *)
                 if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
                     args_parsed+=("$arg")
@@ -161,9 +168,6 @@ while [ -n "$1" ]; do case "$1" in
     --) shift; break ;;
 esac; shift; done
 msg_debug "${args_parsed[*]}"
-
-msg "${args_parsed[*]}"
-msg "${args_parsed[@]}"
 
 # dependency error:
 for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
