@@ -3,7 +3,7 @@
 
 print_help() { cat <<'HELPDOC'
 NAME
-    temp.bash - print args
+    temp.bash - bash script template
 
 SYNOPSIS
     temp.bash [option...] [arg...]
@@ -29,26 +29,28 @@ OPTIONS
 HELPDOC
 }; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
 
-## config ::
+## settings ::
+readonly deps=()
+readonly opts=(-r: --remote: -D --debug -Q --quiet -V --verbose -H --help --nocolor DEBUG)
+
+# defaults:
+DEBUG="${DEBUG:-0}"
+NOCOLOR="${NOCOLOR:-0}"
+QUIET="${QUIET:-0}"
+VERBOSE="${VERBOSE:-0}"
 remote='localhost'
-debug=0
-verbose=0
-nocolor=0
-quiet=0
 
-# args:
-opts=(-r: --remote: -D --debug -Q --quiet -V --verbose -H --help --nocolor)
-opts_long=('remote:' 'debug' 'verbose' 'help' 'nocolor' 'quiet')
-opts_short='r:VHQD'
+## internal functions/variables ::
+readonly args=("$@")
+readonly path_script="$(realpath "$BASH_SOURCE")"
+readonly pid_script="$$"
+readonly script="$(basename "$0")"
+args_operands=()
+args_options=()
+args_parsed=()
+host="$HOSTNAME"
 
-# internal:
-deps=()
-lhost="$HOSTNAME"
-path_script="$(realpath "$BASH_SOURCE")"
-pid_script="$$"
-script="$(basename "$0")"
-
-## colors ::
+# colors:
 blue=$'\e[38;5;12m'
 bold=$'\e[1m'
 green=$'\e[38;5;10m'
@@ -67,65 +69,58 @@ if tput setaf 0 &>/dev/null; then
 fi
 clear_colors() { unset blue bold green off red white yellow ;}
 
-## messages ::
-msg() { ((quiet)) && return; printf "$blue$bold=> $off$white%s$off\n" "$*" ;}
-msg2() { ((quiet)) && return; printf "$blue$bold > $off$white%s$off\n" "$*" ;}
-msg_debug() { printf "$yellow[%d] $off%s\n" $BASH_LINENO "$*" ;}
+# messages:
+# TODO: make these take format strings?
+msg() { ((QUIET)) && return; printf "$blue$bold=> $off$white%s$off\n" "$*" ;}
+msg2() { ((QUIET)) && return; printf "$blue$bold > $off$white%s$off\n" "$*" ;}
+msg_debug() { ((DEBUG)) && printf "$yellow[%d] $off%s\n" $BASH_LINENO "$*" ;}
 msg_error() { printf "$red${bold}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_warn() { printf "$yellow${bold}W: $off$white%s$off\n" "$*" >&2 ;}
-msg_good() { ((quiet)) &&return;printf "$green$bold=> $off$white%s$off\n" "$*";}
+msg_good() { ((QUIET)) && return;printf "$green$bold=> $off$white%s$off\n" "$*" ;}
 msg_cmd() { [ $EUID -eq 0 ] && printf "$red$bold #" || printf "$blue$bold $"
     printf "$off$white"; printf ' %q' "$@"; printf "$off\n" ;}
 
-## errors ::
-error() { msg_error "$@"; exit 5 ;}
+# errors:
+error() { msg_error "$@"; exit 3 ;}
 error_opt() { error "unrecognized option: $*" ;}
 error_optarg() { error "option requires an argument: $*" ;}
+error_flg() { error "option does not take argument: $*" ;}
 
-## tests ::
+# tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
 
-## commands ::
+# commands:
 cmd_exec() { ((verbose)) && msg_cmd "$@"; "$@" ;}
 input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
 
-## arg parser ::
+# arg parser:
+# Parse args into args_parsed, check opts, separate combined options.
 # usage:
-#   opts_short='fb:H'
-#   opts_long=('foo' 'bar:' 'help')
-#   parse_args "$opt_short" "${opts_long[@]}" -- "$@"
+#   args=("$@")
+#   opts=(-f --for -b: --bar: help)
+#   parse_args
 #   set -- "${args_parsed[@]}"
 parse_args() {
-    args_parsed=()
-    local a=0 i=0 arg= sflgs= sopts= sflgopts="$1"
-    local -a args=() lflgs=() lopts=()
-
-    shift
-    while [ -n "$1" ]; do case "$1" in
-        --) shift; break ;;
-        *:) lopts+=("${1:0:((${#1}-1))}") ;;
-        *) lflgs+=("$1") ;;
-    esac; shift; done
-    args=("$@"); arg="$1"
-    while [ $i -lt ${#sflgopts} ]; do
-        if [ "${sflgopts:((i+1)):1}" = ':' ]; then
-            sopts="${sflgopts:$i:1}$sopts"; ((i++))
-        else
-            sflgs="${sflgopts:$i:1}$sflgs"
-        fi
-        ((i++))
-    done
-
-    sflgopts="$sflgs$sopts"
+    local a=0 opt= sflgs= sopts= arg="${args[0]}"
+    local -a lflgs=() lopts=()
+    for opt in "${opts[@]}"; do case "$opt" in
+        -?) sflgs="$sflgs${opt:1}" ;;
+        -?:) sopts="$sopts${opt:1:1}" ;;
+        *:) lopts+=("${opt:0:((${#opt}-1))}") ;;
+        *) lflgs+=("$opt") ;;
+    esac; done
     while [ -n "$arg" ]; do
         case "$arg" in
+            --) ((a++)); break ;;
             -[$sflgs]*)
                 if [ ${#arg} -eq 2 ]; then
-                    args_parsed+=("$arg"); arg="${args[((++a))]}"
+                    args_parsed+=("$arg")
+                    arg="${args[((++a))]}"
                 else
-                    [[ "$sflgopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
-                    args_parsed+=("${arg:0:2}"); arg="-${arg:2}"
+                    [[ "$sflgs$sopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
+                    args_parsed+=("${arg:0:2}")
+                    arg="-${arg:2}"
                 fi ;;
             -[$sopts]*)
                 if [ ${#arg} -eq 2 ]; then
@@ -135,20 +130,28 @@ parse_args() {
                     args_parsed+=("${arg:0:2}" "${arg:2}")
                 fi
                 arg="${args[((++a))]}" ;;
-            --) ((a++)); break ;;
-            --*)
-                if [[ " ${lflgs[*]} " =~ " ${arg:2} " ]]; then
+            *=*)
+                [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && error_flg "${arg%%=*}"
+                if [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]]; then
+                    args_parsed+=("${arg%%=*}" "${arg#*=}")
+                else
+                    break
+                fi
+                arg="${args[((++a))]}" ;;
+            *)
+                if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
                     args_parsed+=("$arg")
-                elif [[ " ${lopts[*]} " =~ " ${arg:2} " ]]; then
+                elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
                     [ ${#args[@]} -le $((a+1)) ] && error_optarg "$arg"
                     args_parsed+=("$arg" "${args[((++a))]}")
                 else
                     break
                 fi
                 arg="${args[((++a))]}" ;;
-            *) break ;;
         esac
     done
+    args_options=("${args_parsed[@]}")
+    args_operands=("${args[@]:a}")
     args_parsed+=('--' "${args[@]:a}")
 }
 
@@ -156,33 +159,25 @@ parse_args() {
 trap exit INT
 
 # clear colors if not connected to terminal:
-[ ! -t 1 ] || [ ! -t 2 ] || ((nocolor)) && clear_colors
+[ ! -t 1 ] || [ ! -t 2 ] || ((NOCOLOR)) && clear_colors
 
 # parse args:
-msg_debug "$*"
-parse_args "$opts_short" "${opts_long[@]}" -- "$@"
+parse_args
 set -- "${args_parsed[@]}"
-
 while [ -n "$1" ]; do case "$1" in
     -r|--remote) shift; remote="$1" ;;
-    -D|--debug) debug=1 ;;
-    -Q|--quiet) quiet=1; verbose=0 ;;
-    -V|--verbose) quiet=0; verbose=1 ;;
+    -D|--debug|DEBUG) DEBUG=1 ;;
+    -Q|--quiet) QUIET=1; VERBOSE=0 ;;
+    -V|--verbose) QUIET=0; VERBOSE=1 ;;
     --nocolor) clear_colors ;;
     -H|--help) print_help; exit 0 ;;
     --) shift; break ;;
 esac; shift; done
-((debug)) && msg_debug "${args_parsed[*]}"
+msg_debug "args: ${args_parsed[*]}"
+msg_debug "remote=$remote operands=(${args_operands[*]})"
 
 # dependency error:
 for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
 
-#msg "verbose: $verbose"
-#msg "quiet: $quiet"
-#msg "remote: $remote"
-#msg "positional opts:"
-#for o in "$@"; do
-    #msg2 "$o"
-#done
 
 # vim:ft=bash
