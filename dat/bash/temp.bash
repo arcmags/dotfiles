@@ -85,12 +85,13 @@ msg() { ((QUIET)) && return; printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;
 msg2() { ((QUIET)) && return; printf "$bold$blue > $off$white$1$off\n" "${@:2}" ;}
 msg_debug() { ((DEBUG)) && printf "$yellow$BASH_LINENO: $off$1\n" "${@:2}" ;}
 msg_error() { printf "$bold${red}E: $off$white$1$off\n" "${@:2}" >&2 ;}
-msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
 msg_good() { ((QUIET)) && return;printf "$bold$green=> $off$white$1$off\n" "${@:2}" ;}
+msg_plain() { ((QUIET)) && return;printf "$off$white   $1$off\n" "${@:2}" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
 msg_cmd() {
     ((QUIET)) && return
     [[ $EUID -eq 0 ]] && printf "$bold$red #" || printf "$bold$blue $"
-    printf "$off$white"; printf ' %q' "$@"; printf "$off\n"
+    printf "$off$white"; "$cmd_printf" ' %q' "$@"; printf "$off\n"
 }
 
 # errors:
@@ -104,8 +105,9 @@ is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [[ -f "$1" ]] && identify "$1" &>/dev/null ;}
 
 # commands:
-cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
-input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
+cmd_printf='printf'
+[[ -f '/usr/bin/printf' ]] && cmd_printf='/usr/bin/printf'
+exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 
 # arg parser:
 # Parse args into args_parsed, check opts, separate combined options.
@@ -155,7 +157,7 @@ parse_args() {
 
 ## main ::
 trap exit INT
-[[ ! -t 1 || ! -t 2 ]] || ((NOCOLOR)) && clear_colors
+((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
 
 # parse args:
 parse_args

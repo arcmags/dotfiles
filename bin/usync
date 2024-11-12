@@ -25,22 +25,22 @@ COMMANDS
         Pull changes from remote source.
 
 OPTIONS
-    -c, --config <FILE>
+    -c, --config <file>
         Use config FILE.
 
-    -d, --dir <DIRECTORY>
+    -d, --dir <directory>
         Set remote directory.
 
-    -e, --exclude <PATTERN>
+    -e, --exclude <pattern>
         Add to exclude patterns.
 
-    -p, --port <PORT>
+    -p, --port <port>
         Set port number.
 
-    -r, --remote, --url <URL>
+    -r, --remote, --url <url>
         Set remote url.
 
-    -u, --user <USER>
+    -u, --user <user>
         Set remote user.
 
     -D, --dryrun
@@ -108,7 +108,7 @@ readonly args=("$@")
 args_operands=()
 args_options=()
 args_parsed=()
-conf='.usync'
+conf=.usync
 dir=
 dryrun=0
 excludes=()
@@ -123,8 +123,8 @@ port=
 pull=0
 push=0
 remote_dir=
-remote='localhost'
-rsync_args=(-azz --protect-args --info=copy1,del1,name1 --delete)
+remote=localhost
+rsync_args=(-azz --protect-args '--info=copy1,del1,name1' --delete)
 sed_args=()
 user=
 
@@ -149,15 +149,13 @@ clear_colors() { unset blue bold green off red white yellow ;}
 
 # messages:
 msg() { ((QUIET)) && return; printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;}
-msg2() { ((QUIET)) && return; printf "$bold$blue > $off$white$1$off\n" "${@:2}" ;}
 msg_debug() { ((DEBUG)) && printf "$yellow$BASH_LINENO: $off$1\n" "${@:2}" ;}
 msg_error() { printf "$bold${red}E: $off$white$1$off\n" "${@:2}" >&2 ;}
 msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
-msg_good() { ((QUIET)) && return;printf "$bold$green=> $off$white$1$off\n" "${@:2}" ;}
 msg_cmd() {
     ((QUIET)) && return
     [[ $EUID -eq 0 ]] && printf "$bold$red #" || printf "$bold$blue $"
-    printf "$off$white"; printf ' %q' "$@"; printf "$off\n"
+    printf "$off$white"; "$cmd_printf" ' %q' "$@"; printf "$off\n"
 }
 
 # errors:
@@ -168,11 +166,11 @@ error_flg() { error "option does not take argument: $1" "${@:2}" ;}
 
 # tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
-is_img() { [[ -f "$1" ]] && identify "$1" &>/dev/null ;}
 
 # commands:
-cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
-input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
+cmd_printf='printf'
+[[ -f '/usr/bin/printf' ]] && cmd_printf='/usr/bin/printf'
+exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 
 # arg parser:
 parse_args() {
@@ -216,7 +214,7 @@ parse_args() {
 
 ## main ::
 trap exit INT
-[[ ! -t 1 || ! -t 2 ]] || ((NOCOLOR)) && clear_colors
+((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
 
 # parse args:
 msg_debug "args=($(printf '%q ' "${args[@]}"))"
@@ -337,7 +335,7 @@ if ((push)); then
     if [[ "$remote" == localhost ]]; then
         # create local directory:
         if [[ ! -d "$dir" ]] && ! ((dryrun)); then
-            cmd mkdir -p "$dir"
+            exec_cmd mkdir -p "$dir"
         fi
     elif ! ((dryrun)); then
         # create remote directory:

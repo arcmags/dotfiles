@@ -12,20 +12,13 @@
 // @include     *://*.wiktionary.org/*
 // @include     *://wiki.archlinux.org/*
 // ==/UserScript==
-
-/* ~/.config/qutebrowser/greasemonkey/wikimedia.css.js :: */
-/* intended for use in qutebrowser with darkmode enabled */
+/* ~/.config/qutebrowser/greasemonkey/wiki.css.js :: */
 
 GM_addStyle(`
-    body,
-    #mw-head,
-    #mw-panel,
-    .mw-list-item {
+    body, #mw-head, #mw-panel, .mw-list-item {
         background: #ffffff !important;
     }
-    .vector-menu-heading,
-    .vector-menu-tabs a,
-    .vector-menu-tabs,
+    .vector-menu-heading, .vector-menu-tabs a, .vector-menu-tabs,
     .vector-toc::after {
         background: none !important;
     }
@@ -33,4 +26,4 @@ GM_addStyle(`
     .vector-menu-heading {
         border-bottom: 1px solid #606060 !important;
     }
-`)
+`);

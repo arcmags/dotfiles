@@ -2,21 +2,9 @@
 // @name        Christian Science Monitor Text Edition
 // @include     *://www.csmonitor.com/text_edition*
 // ==/UserScript==
+/* ~/.config/qutebrowser/greasemonkey/csmonitor-text.css.js :: */
 
 GM_addStyle(`
-    :root {
-        --color-active: #0ef0f0;
-        --color-bar: #30305a;
-        --color-bg: #00002a;
-        --color-bg1: #20204a;
-        --color-code: #f5f5ff;
-        --color-comment: #50507a;
-        --color-em: #fc4cb8;
-        --color-fg: #d0d0fa;
-        --color-heading: #66b0ff;
-        --color-link: #32a6a6;
-    }
-
     body, footer {
         background: var(--color-bg) !important;
         color: var(--color-fg) !important;

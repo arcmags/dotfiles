@@ -2,16 +2,12 @@
 // @name        Ars Technica
 // @include     *://arstechnica.com/*
 // ==/UserScript==
-
 /* ~/.config/qutebrowser/greasemonkey/arstechnica.css.js :: */
-/* intended for qutebrowser with darkmode enabled */
 
 GM_addStyle(`
-    .ad.ad.ad,
-    .ad_wrapper {
+    .ad.ad.ad, .ad_wrapper, .ad-wrapper {
         display: none !important;
     }
-
     .listing-top.with-feature .article.top-feature figure .listing,
     .listing-top.with-feature .article.top-latest figure .listing,
     .listing-top.with-feature .article figure .listing,
@@ -21,4 +17,4 @@ GM_addStyle(`
     .with-xrail .xrail .featured-video .video-thumbnail {
         background: none;
     }
-`)
+`);

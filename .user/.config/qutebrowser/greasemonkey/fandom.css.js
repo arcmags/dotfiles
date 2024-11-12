@@ -2,9 +2,7 @@
 // @name        Fandom
 // @include     *://*.fandom.com/*
 // ==/UserScript==
-
 /* ~/.config/qutebrowser/greasemonkey/fandom.css.js :: */
-/* intended for qutebrowser with darkmode enabled */
 
 GM_addStyle(`
     div[itemprop=video],
@@ -25,4 +23,4 @@ GM_addStyle(`
         background: none !important;
         border: none !important;
     }
-`)
+`);

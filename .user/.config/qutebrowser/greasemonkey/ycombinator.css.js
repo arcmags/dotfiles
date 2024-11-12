@@ -2,9 +2,7 @@
 // @name        Hacker News
 // @include     *://news.ycombinator.com*
 // ==/UserScript==
-
 /* ~/.config/qutebrowser/greasemonkey/ycominator.css.js :: */
-/* intended for qutebrowser with darkmode enabled */
 
 var colorBg = '#00002a';
 var colorBg1 = '#20204a';

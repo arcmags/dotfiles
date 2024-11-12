@@ -2,7 +2,8 @@
 // @name        Open Group Publications
 // @include     https://pubs.opengroup.org/onlinepubs*
 // ==/UserScript==
-//
+/* ~/.config/qutebrowser/greasemonkey/opengroup.css.js :: */
+
 var hrs = document.getElementsByTagName('hr');
 for (let i = 0; i < hrs.length; i++) {
     while(hrs[i].attributes.length > 0) {
@@ -11,19 +12,6 @@ for (let i = 0; i < hrs.length; i++) {
 };
 
 GM_addStyle(`
-    :root {
-        --color-active: #0ef0f0;
-        --color-bar: #30305a;
-        --color-bg: #00002a;
-        --color-bg1: #20204a;
-        --color-code: #f5f5ff;
-        --color-comment: #50507a;
-        --color-em: #fc4cb8;
-        --color-fg: #d0d0fa;
-        --color-heading: #66b0ff;
-        --color-link: #32a6a6;
-    }
-
     body {
         background: var(--color-bg) !important;
         color: var(--color-fg) !important;

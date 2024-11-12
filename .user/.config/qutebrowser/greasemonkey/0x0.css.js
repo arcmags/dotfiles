@@ -1,14 +1,14 @@
 // ==UserScript==
-// @name        NPR Text-Only
-// @include     *://text.npr.org*
+// @name        0x0.st
+// @include     *://0x0.st*
 // ==/UserScript==
-/* ~/.config/qutebrowser/greasemonkey/npr-text.css.js :: */
+/* ~/.config/qutebrowser/greasemonkey/0x0.css.js :: */
 
 GM_addStyle(`
     body {
         background: var(--color-bg) !important;
         color: var(--color-fg) !important;
-        max-width: 750px !important;
+        font-size: var(--font-size) !important;
     }
 
     u {
@@ -24,9 +24,5 @@ GM_addStyle(`
     }
     a:hover {
         color: var(--color-active) !important;
-    }
-
-    .hr-line {
-        display: none !important;
     }
 `);

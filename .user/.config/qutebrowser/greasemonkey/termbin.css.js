@@ -1,14 +1,17 @@
 // ==UserScript==
-// @name        NPR Text-Only
-// @include     *://text.npr.org*
+// @name        termbin
+// @include     *://termbin.com*
 // ==/UserScript==
-/* ~/.config/qutebrowser/greasemonkey/npr-text.css.js :: */
+/* ~/.config/qutebrowser/greasemonkey/termbin.css.js :: */
 
 GM_addStyle(`
     body {
         background: var(--color-bg) !important;
         color: var(--color-fg) !important;
-        max-width: 750px !important;
+    }
+
+    pre {
+        font-size: var(--font-size) !important;
     }
 
     u {
@@ -24,9 +27,5 @@ GM_addStyle(`
     }
     a:hover {
         color: var(--color-active) !important;
-    }
-
-    .hr-line {
-        display: none !important;
     }
 `);
