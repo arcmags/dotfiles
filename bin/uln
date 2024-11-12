@@ -42,14 +42,14 @@ OPTIONS
     -H, --help
         Display this help.
 
-FILES
+CONFIG
     .uln - yaml file containing the following keys:
 
-        dest or dir
-            Link/copy destination directory. (required)
+    dest or dir
+        Link/copy destination directory. (required)
 
-        srcs
-            List of source files relative to the current directory. (optional)
+    srcs
+        List of source files relative to the current directory. (optional)
 
 HOSTNAME
     Created links/copies may be dependent upon system hostname by appending an
