@@ -12,9 +12,13 @@ export UHOST="$HOSTNAME"
 upwd() {
     PWD_REALPATH="$(realpath "$PWD")"
     case "$PWD_REALPATH" in
-        "$UDIR_REALPATH"*) printf '%s' "-${PWD#"$UDIR_REALPATH"}" ;;
-        "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
-        *) printf '%s' "$PWD" ;;
+        "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#$UDIR_REALPATH}" ;;
+        "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#$HOME_REALPATH}" ;;
+        *) case "$PWD" in
+            "$UDIR_REALPATH"*) printf '%s' "-${PWD#$UDIR_REALPATH}" ;;
+            "$HOME_REALPATH"*) printf '%s' "~${PWD#$HOME_REALPATH}" ;;
+            *) printf '%s' "$PWD" ;;
+        esac
     esac
 }
 
@@ -157,6 +161,8 @@ lsblk() {
 }
 
 is_bin minicom && minicom() { command minicom -F ' /dev/%D | %T | %C ' "$@" ;}
+
+is_bin mpv && ! is_bin mvp && mvp() { command mpv "$@" ;}
 
 is_bin pactree && pactree() { command pactree -a "$@" ;}
 

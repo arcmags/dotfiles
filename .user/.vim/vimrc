@@ -119,6 +119,8 @@ nnoremap <leader>, ;
 set cedit=<c-q>
 set wildcharm=<c-n>
 
+# TODO: <c-c> as leader for other mappings?
+
 ## mappings: command/insert/search ::
 noremap! <c-a> <home>
 noremap! <c-b> <left>

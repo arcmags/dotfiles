@@ -1,7 +1,7 @@
 vim9script
 ## srt.vim - filetype plugin for working with subtitle files ::
 # maintainer: Chris Magyar <c.magyar.ec@gmail.com>
-# updated: 2024-10-27
+# updated: 2024-11-17
 
 if !exists('g:srt_maps') || g:srt_maps
     nnoremap <buffer> <localleader>m <scriptcmd>SRTClean()<cr>
@@ -89,9 +89,12 @@ def SRTClean()
     # add missing space after leading dashes:
     sil keepp :%s/^-\([^ -]\)/- \1/e
     # make every utf-8 note character an eighth note:
-    sil keepp :%s/[\u2669\u266a\u266b\u266c]\+/\=nr2char(0x266a)/ge
-    # merge repeated eighth notes and pound symbols:
-    sil keepp :%s/\([\u266a#]\)[\u266a# ]\+/\1/ge
+    sil keepp :%s/[\u2669\u266b\u266c]\+/\=nr2char(0x266a)/ge
+    # merge repeated eighth notes and pound symbols, remove extra spaces:
+    sil keepp :%s/\([\u266a#]\) \+[\u266a#]\+/\1/ge
+    sil keepp :%s/\([\u266a#]\)[\u266a#]\+/\1/ge
+    sil keepp :%s/\([\u266a#]\)  \+/\1 /ge
+    sil keepp :%s/  \+\([\u266a#]\)/ \1/ge
     # add missing space after eighth note or pound symbol at start of lines:
     sil keepp :%s/^\([\u266a#]\)\([^ ]\)/\1 \2/ge
     # add missing space before eigth note or pound symbol at end of lines:
@@ -204,4 +207,4 @@ enddef
 
 defcompile
 
-# vim:et sw=4
+# vim:set sw=4
