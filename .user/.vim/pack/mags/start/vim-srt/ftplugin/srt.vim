@@ -8,26 +8,29 @@ if !exists('g:srt_maps') || g:srt_maps
     nnoremap <buffer> <localleader>n <scriptcmd>SRTNumber()<cr>
 endif
 
+command! -nargs=1 MsToTime MsToTimeCmd(<f-args>)
+command! -nargs=1 TimeToMs TimeToMsCmd(<f-args>)
 command! SRTClean SRTClean()
 command! SRTNumber SRTNumber()
 command! -nargs=1 SRTShift SRTShift(<f-args>)
 command! -bang -nargs=* SRTSkew SRTSkew(<q-bang>, <f-args>)
 command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
 
-# TODO: functions to remove <font color>, <b>, <i>?
-# TODO: remove alignments?
+# TODO: functions to remove <font color>, <b>, <i>, alignments?
 
 def MsToTime(ms: number): string
     # convert milliseconds to timestamp:
     var parts = []
-    parts[0] = ms / 3600000
-    var tmp_ms = ms % 3600000
-    parts[1] = tmp_ms / 60000
-    tmp_ms = tmp_ms % 60000
-    parts[2] = tmp_ms / 1000
-    tmp_ms = tmp_ms % 1000
-    parts[3] = tmp_ms
-    return printf('%02d:%02d:%02d,%03d', parts[0], parts[1], parts[2], parts[3])
+    var tmp_ms = ms
+    for n in [3600000, 60000, 1000]
+        parts += [tmp_ms / n]
+        tmp_ms = tmp_ms % n
+    endfor
+    return printf('%02d:%02d:%02d,%03d', parts[0], parts[1], parts[2], tmp_ms)
+enddef
+
+def MsToTimeCmd(arg: string)
+    echo MsToTime(str2nr(arg))
 enddef
 
 def TimeToMs(time: string): number
@@ -51,6 +54,10 @@ def TimeToMs(time: string): number
     return ms
 enddef
 
+def TimeToMsCmd(arg: string)
+    echo TimeToMs(arg)
+enddef
+
 def SRTClean()
     const pos = getpos('.')
     # remove carriage returns, convert to unix:
@@ -68,8 +75,8 @@ def SRTClean()
         setlocal expandtab
         retab
     endif
-    # TODO: instead of all this, try parsing subtitles as objects:
-    # TODO: populate scan/warn/error results in quickfix window
+    # TODO: instead of all this, parse subtitles as objects?
+    # TODO: populate scan/warn/error results in quickfix window?
     # strip trailing whitespaces:
     sil keepp :%s/\s\+$//e
     # merge repeated blank lines:

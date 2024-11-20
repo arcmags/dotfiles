@@ -42,7 +42,7 @@ HELPDOC
 
 ## settings ::
 readonly deps=()
-readonly opts=(-r: --remote: -Q --quiet -V --verbose -H --debug --nocolor --help)
+readonly opts=(-r: --remote: -Q --quiet -V --verbose --debug --nocolor -H --help)
 
 # defaults:
 DEBUG="${DEBUG:-0}"
@@ -65,6 +65,7 @@ host="$HOSTNAME"
 blue=$'\e[38;5;12m'
 bold=$'\e[1m'
 green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m'
 off=$'\e[0m'
 red=$'\e[38;5;9m'
 white=$'\e[38;5;15m'
@@ -73,20 +74,21 @@ if tput setaf 0 &>/dev/null; then
     blue="$(tput setaf 12)"
     bold="$(tput bold)"
     green="$(tput setaf 10)"
+    grey="$(tput setaf 8)"
     off="$(tput sgr0)"
     red="$(tput setaf 9)"
     white="$(tput setaf 15)"
     yellow="$(tput setaf 11)"
 fi
-clear_colors() { unset blue bold green off red white yellow ;}
+clear_colors() { unset blue bold green grey off red white yellow ;}
 
 # messages:
-msg() { ((QUIET)) && return; printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;}
-msg2() { ((QUIET)) && return; printf "$bold$blue > $off$white$1$off\n" "${@:2}" ;}
-msg_debug() { ((DEBUG)) && printf "$yellow$BASH_LINENO: $off$1\n" "${@:2}" ;}
+msg() { ((QUIET)) || printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;}
+msg2() { ((QUIET)) || printf "$bold$blue > $off$white$1$off\n" "${@:2}" ;}
+msg_debug() { ((DEBUG)) && printf "${yellow}D: $off$1\n" "${@:2}" >&2 ;}
 msg_error() { printf "$bold${red}E: $off$white$1$off\n" "${@:2}" >&2 ;}
-msg_good() { ((QUIET)) && return;printf "$bold$green=> $off$white$1$off\n" "${@:2}" ;}
-msg_plain() { ((QUIET)) && return;printf "$off$white   $1$off\n" "${@:2}" ;}
+msg_good() { ((QUIET)) || printf "$bold$green=> $off$white$1$off\n" "${@:2}" ;}
+msg_plain() { ((QUIET)) || printf "$off$white   $1$off\n" "${@:2}" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
 msg_cmd() {
     ((QUIET)) && return
@@ -169,16 +171,15 @@ while [[ -n "$1" ]]; do case "$1" in
     --nocolor) clear_colors ;;
     --debug) DEBUG=1 ;;
     -H|--help) print_help; exit 0 ;;
-    --) shift; break ;;
 esac; shift; done
 msg_debug "args=(${args_parsed[*]})"
-
-# errors:
-for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
 
 # debug info:
 msg_debug "QUIET=$QUIET VERBOSE=$VERBOSE"
 msg_debug "remote=$remote"
 msg_debug "operands=(${args_operands[*]})"
+
+# errors:
+for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
 
 # vim:ft=bash

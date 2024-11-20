@@ -70,3 +70,9 @@
 :focus {
     outline: 2px solid var(--color-comment) !important;
 }
+
+pre[style='word-wrap: break-word; white-space: pre-wrap;'] {
+    color: var(--color-fg) !important;
+    background: var(--color-bg) !important;
+    font-size: var(--font-size) !important;
+}
