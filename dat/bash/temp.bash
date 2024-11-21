@@ -41,8 +41,8 @@ HELPDOC
 [[ "$0" != "$BASH_SOURCE" ]] && print_help && return 0
 
 ## settings ::
-readonly deps=()
-readonly opts=(-r: --remote: -Q --quiet -V --verbose --debug --nocolor -H --help)
+readonly -a deps=()
+readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --debug --nocolor -H --help)
 
 # defaults:
 DEBUG="${DEBUG:-0}"
@@ -52,13 +52,11 @@ VERBOSE="${VERBOSE:-0}"
 remote='localhost'
 
 ## internal functions/variables ::
-readonly args=("$@")
+readonly -a args=("$@")
+args_operands=() args_options=() args_parsed=()
 readonly path_script="$(realpath "$BASH_SOURCE")"
 readonly pid_script="$$"
 readonly script="$(basename "$0")"
-args_operands=()
-args_options=()
-args_parsed=()
 host="$HOSTNAME"
 
 # colors:
@@ -112,12 +110,13 @@ cmd_printf='printf'
 exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 
 # arg parser:
-# Parse args into args_parsed, check opts, separate combined options.
-# usage:
-#   args=("$@")
-#   opts=(-f --for -b: --bar: help)
+# Parse args, check opts, separate combined options.
+# Reads args and opts; sets args_operands, args_options, and args_parsed:
+#   readonly args=("$@")
+#   readonly opts=(-f --for -b: --bar: help)
 #   parse_args
-#   set -- "${args_parsed[@]}"
+#   set -- "${args_opts[@]}"
+#   while [[ -n "$1" ]]; do case "$1" in ... esac; shift; done
 parse_args() {
     local a=0 opt= sflgs= sopts= arg="${args[0]}"
     local -a lflgs=() lopts=()
@@ -173,9 +172,6 @@ while [[ -n "$1" ]]; do case "$1" in
     -H|--help) print_help; exit 0 ;;
 esac; shift; done
 msg_debug "args=(${args_parsed[*]})"
-
-# debug info:
-msg_debug "QUIET=$QUIET VERBOSE=$VERBOSE"
 msg_debug "remote=$remote"
 msg_debug "operands=(${args_operands[*]})"
 

@@ -1,24 +1,24 @@
 #!/bin/bash
-## showcolors ::
+## colors ::
 
 print_help() { cat <<'HELPDOC'
 NAME
-    showcolors - print colors
+    colors - print terminal colors
 
 SYNOPSIS
-    showcolors [option...] [color...]
+    colors [option...] [color...]
 
 DESCRIPTION
-    Print colors in the terminal. The default action with no arguments prints
-    the terminal colors 0-15. Additional colors may be specified by hex
+    Print colors in the terminal. The default behavior with no arguments
+    prints the terminal colors 0-15. Additional colors may be specified by hex
     (FFFFFF), rgb (255,255,255), or name.
 
 OPTIONS
     -c, --colors <count>
-        Number of terminal colors to print. (default: 16)
+        Number of terminal colors to print. (default: 16, max: 256)
 
-    -M, --magick
-        Print all named colors.
+    -A, --all
+        Print all named colors. (requires magick)
 
     -T, --noterm, --notermcolors
         Do not print terminal colors.
@@ -26,8 +26,8 @@ OPTIONS
     -Q, --quiet
         Print less verbose output.
 
-    -X, --xresources, --xorg, --xrdb
-        Print .Xresources colors.
+    -X, --xresources, --xrdb
+        Print .Xresources colors. (requires xrdb)
 
     -H, --help
         Print help.
@@ -35,38 +35,38 @@ OPTIONS
 REQUIREMENTS
     imagemagick (optional) - parse/print named colors
     xrdb (optional) - print xresources colors
-
 HELPDOC
 }
 [[ "$0" != "$BASH_SOURCE" ]] && print_help && return 0
 
 ## settings ::
-readonly opts=(-c: --colors: -M --magick -T --noterm --notermcolors
-    -X --xresources --xorg --xrdb --debug -Q --quiet -H --help)
+readonly -a opts=( -c: --colors: -A --all -T --noterm --notermcolors
+    -X --xresources --xorg --xrdb -Q --quiet -H --help)
 
 # defaults:
-DEBUG="${DEBUG:-0}"
 QUIET="${QUIET:-0}"
 
 ## internal functions/variables ::
-readonly args=("$@")
-args_operands=()
-args_options=()
-args_parsed=()
-block=$'\u2588'
+readonly -a args=("$@")
+args_operands=() args_options=() args_parsed=()
 colors_warn=()
-fstring='\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm%s\e[0m %s \e[38;2;%d;%d:%dm%s\e[0m\n'
-magickcolors=0
+allcolors=0
 namehex_args=()
 namehex_xrdb=()
 namergb_magick=()
 n_colors=16
-regex_hex='#?([A-Fa-f0-9]{6})'
-regex_rgb='\(?([0-9]+),([0-9]+),([0-9]+)\)?'
-sed_magick=(-Ee '0,/----/d' -e 's/^([^ ]+) +srgb\(([^)]+)\).*/\1 \2/')
-sed_xrdb=(-Ee '/^\*\.color[0-9]/!d' -e 's/^\*\.color([0-9]+).*:\t#(.*)/\1 \2/')
 termcolors=1
 xrdbcolors=0
+
+# constants:
+block=$'\u2588'
+block6="$block$block$block$block$block$block"
+fstring='\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm%s\e[0m %s \e[38;2;%d;%d:%dm%s\e[0m\n'
+regex_hex='#?([A-Fa-f0-9]{6})'
+regex_rgb='\(?([0-9]+),([0-9]+),([0-9]+)\)?'
+sed_magick=(sed -Ee '0,/----/d' -e 's/^([^ ]+) +srgb\(([^)]+)\).*/\1 \2/')
+sed_xrdb=(sed -Ee '/^\*\.color[0-9]/!d' -e 's/^\*\.color([0-9]+).*:\t#(.*)/\1 \2/')
+readonly block block6 fstring regex_hex regex_rgb sed_magick sed_xrdb
 
 # colors:
 blue=$'\e[38;5;12m'
@@ -77,10 +77,10 @@ off=$'\e[0m'
 red=$'\e[38;5;9m'
 white=$'\e[38;5;15m'
 yellow=$'\e[38;5;11m'
+readonly blue bold green grey off red white yellow
 
 # messages:
 msg() { ((QUIET)) || printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;}
-msg_debug() { ((DEBUG)) && printf "${yellow}D: $off$1\n" "${@:2}" >&2 ;}
 msg_error() { printf "$bold${red}E: $off$white$1$off\n" "${@:2}" >&2 ;}
 msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
 
@@ -135,9 +135,8 @@ parse_args() {
 
 # print color block, hex code, and name:
 print_color() {
-    printf "$fstring" "0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}" "0x${1:0:2}" \
-        "0x${1:2:2}" "0x${1:4:2}" "$block$block$block$block$block$block" \
-        "$1" "0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}" "${2:-$1}"
+    local rgb=("0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}")
+    printf "$fstring" "${rgb[@]}" "${rgb[@]}" "block6" "$1" "${rgb[@]}" "${2:-$1}"
 }
 
 ## main ::
@@ -148,15 +147,12 @@ parse_args
 set -- "${args_options[@]}"
 while [[ -n "$1" ]]; do case "$1" in
     -c|--colors) shift; n_colors="$1" ;;
-    -M|--magick) magickcolors=1 ;;
+    -A|--all) allcolors=1 ;;
     -T|--noterm|--notermcolors) termcolors=0 ;;
     -X|--xresources|--xorg|--xrdb) xrdbcolors=1 ;;
-    --debug) DEBUG=1 ;;
     -Q|--quiet) QUIET=1 ;;
     -H|--help) print_help; exit 0 ;;
 esac; shift; done
-msg_debug "args=(${args_parsed[*]})"
-msg_debug "operands=(${args_operands[*]})"
 
 # print terminal colors:
 if ((termcolors)); then
@@ -183,7 +179,7 @@ fi
 
 # in a tty: exit:
 if tty | grep /dev/tty -q; then
-    if [[ ${#args_operands[@]} -gt 0 ]] || ((xrdbcolors+magickcolors)); then
+    if [[ ${#args_operands[@]} -gt 0 ]] || ((xrdbcolors+allcolors)); then
         msg_warn 'only 16 colors in tty'
     fi
     exit
@@ -192,7 +188,7 @@ fi
 # print xresources/xrdb colors:
 if ((xrdbcolors)); then
     if is_cmd xrdb; then
-        mapfile -t namehex_xrdb < <(xrdb -query | sed "${sed_xrdb[@]}" | sort -n)
+        mapfile -t namehex_xrdb < <(xrdb -query | "${sed_xrdb[@]}" | sort -n)
         if [[ ${#namehex_xrdb[@]} -eq 0 ]]; then
             msg_warn 'no xresources *.colors found'
         else
@@ -207,15 +203,15 @@ if ((xrdbcolors)); then
 fi
 
 # no args: exit:
-[[ ${#args_operands[@]} -eq 0 ]] && ! ((magickcolors)) && exit
+[[ ${#args_operands[@]} -eq 0 ]] && ! ((allcolors)) && exit
 
 # get color names and rgb values from imagemagick:
 if is_cmd magick; then
-    mapfile -t namergb_magick < <(magick -list color | sed "${sed_magick[@]}")
+    mapfile -t namergb_magick < <(magick -list color | "${sed_magick[@]}")
 fi
 
 # print all named colors:
-if ((magickcolors)); then
+if ((allcolors)); then
     if [[ ${#namergb_magick[@]} -gt 0 ]]; then
         msg 'named colors:'
         for n in "${namergb_magick[@]}"; do
