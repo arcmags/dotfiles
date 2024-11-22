@@ -39,6 +39,9 @@ HELPDOC
 }
 [[ "$0" != "$BASH_SOURCE" ]] && print_help && return 0
 
+# TODO: only show X11 colors with --all (there are 2 greens, etc)?
+# TODO: maybe something like --almostall for everything but grey and gray?
+
 ## settings ::
 readonly -a opts=( -c: --colors: -A --all -T --noterm --notermcolors
     -X --xresources --xorg --xrdb -Q --quiet -H --help)
@@ -71,13 +74,15 @@ readonly block block6 fstring regex_hex regex_rgb sed_magick sed_xrdb
 # colors:
 blue=$'\e[38;5;12m'
 bold=$'\e[1m'
+cyan=$'\e[38;5;14m'
 green=$'\e[38;5;10m'
 grey=$'\e[38;5;8m'
+magenta=$'\e[38;5;13m'
 off=$'\e[0m'
 red=$'\e[38;5;9m'
 white=$'\e[38;5;15m'
 yellow=$'\e[38;5;11m'
-readonly blue bold green grey off red white yellow
+readonly blue bold cyan green grey magenta off red white yellow
 
 # messages:
 msg() { ((QUIET)) || printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;}
@@ -85,10 +90,10 @@ msg_error() { printf "$bold${red}E: $off$white$1$off\n" "${@:2}" >&2 ;}
 msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
 
 # errors:
-error() { msg_error "$@"; exit 3 ;}
-error_opt() { error "unrecognized option: $1" "${@:2}" ;}
-error_optarg() { error "option requires an argument: $1" "${@:2}" ;}
-error_flg() { error "option does not take argument: $1" "${@:2}" ;}
+error() { msg_error "$*"; exit 3 ;}
+error_opt() { error "unrecognized option: $*" ;}
+error_optarg() { error "option requires an argument: $*" ;}
+error_flg() { error "option does not take argument: $*" ;}
 
 # tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
@@ -103,31 +108,23 @@ parse_args() {
         *:) lopts+=("${opt:0:-1}") ;;
         *) lflgs+=("$opt") ;;
     esac; done
-    while [[ -n "$arg" ]]; do
-        case "$arg" in
-            --) ((a++)); break ;;
-            -[$sflgs]) args_parsed+=("$arg") ;;
-            -[$sflgs]*)
-                [[ "$sflgs$sopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
-                args_parsed+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
-            -[$sopts])
-                [[ $((${#args[@]}-a)) -le 1 ]] && error_optarg "$arg"
-                args_parsed+=("$arg" "${args[((++a))]}") ;;
-            -[$sopts]*) args_parsed+=("${arg:0:2}" "${arg:2}") ;;
-            *=*)
-                [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && error_flg "${arg%%=*}"
-                [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-                args_parsed+=("${arg%%=*}" "${arg#*=}") ;;
-            *)
-                if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
-                    args_parsed+=("$arg")
-                elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                    [[ ${#args[@]} -le $((a+1)) ]] && error_optarg "$arg"
-                    args_parsed+=("$arg" "${args[((++a))]}")
-                else break; fi ;;
-        esac
-        arg="${args[((++a))]}"
-    done
+    while [[ -n "$arg" ]]; do case "$arg" in
+        --) ((a++)); break ;;
+        -[$sflgs]) args_parsed+=("$arg") ;;
+        -[$sflgs]*) [[ "$sflgs$sopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
+            args_parsed+=("${arg:0:2}"); arg="-${arg:2}" ;;
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && error_optarg "$arg"
+            args_parsed+=("$arg" "${args[((++a))]}") ;;
+        -[$sopts]*) args_parsed+=("${arg:0:2}" "${arg:2}") ;;
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && error_flg "${arg%%=*}"
+            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
+            args_parsed+=("${arg%%=*}" "${arg#*=}") ;;
+        *)  if [[ " ${lflgs[*]} " =~ " $arg " ]]; then args_parsed+=("$arg")
+            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
+                [[ ${#args[@]} -le $((a+1)) ]] && error_optarg "$arg"
+                args_parsed+=("$arg" "${args[((++a))]}")
+            else break; fi ;;
+    esac; arg="${args[((++a))]}"; done
     args_options=("${args_parsed[@]}")
     args_operands=("${args[@]:a}")
     args_parsed+=('--' "${args[@]:a}")
@@ -135,7 +132,7 @@ parse_args() {
 
 # print color block, hex code, and name:
 print_color() {
-    local rgb=("0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}")
+    local -a rgb=("0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}")
     printf "$fstring" "${rgb[@]}" "${rgb[@]}" "block6" "$1" "${rgb[@]}" "${2:-$1}"
 }
 
