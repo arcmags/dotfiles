@@ -38,7 +38,7 @@ ENVIRONMENT
         Run verbosely.
 HELPDOC
 }
-[[ "$0" != "$BASH_SOURCE" ]] && print_help && return 0
+[[ $0 != "$BASH_SOURCE" ]] && print_help && return 0
 
 ## settings ::
 readonly -a deps=()
@@ -106,11 +106,11 @@ error() { msg_error "$*"; exit 3 ;}
 
 # tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
-is_img() { [[ -f "$1" ]] && identify "$1" &>/dev/null ;}
+is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
 
 # commands:
 cmd_printf='printf'
-[[ -f '/usr/bin/printf' ]] && cmd_printf='/usr/bin/printf'
+[[ -f /usr/bin/printf ]] && cmd_printf='/usr/bin/printf'
 exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 
 # arg parser:
@@ -120,7 +120,7 @@ exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 #   opts=(-f --for -b: --bar: help)
 #   parse_args || exit
 #   set -- "${args_options[@]}"
-#   while [[ -n "$1" ]]; do case "$1" in ... esac; shift; done
+#   while [[ -n $1 ]]; do case "$1" in ... esac; shift; done
 parse_args() {
     local a=0 opt= sflgs= sopts= arg="${args[0]}"
     local -a lflgs=() lopts=()
@@ -133,10 +133,10 @@ parse_args() {
         *:) lopts+=("${opt:0:-1}") ;;
         *) lflgs+=("$opt") ;;
     esac; done
-    while [[ -n "$arg" ]]; do case "$arg" in
+    while [[ -n $arg ]]; do case "$arg" in
         --) ((a++)); break ;;
         -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ ! "$sflgs$sopts" =~ "${arg:2:1}" ]] && bad_opt && return 3
+        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && bad_opt && return 3
             args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
         -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && bad_optarg && return 3
             args_options+=("$arg" "${args[((++a))]}") ;;
@@ -161,7 +161,7 @@ trap exit INT
 # parse args:
 parse_args || exit
 set -- "${args_options[@]}"
-while [[ -n "$1" ]]; do case "$1" in
+while [[ -n $1 ]]; do case "$1" in
     -r|--remote) shift; remote="$1" ;;
     -Q|--quiet) QUIET=1; VERBOSE=0 ;;
     -V|--verbose) QUIET=0; VERBOSE=1 ;;

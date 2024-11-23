@@ -21,10 +21,10 @@ OPTIONS
         Preferred spelling of gray/grey. (default: grey)
 
     -A, --all
-        Print all named colors. (requires magick)
+        Print every named colors. (requires magick)
 
-    -M, --almostall
-        Print all named colors besides the 100 shades of grey.
+    -M, --most
+        Print every named colors besides the 100 shades of grey.
 
     -Q, --quiet
         Print less verbose output.
@@ -40,7 +40,7 @@ REQUIREMENTS
     xrdb (optional) - print xresources colors
 HELPDOC
 }
-[[ "$0" != "$BASH_SOURCE" ]] && print_help && return 0
+[[ $0 != "$BASH_SOURCE" ]] && print_help && return 0
 
 # TODO: only show X11 colors with --all (there are 2 greens, etc)?
 # TODO: maybe something like --almostall for everything but grey and gray?
@@ -48,7 +48,7 @@ HELPDOC
 ## settings ::
 readonly -a opts=(
     -c: --colors: -g: --graygrey:
-    -A --all -M --almostall -X --xrdb
+    -A --all -M --most -X --xrdb
     -Q --quiet -H --help
 )
 
@@ -59,7 +59,7 @@ n_colors=16
 
 ## internal functions/variables ::
 readonly -a args=("$@")
-args_operands=() args_options=() args_parsed=()
+args_operands=() args_options=()
 colors_warn=()
 allcolors=0
 namehex_args=()
@@ -114,10 +114,10 @@ parse_args() {
         *:) lopts+=("${opt:0:-1}") ;;
         *) lflgs+=("$opt") ;;
     esac; done
-    while [[ -n "$arg" ]]; do case "$arg" in
+    while [[ -n $arg ]]; do case "$arg" in
         --) ((a++)); break ;;
         -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ ! "$sflgs$sopts" =~ "${arg:2:1}" ]] && bad_opt && return 3
+        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && bad_opt && return 3
             args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
         -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && bad_optarg && return 3
             args_options+=("$arg" "${args[((++a))]}") ;;
@@ -147,11 +147,11 @@ trap exit INT
 # parse args:
 parse_args || exit
 set -- "${args_options[@]}"
-while [[ -n "$1" ]]; do case "$1" in
+while [[ -n $1 ]]; do case "$1" in
     -c|--colors) shift; n_colors="$1" ;;
     -g|--graygrey) shift; graygrey="$1" ;;
-    -A|--all) allcolors=1 ;;
-    -M|--almostall) allcolors=2 ;;
+    -A|--all) allcolors=2 ;;
+    -M|--most) allcolors=1 ;;
     -X|--xrdb) xrdbcolors=1 ;;
     -Q|--quiet) QUIET=1 ;;
     -H|--help) print_help; exit 0 ;;
@@ -160,10 +160,10 @@ esac; shift; done
 for a in "${args_options[@]}"; do echo " - $a"; done
 
 # print terminal colors:
-if [[ "$n_colors" != 0 ]]; then
-    [[ "$n_colors" =~ ^0*[0-9]*$ ]] || n_colors=16
+if [[ $n_colors != 0 ]]; then
+    [[ $n_colors =~ ^0*[0-9]*$ ]] || n_colors=16
     n=${#n_colors}
-    [[ "$n_colors" =~ ^0*([0-9]*)$ ]] && n_colors="${BASH_REMATCH[1]}"
+    [[ $n_colors =~ ^0*([0-9]*)$ ]] && n_colors="${BASH_REMATCH[1]}"
     [[ $n_colors -gt 256 ]] && n_colors=256
     for ((i=0;i<=n;i++)); do n_block="$n_block$block"; done
     for ((i=0;i<n_colors;i=i+8)); do
@@ -220,9 +220,9 @@ if ((allcolors)); then
     if [[ ${#namergb_magick[@]} -gt 0 ]]; then
         msg 'named colors:'
         for n in "${namergb_magick[@]}"; do
-            [[ "$allcolors" == 2 && "$n" =~ (gray|grey)[0-9] ]] && continue
-            [[ "$graygrey" == 'gray' && "$n" =~ grey ]] && continue
-            [[ "$graygrey" == 'grey' && "$n" =~ gray ]] && continue
+            [[ $allcolors == 1 && $n =~ (gray|grey)[0-9] ]] && continue
+            [[ $graygrey == gray && $n =~ grey ]] && continue
+            [[ $graygrey == grey && $n =~ gray ]] && continue
             [[ "$n" =~ $regex_rgb ]]
             h="$(printf '%02x%02x%02x' "${BASH_REMATCH[@]:1:3}")"
             print_color "$h" "${n% *}"
@@ -236,10 +236,10 @@ fi
 for a in "${args_operands[@]}"; do
     h=
     # hex color:
-    if [[ "$a" =~ ^$regex_hex$ ]]; then
+    if [[ $a =~ ^$regex_hex$ ]]; then
         h="${BASH_REMATCH[1],,}"
     # rgb color:
-    elif [[ "$a" =~ ^$regex_rgb$ ]]; then
+    elif [[ $a =~ ^$regex_rgb$ ]]; then
         h="$(printf '%02x%02x%02x' "${BASH_REMATCH[@]:1:3}")"
         [[ ${#h} -ne 6 ]] && h=
     # named color:
@@ -251,7 +251,7 @@ for a in "${args_operands[@]}"; do
         fi
         shopt -u nocasematch
     fi
-    [[ -z "$h" ]] && colors_warn+=("$a") && continue
+    [[ -z $h ]] && colors_warn+=("$a") && continue
     namehex_args+=("$a $h")
 done
 [[ ${#namehex_args[@]} -gt 0 ]] && msg 'arg colors:'
