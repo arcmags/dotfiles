@@ -20,7 +20,7 @@ pi=3.141593
 ck_float() { [[ "$1" =~ ^([1-9][0-9]*\.?|0\.0*[1-9]+)[0-9]*$ ]] || error 'invalid number' ;}
 ck_int() { [[ "$1" =~ ^[1-9][0-9]*$ ]] || error 'invalid number' ;}
 error() { msg_error "$@"; exit 5 ;}
-input() { read -erp $'\e[1;38;5;10m''> '$'\e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
+input() { read -erp $'\e[1;38;5;10m: \e[0;38;5;15m'"$1 "$'\e[0m' "$2" ;}
 is_cmd() { command -v "$1" &>/dev/null ;}
 msg() { printf '\e[1;38;5;12m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
 msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}

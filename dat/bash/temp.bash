@@ -42,7 +42,7 @@ HELPDOC
 
 ## settings ::
 readonly -a deps=()
-readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --debug --nocolor -H --help)
+readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --nocolor -H --help)
 
 # defaults:
 DEBUG="${DEBUG:-0}"
@@ -100,9 +100,9 @@ msg_cmd() {
 
 # errors:
 error() { msg_error "$*"; exit 3 ;}
-error_opt() { error "unrecognized option: $*" ;}
-error_optarg() { error "option requires an argument: $*" ;}
-error_flg() { error "option does not take argument: $*" ;}
+#error_opt() { error "unrecognized option: $*" ;}
+#error_optarg() { error "option requires an argument: $*" ;}
+#error_flg() { error "option does not take argument: $*" ;}
 
 # tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
@@ -114,45 +114,14 @@ cmd_printf='printf'
 exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 
 # arg parser:
-# Separate combined opts, check for required args, exit if error.
+# Separate combined opts, check for required args, return nonzero if error.
 # Read args and opts; set args_operands and args_options:
 #   args=("$@")
 #   opts=(-f --for -b: --bar: help)
-#   parse_args
+#   parse_args || exit
 #   set -- "${args_options[@]}"
 #   while [[ -n "$1" ]]; do case "$1" in ... esac; shift; done
 parse_args() {
-    local a=0 opt= sflgs= sopts= arg="${args[0]}"
-    local -a lflgs=() lopts=()
-    for opt in "${opts[@]}"; do case "$opt" in
-        -?) sflgs="$sflgs${opt:1}" ;;
-        -?:) sopts="$sopts${opt:1:1}" ;;
-        *:) lopts+=("${opt:0:-1}") ;;
-        *) lflgs+=("$opt") ;;
-    esac; done
-    while [[ -n "$arg" ]]; do case "$arg" in
-        --) ((a++)); break ;;
-        -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ "$sflgs$sopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
-            args_options+=("${arg:0:2}"); arg="-${arg:2}" ;;
-        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && error_optarg "$arg"
-            args_options+=("$arg" "${args[((++a))]}") ;;
-        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
-        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && error_flg "${arg%%=*}"
-            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-            args_options+=("${arg%%=*}" "${arg#*=}") ;;
-        *)  if [[ " ${lflgs[*]} " =~ " $arg " ]]; then args_options+=("$arg")
-            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                [[ ${#args[@]} -le $((a+1)) ]] && error_optarg "$arg"
-                args_options+=("$arg" "${args[((++a))]}")
-            else break; fi ;;
-    esac; arg="${args[((++a))]}"; done
-    args_operands=("${args[@]:a}")
-}
-
-# TODO: decide between parse_args and parse_args2:
-#   should function call exit or should it return to caller with nonzero?
-parse_args2() {
     local a=0 opt= sflgs= sopts= arg="${args[0]}"
     local -a lflgs=() lopts=()
     bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
@@ -165,33 +134,22 @@ parse_args2() {
         *) lflgs+=("$opt") ;;
     esac; done
     while [[ -n "$arg" ]]; do case "$arg" in
-        --)
-            ((a++))
-            break ;;
-        -[$sflgs])
-            args_options+=("$arg") ;;
-        -[$sflgs]*)
-            [[ ! "$sflgs$sopts" =~ "${arg:2:1}" ]] && bad_opt && return 3
-            args_options+=("${arg:0:2}")
-            arg="-${arg:2}" ;;
-        -[$sopts])
-            [[ $((${#args[@]}-a)) -le 1 ]] && bad_optarg && return 3
+        --) ((a++)); break ;;
+        -[$sflgs]) args_options+=("$arg") ;;
+        -[$sflgs]*) [[ ! "$sflgs$sopts" =~ "${arg:2:1}" ]] && bad_opt && return 3
+            args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && bad_optarg && return 3
             args_options+=("$arg" "${args[((++a))]}") ;;
-        -[$sopts]*)
-            args_options+=("${arg:0:2}" "${arg:2}") ;;
-        *=*)
-            [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && bad_flg && return 3
+        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && bad_flg && return 3
             [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
             args_options+=("${arg%%=*}" "${arg#*=}") ;;
-        *)
-            if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
+        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
                 args_options+=("$arg")
             elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
                 [[ ${#args[@]} -le $((a+1)) ]] && bad_optarg && return 3
                 args_options+=("$arg" "${args[((++a))]}")
-            else
-                break
-            fi ;;
+            else break; fi ;;
     esac; arg="${args[((++a))]}"; done
     args_operands=("${args[@]:a}")
 }
@@ -201,14 +159,13 @@ trap exit INT
 ((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
 
 # parse args:
-parse_args
+parse_args || exit
 set -- "${args_options[@]}"
 while [[ -n "$1" ]]; do case "$1" in
     -r|--remote) shift; remote="$1" ;;
     -Q|--quiet) QUIET=1; VERBOSE=0 ;;
     -V|--verbose) QUIET=0; VERBOSE=1 ;;
     --nocolor) clear_colors ;;
-    --debug) DEBUG=1 ;;
     -H|--help) print_help; exit 0 ;;
 esac; shift; done
 msg_debug "options=(${args_options[*]})"

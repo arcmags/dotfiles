@@ -17,16 +17,19 @@ OPTIONS
     -c, --colors <count>
         Number of terminal colors to print. (default: 16, max: 256)
 
+    -g, --graygrey <value>
+        Preferred spelling of gray/grey. (default: grey)
+
     -A, --all
         Print all named colors. (requires magick)
 
-    -T, --noterm, --notermcolors
-        Do not print terminal colors.
+    -M, --almostall
+        Print all named colors besides the 100 shades of grey.
 
     -Q, --quiet
         Print less verbose output.
 
-    -X, --xresources, --xrdb
+    -X, --xrdb
         Print .Xresources colors. (requires xrdb)
 
     -H, --help
@@ -43,11 +46,16 @@ HELPDOC
 # TODO: maybe something like --almostall for everything but grey and gray?
 
 ## settings ::
-readonly -a opts=( -c: --colors: -A --all -T --noterm --notermcolors
-    -X --xresources --xorg --xrdb -Q --quiet -H --help)
+readonly -a opts=(
+    -c: --colors: -g: --graygrey:
+    -A --all -M --almostall -X --xrdb
+    -Q --quiet -H --help
+)
 
 # defaults:
 QUIET="${QUIET:-0}"
+graygrey=grey
+n_colors=16
 
 ## internal functions/variables ::
 readonly -a args=("$@")
@@ -57,8 +65,6 @@ allcolors=0
 namehex_args=()
 namehex_xrdb=()
 namergb_magick=()
-n_colors=16
-termcolors=1
 xrdbcolors=0
 
 # constants:
@@ -67,7 +73,7 @@ block6="$block$block$block$block$block$block"
 fstring='\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm%s\e[0m %s \e[38;2;%d;%d:%dm%s\e[0m\n'
 regex_hex='#?([A-Fa-f0-9]{6})'
 regex_rgb='\(?([0-9]+),([0-9]+),([0-9]+)\)?'
-sed_magick=(sed -Ee '0,/----/d' -e 's/^([^ ]+) +srgb\(([^)]+)\).*/\1 \2/')
+sed_magick=(sed -Ee '/X11/!d' -e 's/^([^ ]+) +srgb\(([^)]+)\).*/\1 \2/')
 sed_xrdb=(sed -Ee '/^\*\.color[0-9]/!d' -e 's/^\*\.color([0-9]+).*:\t#(.*)/\1 \2/')
 readonly block block6 fstring regex_hex regex_rgb sed_magick sed_xrdb
 
@@ -91,9 +97,6 @@ msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
 
 # errors:
 error() { msg_error "$*"; exit 3 ;}
-error_opt() { error "unrecognized option: $*" ;}
-error_optarg() { error "option requires an argument: $*" ;}
-error_flg() { error "option does not take argument: $*" ;}
 
 # tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
@@ -102,6 +105,9 @@ is_cmd() { command -v "$1" &>/dev/null ;}
 parse_args() {
     local a=0 opt= sflgs= sopts= arg="${args[0]}"
     local -a lflgs=() lopts=()
+    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
+    bad_optarg() { msg_error "option requires an argument: $arg" ;}
+    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
     for opt in "${opts[@]}"; do case "$opt" in
         -?) sflgs="$sflgs${opt:1}" ;;
         -?:) sopts="$sopts${opt:1:1}" ;;
@@ -110,24 +116,23 @@ parse_args() {
     esac; done
     while [[ -n "$arg" ]]; do case "$arg" in
         --) ((a++)); break ;;
-        -[$sflgs]) args_parsed+=("$arg") ;;
-        -[$sflgs]*) [[ "$sflgs$sopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
-            args_parsed+=("${arg:0:2}"); arg="-${arg:2}" ;;
-        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && error_optarg "$arg"
-            args_parsed+=("$arg" "${args[((++a))]}") ;;
-        -[$sopts]*) args_parsed+=("${arg:0:2}" "${arg:2}") ;;
-        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && error_flg "${arg%%=*}"
+        -[$sflgs]) args_options+=("$arg") ;;
+        -[$sflgs]*) [[ ! "$sflgs$sopts" =~ "${arg:2:1}" ]] && bad_opt && return 3
+            args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && bad_optarg && return 3
+            args_options+=("$arg" "${args[((++a))]}") ;;
+        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && bad_flg && return 3
             [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-            args_parsed+=("${arg%%=*}" "${arg#*=}") ;;
-        *)  if [[ " ${lflgs[*]} " =~ " $arg " ]]; then args_parsed+=("$arg")
+            args_options+=("${arg%%=*}" "${arg#*=}") ;;
+        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
+                args_options+=("$arg")
             elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                [[ ${#args[@]} -le $((a+1)) ]] && error_optarg "$arg"
-                args_parsed+=("$arg" "${args[((++a))]}")
+                [[ ${#args[@]} -le $((a+1)) ]] && bad_optarg && return 3
+                args_options+=("$arg" "${args[((++a))]}")
             else break; fi ;;
     esac; arg="${args[((++a))]}"; done
-    args_options=("${args_parsed[@]}")
     args_operands=("${args[@]:a}")
-    args_parsed+=('--' "${args[@]:a}")
 }
 
 # print color block, hex code, and name:
@@ -140,19 +145,22 @@ print_color() {
 trap exit INT
 
 # parse args:
-parse_args
+parse_args || exit
 set -- "${args_options[@]}"
 while [[ -n "$1" ]]; do case "$1" in
     -c|--colors) shift; n_colors="$1" ;;
+    -g|--graygrey) shift; graygrey="$1" ;;
     -A|--all) allcolors=1 ;;
-    -T|--noterm|--notermcolors) termcolors=0 ;;
-    -X|--xresources|--xorg|--xrdb) xrdbcolors=1 ;;
+    -M|--almostall) allcolors=2 ;;
+    -X|--xrdb) xrdbcolors=1 ;;
     -Q|--quiet) QUIET=1 ;;
     -H|--help) print_help; exit 0 ;;
 esac; shift; done
 
+for a in "${args_options[@]}"; do echo " - $a"; done
+
 # print terminal colors:
-if ((termcolors)); then
+if [[ "$n_colors" != 0 ]]; then
     [[ "$n_colors" =~ ^0*[0-9]*$ ]] || n_colors=16
     n=${#n_colors}
     [[ "$n_colors" =~ ^0*([0-9]*)$ ]] && n_colors="${BASH_REMATCH[1]}"
@@ -204,7 +212,7 @@ fi
 
 # get color names and rgb values from imagemagick:
 if is_cmd magick; then
-    mapfile -t namergb_magick < <(magick -list color | "${sed_magick[@]}")
+    mapfile -t namergb_magick < <(magick -list color | "${sed_magick[@]}" | sort -Vfk1,1)
 fi
 
 # print all named colors:
@@ -212,6 +220,9 @@ if ((allcolors)); then
     if [[ ${#namergb_magick[@]} -gt 0 ]]; then
         msg 'named colors:'
         for n in "${namergb_magick[@]}"; do
+            [[ "$allcolors" == 2 && "$n" =~ (gray|grey)[0-9] ]] && continue
+            [[ "$graygrey" == 'gray' && "$n" =~ grey ]] && continue
+            [[ "$graygrey" == 'grey' && "$n" =~ gray ]] && continue
             [[ "$n" =~ $regex_rgb ]]
             h="$(printf '%02x%02x%02x' "${BASH_REMATCH[@]:1:3}")"
             print_color "$h" "${n% *}"
