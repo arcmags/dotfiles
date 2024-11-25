@@ -14,48 +14,28 @@ DESCRIPTION
     (FFFFFF), rgb (255,255,255), or name.
 
 OPTIONS
-    -c, --colors <count>
-        Number of terminal colors to print. (default: 16, max: 256)
-
-    -g, --graygrey <value>
-        Preferred spelling of gray/grey. (default: grey)
-
-    -A, --all
-        Print every named colors. (requires magick)
-
-    -M, --most
-        Print every named colors besides the 100 shades of grey.
-
-    -Q, --quiet
-        Print less verbose output.
-
-    -X, --xrdb
-        Print .Xresources colors. (requires xrdb)
-
-    -H, --help
-        Print help.
+    -c, --colors <count>    Terminal colors to print. (default: 16, max: 256)
+    -g, --graygrey <value>  Preferred spelling of gray/grey. (default: grey)
+    -A, --all               Print every named colors. (requires magick)
+    -M, --most              Print every named colors besides 100 shades of grey.
+    -Q, --quiet             Print less verbose output.
+    -X, --xrdb              Print .Xresources colors. (requires xrdb)
+    -H, --help              Print help.
 
 REQUIREMENTS
-    imagemagick (optional) - parse/print named colors
-    xrdb (optional) - print xresources colors
+    imagemagick     parse/print named colors (optional)
+    xrdb l)         print xresources colors (optional)
 HELPDOC
 }
-[[ $0 != "$BASH_SOURCE" ]] && print_help && return 0
-
-# TODO: only show X11 colors with --all (there are 2 greens, etc)?
-# TODO: maybe something like --almostall for everything but grey and gray?
+[[ $0 != "$BASH_SOURCE" ]] && { print_help; return 0 ;}
+[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
 
 ## settings ::
-readonly -a opts=(
-    -c: --colors: -g: --graygrey:
-    -A --all -M --most -X --xrdb
-    -Q --quiet -H --help
-)
-
-# defaults:
-QUIET="${QUIET:-0}"
+readonly -a opts=(-c: --colors: -g: --graygrey: -A --all -M --most -X --xrdb
+    -Q --quiet -H --help)
 graygrey=grey
 n_colors=16
+QUIET="${QUIET:-0}"
 
 ## internal functions/variables ::
 readonly -a args=("$@")
@@ -66,6 +46,7 @@ namehex_args=()
 namehex_xrdb=()
 namergb_magick=()
 xrdbcolors=0
+blockn=
 
 # constants:
 block=$'\u2588'
@@ -117,18 +98,18 @@ parse_args() {
     while [[ -n $arg ]]; do case "$arg" in
         --) ((a++)); break ;;
         -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && bad_opt && return 3
+        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
             args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
-        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && bad_optarg && return 3
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
             args_options+=("$arg" "${args[((++a))]}") ;;
         -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
-        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && bad_flg && return 3
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
             [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
             args_options+=("${arg%%=*}" "${arg#*=}") ;;
         *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
                 args_options+=("$arg")
             elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                [[ ${#args[@]} -le $((a+1)) ]] && bad_optarg && return 3
+                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
                 args_options+=("$arg" "${args[((++a))]}")
             else break; fi ;;
     esac; arg="${args[((++a))]}"; done
@@ -157,18 +138,16 @@ while [[ -n $1 ]]; do case "$1" in
     -H|--help) print_help; exit 0 ;;
 esac; shift; done
 
-for a in "${args_options[@]}"; do echo " - $a"; done
-
 # print terminal colors:
 if [[ $n_colors != 0 ]]; then
     [[ $n_colors =~ ^0*[0-9]*$ ]] || n_colors=16
     n=${#n_colors}
     [[ $n_colors =~ ^0*([0-9]*)$ ]] && n_colors="${BASH_REMATCH[1]}"
     [[ $n_colors -gt 256 ]] && n_colors=256
-    for ((i=0;i<=n;i++)); do n_block="$n_block$block"; done
+    for ((i=0;i<=n;i++)); do blockn="$blockn$block"; done
     for ((i=0;i<n_colors;i=i+8)); do
         for ((j=i;j<i+8&&j<n_colors;j++)); do
-            printf '\e[48;5;%dm\e[38;5;%dm%s\e[0m' $j $j "$n_block"
+            printf '\e[48;5;%dm\e[38;5;%dm%s\e[0m' $j $j "$blockn"
         done
         if ! ((QUIET)); then
             if [[ $n_colors -gt 8 && $((i+8)) -gt $n_colors ]]; then

@@ -16,6 +16,8 @@ fi
 set -o vi
 shopt -s dotglob globstar failglob
 complete -cf apropos do ltrace man strace sudo time torsocks watch
+
+# set terminal window title to last executed command:
 trap 'printf "\033]0;%s\007" "${BASH_COMMAND:0:32}"' DEBUG
 
 ## functions: aliases ::
@@ -23,7 +25,7 @@ cd-() { cd - >/dev/null || return 1 ;}
 [ -d "$UDIR/.user" ] && cd.() { cd "$UDIR/.user" ;}
 cd..() { cd .. ;}
 cd/() { cd / || return 1 ;}
-is_bin ffmpeg && ffmpeg-mp3() { for arg in "$@"; do ffmpeg -i "$arg" "${arg%.*}.mp3"; done ;}
+is_bin ffmpeg && ffmpeg-mp3() { for a in "$@"; do ffmpeg -i "$a" "${a%.*}.mp3"; done ;}
 is_bin yt-dlp && yt-dlp-audio() { command yt-dlp -f 'ba[ext=m4a]' -x "$@" ;}
 
 ## functions: commands ::

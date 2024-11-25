@@ -1,5 +1,5 @@
 ## ~/.shellcheckrc ::
 
-disable=SC1007,SC1091,SC2059,SC2076,SC2094,SC2128,SC2155,SC2164
+disable=SC1007,SC1091,SC2059,SC2076,SC2155,SC2164
 
 # vim: set ft=config:

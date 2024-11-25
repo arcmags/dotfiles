@@ -266,7 +266,7 @@ tnoremap <c-x> <scriptcmd>BufWipe('!')<cr>
 nnoremap <c-w>M <scriptcmd>BufMatch()<cr>
 tnoremap <c-w>M <scriptcmd>BufMatch()<cr>
 
-## mappings windows ::
+## mappings: windows ::
 nnoremap <c-;> <c-w>w
 nnoremap <c-w><c-space> <c-w><c-p>
 nnoremap <c-w><space> <c-w><c-p>
@@ -291,7 +291,7 @@ tnoremap <expr> <c-w><c-q> '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$')
 tnoremap <expr> <c-w>Q '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1 ? 'q!' : 'qa!')) .. '<cr>'
 tnoremap <expr> <c-w>q '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1 ? 'q' : 'qa')) .. '<cr>'
 
-# tabs:
+## mappings: tabs ::
 nnoremap <c-w><c-t> <cmd>tab split<cr>
 nnoremap <c-w>t <cmd>tab split<cr>
 tnoremap <c-w><c-t> <cmd>tab split<cr>
@@ -300,26 +300,20 @@ nnoremap [t gT
 nnoremap ]t gt
 nnoremap [T 1gt
 nnoremap ]T 1gtgT
-#nnoremap <c-j> gt
-#tnoremap <c-w><c-j> <c-w>Ngt
-#tnoremap <c-w>j <c-w>Ngt
-#nnoremap <c-k> gT
-#tnoremap <c-w><c-k> <c-w>NgT
-#tnoremap <c-w>k <c-w>NgT
 
 # move tab:
 nnoremap <c-w>Gt <scriptcmd>TabMove()<cr>
 nnoremap <c-w>GT <scriptcmd>TabMove('-')<cr>
 
-# search:
-# search for non ascii characters:
+## mappings: search ::
 nnoremap <leader>/A /[^ -~]<cr>
+nnoremap <leader>/u /https\?:[^ ]*<cr>
 
-# navigation:
+## mappings: navigation ::
 nnoremap <c-j> gj
 nnoremap <c-k> gk
 
-# text:
+## mappings: text ::
 nnoremap Q gwip
 vnoremap Q gw
 
@@ -364,8 +358,11 @@ vnoremap <m-k> <esc><cmd>'<,'>m'<-2<cr>gv
 nnoremap <expr> [<space> 'mz<scriptcmd>append(line(".") - 1, repeat([""], ' .. v:count1 .. '))<cr>`z'
 nnoremap <expr> ]<space> 'mz<scriptcmd>append(line("."), repeat([""], ' .. v:count1 .. '))<cr>`z'
 
+# insert spaces to [count] column:
+nnoremap <leader><tab> <scriptcmd>setline(getpos('.')[1], slice(getline('.'), 0, getpos('.')[2] - 1) .. repeat(' ', v:count1 - getpos('.')[2] + 1) .. getline('.')[getpos('.')[2] - 1 : ])<bar>if v:count1 > getpos('.')[2]<bar>setpos('.', getpos('.')[0 : 1] + [v:count1 + 1] + getpos('.')[3 : 3])<bar>endif<cr>
+
 # toggle comment:
-noremap <leader>U <scriptcmd>CommentToggle('!')<cr>
+noremap <>U <scriptcmd>CommentToggle('!')<cr>
 noremap <leader>u <scriptcmd>CommentToggle()<cr>
 
 # toggle boolean:
@@ -396,7 +393,7 @@ nnoremap <leader>fd <scriptcmd>DateUpdate()<cr>
 nnoremap <leader>fc mz<cmd>keepp s/\<\(\w\)\(\w*\)/\u\1\L\2/ge<cr>`z
 vnoremap <leader>fc mz<esc><cmd>'<,'>keepp s/\%V\<\(\w\)\(\w*\)\%V/\u\1\L\2/ge<cr>`z
 
-## mapping: del, yank, put ::
+## mappings: delete, yank, put ::
 # delete without yanking:
 nnoremap <leader>d "_d
 nnoremap <leader>D "_d$

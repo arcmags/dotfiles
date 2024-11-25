@@ -9,96 +9,56 @@ SYNOPSIS
     usync <command> [option...]
 
 DESCRIPTION
-    Usync is an rsync wrapper controlled by a simple config file. Usync
-    searches the current and parent directories for a .usync file that defines
-    a remote rsync host and base working directory.
+    usync is an rsync wrapper configured by a basic yaml file. usync searches
+    the current and parent directories for a file named .usync. The directory
+    containing .usync is the local base working directory while the contents of
+    .usync define a remote rsync host.
+
+    usync forms an rsync command to push/pull the contents of the base working
+    directory to/from the remote host using the rsync options: -azz --delete
+    --protect-args. Exclude patterns may be added in .usync or via command
+    line arguments.
 
 COMMANDS
-    init
-        Create a new .usync file in current directory.
-
-    push
-        Push changes to remote source.
-
-    pull
-        Pull changes from remote source.
+    init    Create a new .usync file in current directory.
+    push    Push changes to remote rsync host.
+    pull    Pull changes from remote rsync host.
 
 OPTIONS
-    -c, --config <file>
-        Set config file basename. Usync searches current and parent directories
-        for <file> and uses that file and directory as its configuration and
-        base working directory.
-
-    -d, --dir <directory>
-        Set remote rsync directory.
-
-    -e, --exclude <pattern>
-        Add to exclude patterns.
-
-    -p, --port <port>
-        Set remote port number.
-
-    -r, --remote, --url <url>
-        Set remote rsync url.
-
-    -u, --user <user>
-        Set remote rsync/ssh user.
-
-    -D, --dryrun
-        Perform dry run making no changes.
-
-    -Q, --quiet
-        Don't write anything to stdout.
-
-    -V, --verbose
-        Print more verbose information.
-
-    --nocolor
-        Disable colored output.
-
-    -H, --help
-        Print help.
+    -c, --config <file>         Set config file basename. (default: .usync)
+    -d, --dir <directory>       Set remote rsync directory.
+    -e, --exclude <pattern>     Add to rsync exclude patterns.
+    -p, --port <port>           Set remote rsync port number.
+    -r, --remote, --url <url>   Set remote rsync url. May be an ssh alias
+    -u, --user <user>           Set remote rsync user.
+    -D, --dryrun                Perform dry run making no changes.
+    -Q, --quiet                 Don't write anything to stdout.
+    -V, --verbose               Print more verbose information.
+    --nocolor                   Disable colored output.
+    -H, --help                  Print help.
 
 CONFIG
     .usync - yaml file containing the following keys:
-
-    dir
-        Remote repo directory. Must be a full path. (required)
-
-    remote or url
-        Remote repo url. May be an ssh alias. (required)
-
-    port
-        Remote port. (optional)
-
-    user
-        Remote user. (optional)
-
-    exclude
-        List of patterns to exclude via rsync --exclude option. (optional)
-        See FILTER RULES section of rsync manual for details and syntax.
+        dir             Remote repo directory. Must be a full path. (required)
+        remote or url   Remote repo url. May be an ssh alias. (required)
+        port            Remote port.
+        user            Remote user.
+        exclude         List of patterns excluded via rsync --exclude option.
 
 ENVIRONMENT
-    NOCOLOR=1
-        Disable colored output.
-
-    QUIET=1
-        Run silently
-
-    VERBOSE=1
-        Run verbosely.
-
-REQUIREMENTS
-    rsync, ssh
+    NOCOLOR=1   Disable colored output.
+    QUIET=1     Run silently.
+    VERBOSE=1   Run verbosely.
 HELPDOC
 }
-[[ "$0" != "$BASH_SOURCE" ]] && print_help && return 0
+[[ $0 != "${BASH_SOURCE[0]}" ]] && { print_help; return 0 ;}
+[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
 
 ## settings ::
 readonly -a deps=(rsync ssh)
-readonly -a opts=(init pull push -c: --config: -d: --dir: -e: --exclude: -p: --port: -r: --remote: --url: -u: --user: -D --dryrun -Q --quiet -V --verbose --debug --nocolor -H --help)
-
-# defaults:
+readonly -a opts=(init pull push
+    -c: --config: -d: --dir: -e: --exclude: -p: --port: -r: --remote: --url:
+    -u: --user: -D --dryrun -Q --quiet -V --verbose --debug --nocolor -H --help)
 DEBUG="${DEBUG:-0}"
 NOCOLOR="${NOCOLOR:-0}"
 QUIET="${QUIET:-0}"
@@ -106,44 +66,36 @@ VERBOSE="${VERBOSE:-0}"
 
 ## internal functions/variables ::
 readonly -a args=("$@")
-args_operands=() args_options=() args_parsed=()
-init=0 pull=0 push=0 dryrun=0
+args_operands=() args_options=()
 declare opt_dir opt_port opt_remote opt_user
+init=0 pull=0 push=0 dryrun=0
 dir= port= remote= user=
 excludes=()
 conf=.usync
 host="$HOSTNAME"
 in_exclude=0
 remote_dir=
-rsync_args=(-azz --protect-args '--info=copy1,del1,name1' --delete)
-sed_args=()
+cmd_rsync=(rsync -azz --delete --protect-args '--info=copy1,del1,name1')
+cmd_sed=(sed -Ee '/\/$/d' -e '/^created /d')
 
 # colors:
 blue=$'\e[38;5;12m'
 bold=$'\e[1m'
 green=$'\e[38;5;10m'
-grey=$'\e[38;5;8m'
 off=$'\e[0m'
 red=$'\e[38;5;9m'
 white=$'\e[38;5;15m'
 yellow=$'\e[38;5;11m'
-if tput setaf 0 &>/dev/null; then
-    blue="$(tput setaf 12)"
-    bold="$(tput bold)"
-    green="$(tput setaf 10)"
-    grey="$(tput setaf 8)"
-    off="$(tput sgr0)"
-    red="$(tput setaf 9)"
-    white="$(tput setaf 15)"
-    yellow="$(tput setaf 11)"
-fi
-clear_colors() { unset blue bold green grey off red white yellow ;}
+clear_colors() { unset blue bold green off red white yellow ;}
 
 # messages:
-msg() { ((QUIET)) || printf "$bold$blue=> $off$white$1$off\n" "${@:2}" ;}
-msg_debug() { ((DEBUG)) && printf "${yellow}D: $off$1\n" "${@:2}" >&2 ;}
-msg_error() { printf "$bold${red}E: $off$white$1$off\n" "${@:2}" >&2 ;}
-msg_warn() { printf "$bold${yellow}W: $off$white$1$off\n" "${@:2}" >&2 ;}
+msg() { ((QUIET)) || printf "$bold$blue=> $off$white$*$off\n" ;}
+msg2() { ((QUIET)) || printf "$bold$blue > $off$white$*$off\n" ;}
+msg_debug() { ((DEBUG)) && printf "${yellow}D: $off$*\n" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white$*$off\n" >&2 ;}
+msg_good() { ((QUIET)) || printf "$bold$green=> $off$white$*$off\n" ;}
+msg_plain() { ((QUIET)) || printf "$off$white   $*$off\n" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white$*$off\n" >&2 ;}
 msg_cmd() {
     ((QUIET)) && return
     [[ $EUID -eq 0 ]] && printf "$bold$red #" || printf "$bold$blue $"
@@ -152,12 +104,10 @@ msg_cmd() {
 
 # errors:
 error() { msg_error "$@"; exit 3 ;}
-error_opt() { error "unrecognized option: $1" "${@:2}" ;}
-error_optarg() { error "option requires an argument: $1" "${@:2}" ;}
-error_flg() { error "option does not take argument: $1" "${@:2}" ;}
 
 # tests:
 is_cmd() { command -v "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
 
 # commands:
 cmd_printf='printf'
@@ -168,40 +118,34 @@ exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 parse_args() {
     local a=0 opt= sflgs= sopts= arg="${args[0]}"
     local -a lflgs=() lopts=()
+    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
+    bad_optarg() { msg_error "option requires an argument: $arg" ;}
+    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
     for opt in "${opts[@]}"; do case "$opt" in
         -?) sflgs="$sflgs${opt:1}" ;;
         -?:) sopts="$sopts${opt:1:1}" ;;
         *:) lopts+=("${opt:0:-1}") ;;
         *) lflgs+=("$opt") ;;
     esac; done
-    while [[ -n "$arg" ]]; do
-        case "$arg" in
-            --) ((a++)); break ;;
-            -[$sflgs]) args_parsed+=("$arg") ;;
-            -[$sflgs]*)
-                [[ "$sflgs$sopts" =~ "${arg:2:1}" ]] || error_opt "-${arg:2:1}"
-                args_parsed+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
-            -[$sopts])
-                [[ $((${#args[@]}-a)) -le 1 ]] && error_optarg "$arg"
-                args_parsed+=("$arg" "${args[((++a))]}") ;;
-            -[$sopts]*) args_parsed+=("${arg:0:2}" "${arg:2}") ;;
-            *=*)
-                [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && error_flg "${arg%%=*}"
-                [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-                args_parsed+=("${arg%%=*}" "${arg#*=}") ;;
-            *)
-                if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
-                    args_parsed+=("$arg")
-                elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                    [[ ${#args[@]} -le $((a+1)) ]] && error_optarg "$arg"
-                    args_parsed+=("$arg" "${args[((++a))]}")
-                else break; fi ;;
-        esac
-        arg="${args[((++a))]}"
-    done
-    args_options=("${args_parsed[@]}")
+    while [[ -n $arg ]]; do case "$arg" in
+        --) ((a++)); break ;;
+        -[$sflgs]) args_options+=("$arg") ;;
+        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
+            args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
+            args_options+=("$arg" "${args[((++a))]}") ;;
+        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
+            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
+            args_options+=("${arg%%=*}" "${arg#*=}") ;;
+        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
+                args_options+=("$arg")
+            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
+                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
+                args_options+=("$arg" "${args[((++a))]}")
+            else break; fi ;;
+    esac; arg="${args[((++a))]}"; done
     args_operands=("${args[@]:a}")
-    args_parsed+=('--' "${args[@]:a}")
 }
 
 ## main ::
@@ -209,7 +153,7 @@ trap exit INT
 ((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
 
 # parse args:
-parse_args
+parse_args || exit
 set -- "${args_options[@]}"
 while [[ -n "$1" ]]; do case "$1" in
     init) init=1 ;;
@@ -231,18 +175,18 @@ esac; shift; done
 
 # errors:
 for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
-[[ ${#args_operands[@]} -gt 0 ]] && error_opt "${args_operands[0]}"
+[[ ${#args_operands[@]} -gt 0 ]] && error 'too many arguments'
 ((init+push+pull-1)) && error 'too many commands'
-! ((init+push+pull)) && msg_warn 'no command' && exit 0
-[[ "$conf" =~ / ]] && error "config file name is not a basename: $conf"
-[[ -z "$conf" ]] && error 'config file name cannot be blank'
-[[ -n "${opt_dir+x}" && -z "$opt_dir" ]] && error 'remote directory name cannot be blank'
-[[ -n "${opt_remote+x}" && -z "$opt_remote" ]] && error 'remote url cannot be blank'
-[[ -z "$opt_port" || ("$opt_port" =~ ^[1-9][0-9]*$ && $opt_port -lt 65536) ]] || error "invalid port: $opt_port"
+((init+push+pull)) || { msg_warn 'no command'; exit 0 ;}
+[[ $conf =~ / ]] && error "config file name is not a basename: $conf"
+[[ -z $conf ]] && error 'config file name cannot be blank'
+[[ -n ${opt_dir+x} && -z $opt_dir ]] && error 'blank remote directory name'
+[[ -n ${opt_remote+x} && -z $opt_remote ]] && error 'remote url cannot be blank'
+[[ -z $opt_port ]] || is_port "$opt_port" || error "invalid port: $opt_port"
 
 if ((init)); then
     # create new .usync file in current directory:
-    [[ -f "$conf" ]] && error "already exists: $conf"
+    [[ -f $conf ]] && error "already exists: $conf"
     touch "$conf"
     { printf '## %s ::\n\n' "$(realpath "$conf")"
     printf 'dir: %s\n' "${opt_dir:-$PWD}"
@@ -256,98 +200,99 @@ if ((init)); then
 fi
 
 # cd to nearest parent directory that contains config file:
-while [[ ! -f "$conf" && "$PWD" != '/' ]]; do cd ..; done
-[[ ! -f "$conf" ]] && error "config not found: $conf"
+while [[ ! -f $conf && $PWD != / ]]; do cd ..; done
+[[ ! -f $conf ]] && error "config not found: $conf"
 
 # parse config:
-mapfile -t lines < <(sed -E -e 's/(^\s+|\s+$)//g' -e '/^(#|$|-$)/d' "$conf")
-in_exclude=0
-for l in "${lines[@]}"; do
+# TODO: dedicated config/yaml parsing function
+while read -r l; do
     if ((in_exclude)); then
-        [[ "$l" =~ ^-\ +(.*) ]] && excludes+=("${BASH_REMATCH[1]}") && continue
+        [[ $l =~ ^-\ +(.*) ]] && excludes+=("${BASH_REMATCH[1]}") && continue
         in_exclude=0
     fi
-    [[ "$l" =~ ^dir:\ +(.*) ]] && dir="${BASH_REMATCH[1]}" && continue
-    [[ "$l" =~ ^port:\ +(.*) ]] && port="${BASH_REMATCH[1]}" && continue
-    [[ "$l" =~ ^url:\ +(.*) ]] && remote="${BASH_REMATCH[1]}" && continue
-    [[ "$l" =~ ^remote:\ +(.*) ]] && remote="${BASH_REMATCH[1]}" && continue
-    [[ "$l" =~ ^user:\ +(.*) ]] && user="${BASH_REMATCH[1]}" && continue
-    [[ "$l" == exclude: ]] && in_exclude=1 && continue
-done
+    [[ $l =~ ^dir:\ +(.*) ]] && dir="${BASH_REMATCH[1]}" && continue
+    [[ $l =~ ^port:\ +(.*) ]] && port="${BASH_REMATCH[1]}" && continue
+    [[ $l =~ ^url:\ +(.*) ]] && remote="${BASH_REMATCH[1]}" && continue
+    [[ $l =~ ^remote:\ +(.*) ]] && remote="${BASH_REMATCH[1]}" && continue
+    [[ $l =~ ^user:\ +(.*) ]] && user="${BASH_REMATCH[1]}" && continue
+    [[ $l =~ exclude:\ * ]] && in_exclude=1 && continue
+done < "$conf"
 dir="${opt_dir:-$dir}"
 port="${opt_port:-$port}"
 remote="${opt_remote:-$remote}"
 user="${opt_user:-$user}"
 
 # replace leading ~ with $HOME and remove trailing / from dir:
-[[ "${dir:0:1}" = '~' ]] && dir="$HOME${dir:1}"
-[[ "${dir: -1}" = '/' && "${#dir}" -gt 1 ]] && dir="${dir:0:-1}"
+[[ ${dir:0:1} == '~' ]] && dir="$HOME${dir:1}"
+[[ ${dir: -1} == / && ${#dir} -gt 1 ]] && dir="${dir:0:-1}"
 
 # config errors:
-[[ -z "$remote" ]] && error 'no remote'
-[[ -z "$dir" ]] && error 'no directory'
-[[ -n "$port" && ( ! "$port" =~ ^[1-9][0-9]*$ || $port -gt 65535) ]] && error "invalid port: $port"
+[[ -z $remote ]] && error 'no remote'
+[[ -z $dir ]] && error 'no directory'
+[[ -z $port ]] || is_port "$port" || error "invalid port: $port"
 
 # resolve host and remote:
 [[ -f /etc/hostname ]] && host="$(cat /etc/hostname)"
 [[ -f /etc/hostname- ]] && host="$(cat /etc/hostname-)"
-[[ "$remote" =~ ^(|$host|127.0.0.1)$ ]] && remote='localhost'
+[[ $remote =~ ^(|$host|127.0.0.1)$ ]] && remote='localhost'
 
 # debug info:
 msg_debug "dir=$dir port=$port remote=$remote user=$user"
 msg_debug "excludes=(${excludes[*]})"
 
-# set remote_dir and add user/port to rsync ssh command:
-remote_dir="$dir"
-if [[ "$remote" == localhost ]]; then
+# set remote_dir:
+if [[ $remote == localhost ]]; then
+    remote_dir="$dir"
     # dir is a file:
-    [[ -f "$dir" ]] && error "not a directory: $dir"
+    [[ -f $dir ]] && error "not a directory: $dir"
     # inside remote:
-    if [[ -d "$dir" && "$(realpath "$dir")" = "$(realpath "$PWD")" ]]; then
+    if [[ -d $dir && $(realpath "$dir") == $(realpath "$PWD") ]]; then
         msg_warn 'remote repo: no action taken'; exit 0
     fi
 else
     remote_dir="$remote:$dir"
-    if [[ -n "$port" || -n "$user" ]]; then
-        rsync_args+=('-e' "ssh${port:+ -p $port}${user:+ -l $user}")
+    # add user/port to rsync ssh command:
+    if [[ -n $port || -n $user ]]; then
+        cmd_rsync+=(-e "ssh${port:+ -p $port}${user:+ -l $user}")
     fi
 fi
 
 # add excludes to rsync args:
-for e in "${excludes[@]}"; do rsync_args+=('--exclude' "$e"); done
+for e in "${excludes[@]}"; do cmd_rsync+=('--exclude' "$e"); done
 
-# add --dry-run to rsync args and set output colors:
 if ((dryrun)); then
-    rsync_args+=('--dry-run')
-    sed_args=(-e "s/deleting /$bold$yellow - $off$white/" -e "/ - /! s/^/$bold$yellow + $off$white/")
+    # add --dry-run to rsync args and set output colors to yellow:
+    cmd_rsync+=('--dry-run')
+    cmd_sed+=(-e "s/deleting /$bold$yellow - $off$white/"
+        -e "/ - /! s/^/$bold$yellow + $off$white/")
 else
-    sed_args=(-e "s/deleting /$bold$red - $off$white/" -e "/ - /! s/^/$bold$green + $off$white/")
+    # set output colors to green and red:
+    cmd_sed+=(-e "s/deleting /$bold$red - $off$white/"
+        -e "/ - /! s/^/$bold$green + $off$white/")
 fi
 
-# set rsync push/pull args:
+# add rsync push/pull args:
 if ((push)); then
-    msg 'pushing %q to %q ...' "$PWD/" "$remote_dir/"
+    msg "pushing $PWD/ to $remote_dir/"
     if [[ "$remote" == localhost ]]; then
         # create local directory:
-        if [[ ! -d "$dir" ]] && ! ((dryrun)); then
-            exec_cmd mkdir -p "$dir"
-        fi
+        ((dryrun)) || [[ -d $dir ]] || exec_cmd mkdir -p "$dir"
     elif ! ((dryrun)); then
         # create remote directory:
-        rsync_args+=('--rsync-path' "mkdir -p '$dir' && rsync")
+        cmd_rsync+=('--rsync-path' "mkdir -p '$dir' && rsync")
     fi
-    rsync_args+=("$PWD/" "$remote_dir")
+    cmd_rsync+=("$PWD/" "$remote_dir")
 elif ((pull)); then
-    msg 'pulling %q from %q ...' "$PWD/" "$remote_dir/"
-    rsync_args+=("$remote_dir/" "$PWD")
+    msg "pulling $PWD/ from $remote_dir/"
+    cmd_rsync+=("$remote_dir/" "$PWD")
 fi
 
 # rsync:
-((VERBOSE)) && msg_cmd rsync "${rsync_args[@]}"
+((VERBOSE)) && msg_cmd "${cmd_rsync[@]}"
 if ((QUIET)); then
-    rsync "${rsync_args[@]}" 1>/dev/null
+    "${cmd_rsync[@]}" 1>/dev/null
 else
-    rsync "${rsync_args[@]}" | sed -Ee '/\/$/d' -e '/^created /d' "${sed_args[@]}"
+    "${cmd_rsync[@]}" | "${cmd_sed[@]}"
 fi
 
 # dryrun warning:
