@@ -1,0 +1,92 @@
+#!/bin/bash
+## rgb-txt ::
+
+print_help() { cat <<'HELPDOC'
+NAME
+    rgb-txt - parse rgb.txt
+
+SYNOPSIS
+    rgb-txt [option] [file]
+
+DESCRIPTION
+    This script parses xorg color file rgb.txt and prints sorted colors with
+    hex and rgb values to stdout. Color names containing spaces or X11 are
+    skipped. <https://gitlab.freedesktop.org/xorg/app/rgb/raw/master/rgb.txt>
+
+OPTIONS
+    -C, --color     Print color swatches using terminal escape sequences.
+    -H, --help      Print help.
+HELPDOC
+}
+[[ $0 != "$BASH_SOURCE" ]] && { print_help; return 0 ;}
+[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
+
+## settings ::
+graygrey=grey
+NOCOLOR="${NOCOLOR:-0}"
+url='https://gitlab.freedesktop.org/xorg/app/rgb/raw/master/rgb.txt'
+readonly graygrey NOCOLOR url
+
+## internal functions/variables ::
+color=0
+txt=
+
+# constants:
+block6=$'\u2588\u2588\u2588\u2588\u2588\u2588'
+fstring='\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm%s\e[0m'
+regex_color='^([0-9]+) +([0-9]+) +([0-9]+)[^A-Za-z0-9]+(.*)'
+readonly block6 fstring regex_color
+
+# colors:
+blue=$'\e[38;5;12m'
+bold=$'\e[1m'
+off=$'\e[0m'
+red=$'\e[38;5;9m'
+white=$'\e[38;5;15m'
+yellow=$'\e[38;5;11m'
+clear_colors() { unset blue bold off red white yellow ;}
+
+# messages:
+msg() { printf "$bold$blue=> $off$white$*$off\n" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white$*$off\n" >&2 ;}
+msg_warn() { printf "$bold${yellow}W: $off$white$*$off\n" >&2 ;}
+
+# errors:
+error() { msg_error "$*"; exit 3 ;}
+
+# tests:
+is_cmd() { command -v "$1" &>/dev/null ;}
+
+## main ::
+trap exit INT
+((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
+
+# parse args:
+while [[ -n $1 ]]; do case "$1" in
+    -C|--color) color=1 ;;
+    -H|--help) print_help; exit 0 ;;
+    *) break ;;
+esac; shift; done
+
+# get text from file:
+if [[ -n $1 ]]; then
+    [[ -f $1 ]] || error "file error: $1"
+    txt="$(<"$1")"
+
+# get text from url:
+else
+    is_cmd curl || error 'curl not found\n'
+    msg "retrieving: $url"
+    txt="$(curl -s "$url")"
+fi
+
+# print parsed, sorted colors:
+while read -r line; do
+    [[ $graygrey == gray && $line = *grey* ]] && continue
+    [[ $graygrey == grey && $line = *gray* ]] && continue
+    [[ $line =~ $regex_color ]] || continue
+    printf '%-20s  ' "${BASH_REMATCH[4]}"
+    ((color)) && printf "$fstring" "${BASH_REMATCH[@]:1:3}" "${BASH_REMATCH[@]:1:3}"  "$block6"
+    printf '  %02x%02x%02x  %-12s\n' "${BASH_REMATCH[@]:1:3}" \
+        "${BASH_REMATCH[1]},${BASH_REMATCH[2]},${BASH_REMATCH[3]}"
+done <<<"$txt" | sort -Vfk1,1 | sed -e '/[^ ] [^ ]/d' -e '/X11/d'
