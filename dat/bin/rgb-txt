@@ -6,12 +6,15 @@ NAME
     rgb-txt - parse rgb.txt
 
 SYNOPSIS
-    rgb-txt [option] [file]
+    rgb-txt [option...] [file]
 
 DESCRIPTION
-    This script parses xorg color file rgb.txt and prints sorted colors with
-    hex and rgb values to stdout. Color names containing spaces or X11 are
-    skipped. <https://gitlab.freedesktop.org/xorg/app/rgb/raw/master/rgb.txt>
+    This script parses the xorg color file rgb.txt and prints sorted color
+    names with hex and rgb values to stdout. If an rgb.txt file is not supplied
+    rgb-txt will attempt to download the latest version from gitlab. Color
+    names containing spaces or X11 are skipped by default.
+
+    <https://gitlab.freedesktop.org/xorg/app/rgb/raw/master/rgb.txt>
 
 OPTIONS
     -C, --color     Print color swatches using terminal escape sequences.
@@ -24,12 +27,15 @@ HELPDOC
 ## settings ::
 graygrey=grey
 NOCOLOR="${NOCOLOR:-0}"
+skipspaces=1
+skipX11=1
 url='https://gitlab.freedesktop.org/xorg/app/rgb/raw/master/rgb.txt'
-readonly graygrey NOCOLOR url
+readonly graygrey NOCOLOR skipspaces skipX11 url
 
 ## internal functions/variables ::
 color=0
 txt=
+sed_filter=(cat)
 
 # constants:
 block6=$'\u2588\u2588\u2588\u2588\u2588\u2588'
@@ -68,6 +74,11 @@ while [[ -n $1 ]]; do case "$1" in
     *) break ;;
 esac; shift; done
 
+# set sed filter:
+((skipspaces+skipX11)) && sed_filter=(sed)
+((skipspaces)) && sed_filter+=(-e '/[^ ] [^ ]/d')
+((skipX11)) && sed_filter+=(-e '/[Xx]11/d')
+
 # get text from file:
 if [[ -n $1 ]]; then
     [[ -f $1 ]] || error "file error: $1"
@@ -89,4 +100,6 @@ while read -r line; do
     ((color)) && printf "$fstring" "${BASH_REMATCH[@]:1:3}" "${BASH_REMATCH[@]:1:3}"  "$block6"
     printf '  %02x%02x%02x  %-12s\n' "${BASH_REMATCH[@]:1:3}" \
         "${BASH_REMATCH[1]},${BASH_REMATCH[2]},${BASH_REMATCH[3]}"
-done <<<"$txt" | sort -Vfk1,1 | sed -e '/[^ ] [^ ]/d' -e '/X11/d'
+done <<<"$txt" | sort -Vfk1,1 | "${sed_filter[@]}"
+
+# vim:ft=bash

@@ -24,21 +24,21 @@ OPTIONS
 
 REQUIREMENTS
     imagemagick     parse/print named colors (optional)
-    xrdb l)         print xresources colors (optional)
+    xrdb            print xresources colors (optional)
 HELPDOC
 }
 [[ $0 != "$BASH_SOURCE" ]] && { print_help; return 0 ;}
 [[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
 
 ## settings ::
-readonly -a opts=(-c: --colors: -g: --graygrey: -A --all -M --most -X --xrdb
-    -Q --quiet -H --help)
 graygrey=grey
 n_colors=16
 QUIET="${QUIET:-0}"
 
 ## internal functions/variables ::
 readonly -a args=("$@")
+readonly -a opts=(-c: --colors: -g: --graygrey: -A --all -M --most -X --xrdb
+    -Q --quiet -H --help)
 args_operands=() args_options=()
 colors_warn=()
 allcolors=0

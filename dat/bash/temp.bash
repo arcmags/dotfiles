@@ -29,8 +29,6 @@ HELPDOC
 [[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
 
 ## settings ::
-readonly -a deps=()
-readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --nocolor -H --help)
 DEBUG="${DEBUG:-0}"
 NOCOLOR="${NOCOLOR:-0}"
 QUIET="${QUIET:-0}"
@@ -39,6 +37,8 @@ remote='localhost'
 
 ## internal functions/variables ::
 readonly -a args=("$@")
+readonly -a deps=()
+readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --nocolor -H --help)
 args_operands=() args_options=() args_parsed=()
 readonly script="$(realpath "$BASH_SOURCE")"
 host="$HOSTNAME"
@@ -84,8 +84,8 @@ cmd_printf='printf'
 exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 
 # arg parser:
-# Separate combined options, return nonzero if error.
-# Parse args and opts; set args_operands and args_options:
+# Parses command line options, separates combined options, returns 3 if error.
+# Usage:
 #   args=("$@")
 #   opts=(-f --for -b: --bar: help)
 #   parse_args || exit
@@ -122,6 +122,30 @@ parse_args() {
             else break; fi ;;
     esac; arg="${args[((++a))]}"; done
     args_operands=("${args[@]:a}")
+}
+
+# yaml parser:
+# Parses basic yaml text. Handles only entries at root level, can handle lists.
+# Usage:
+#   yaml="$(<conf.yml)"
+#   parse_yaml
+#   for key in ${!yaml_@}; do ... ; done
+# TODO: add some error checking
+parse_yaml() {
+    local in_list=0 key= list=()
+    while read -r l; do
+        if ((in_list)); then
+            if [[ $l =~ ^-\ +(.*) ]]; then
+                list+=("${BASH_REMATCH[1]}"); continue
+            else declare -ga "yaml_$key"='("${list[@]}")'; in_list=0
+        fi; fi
+        if [[ $l =~ ^([A-Za-z][A-Za-z0-9_-]*):\ *$ ]]; then
+            key="${BASH_REMATCH[1]}"; list=(); in_list=1; continue
+        fi
+        if [[ $l =~ ^([A-Za-z][A-Za-z0-9_]*):\ +([^ ].*)$ ]]; then
+            declare -g "yaml_${BASH_REMATCH[1]}"="${BASH_REMATCH[2]}"
+        fi
+    done <<<"$yaml"
 }
 
 ## main ::

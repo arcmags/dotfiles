@@ -1,0 +1,9 @@
+## conf.yml ::
+
+dest: ~
+copy: true
+list:
+- 22
+- 44
+
+# vim:ft=yaml

@@ -1,21 +1,33 @@
 #!/bin/bash
-## fsort.bash ::
+## mv-date ::
 
 print_help() { cat <<'HELPDOC'
 NAME
-    fsort.bash - rename/sort files by creation date
+    mv-date - rename/sort files by creation date
 
 SYNOPSIS
-    mv-created.bash [FILE...]
+    mv-date [file...]
 
 DESCRIPTION
     Rename files to their created/modified date.
     Attempt to read any metadata creation tags.
 HELPDOC
-}; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
+}
+[[ $0 != "${BASH_SOURCE[0]}" ]] && { print_help; return 0 ;}
+[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
 
-## control ::
-deps=(exiftool)
+## settings ::
+readonly -a deps=(exiftool)
+#readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --nocolor -H --help)
+DEBUG="${DEBUG:-0}"
+NOCOLOR="${NOCOLOR:-0}"
+QUIET="${QUIET:-0}"
+VERBOSE="${VERBOSE:-0}"
+remote='localhost'
+
+## internal functions/variables ::
+#readonly -a args=("$@")
+#args_operands=() args_options=() args_parsed=()
 
 ## functions ::
 error() { msg_error "$@"; exit 5 ;}
