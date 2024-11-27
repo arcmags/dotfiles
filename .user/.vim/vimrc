@@ -379,8 +379,8 @@ vnoremap <m-a> <c-a>
 vnoremap <m-x> <c-x>
 
 # expand every word to a separate line:
-nnoremap <leader>f1 <cmd>keepp s/^ \+//e<bar>keepp s/ \+/\r/ge<cr>
-vnoremap <leader>f1 <esc><cmd>'<,'>keepp s/^ \+//e<bar>'<,'>keepp s/ \+/\r/ge<cr>
+nnoremap <leader>f1 <cmd>keepp sil s/^ \+//e<bar>keepp sil s/ \+/\r/ge<cr>
+vnoremap <leader>f1 <esc><cmd>'<,'>keepp sil s/^ \+//e<bar>'<,'>keepp sil s/ \+/\r/ge<cr>
 
 # expand sentences to separate lines:
 nnoremap <leader>f. <cmd>keepp s/[.!?]\zs /\1\r/ge<cr>

@@ -493,9 +493,9 @@
 ## Type: QtColor
 # c.colors.webpage.bg = 'white'
 
-## Which algorithm to use for modifying how colors are rendered with
-## darkmode. The `lightness-cielab` value was added with QtWebEngine 5.14
-## and is treated like `lightness-hsl` with older QtWebEngine versions.
+## Which algorithm to use for modifying how colors are rendered with dark
+## mode. The `lightness-cielab` value was added with QtWebEngine 5.14 and
+## is treated like `lightness-hsl` with older QtWebEngine versions.
 ## Type: String
 ## Valid values:
 ##   - lightness-cielab: Modify colors by converting them to CIELAB color space and inverting the L value. Not available with Qt < 5.14.
@@ -509,11 +509,13 @@
 ## Type: Float
 # c.colors.webpage.darkmode.contrast = 0.0
 
-## Render all web contents using a dark theme. Example configurations
-## from Chromium's `chrome://flags`: - "With simple HSL/CIELAB/RGB-based
-## inversion": Set   `colors.webpage.darkmode.algorithm` accordingly, and
-## set `colors.webpage.darkmode.policy.images` to `never`.  - "With
-## selective image inversion": qutebrowser default settings.
+## Render all web contents using a dark theme. On QtWebEngine < 6.7, this
+## setting requires a restart and does not support URL patterns, only the
+## global setting is applied. Example configurations from Chromium's
+## `chrome://flags`: - "With simple HSL/CIELAB/RGB-based inversion": Set
+## `colors.webpage.darkmode.algorithm` accordingly, and   set
+## `colors.webpage.darkmode.policy.images` to `never`.  - "With selective
+## image inversion": qutebrowser default settings.
 ## Type: Bool
 # c.colors.webpage.darkmode.enabled = False
 
@@ -1445,7 +1447,7 @@
 ## CSS selectors used to determine which elements on a page should have
 ## hints.
 ## Type: Dict
-# c.hints.selectors = {'all': ['a', 'area', 'textarea', 'select', 'input:not([type="hidden"])', 'button', 'frame', 'iframe', 'img', 'link', 'summary', '[contenteditable]:not([contenteditable="false"])', '[onclick]', '[onmousedown]', '[role="link"]', '[role="option"]', '[role="button"]', '[role="tab"]', '[role="checkbox"]', '[role="menuitem"]', '[role="menuitemcheckbox"]', '[role="menuitemradio"]', '[role="treeitem"]', '[aria-haspopup]', '[ng-click]', '[ngClick]', '[data-ng-click]', '[x-ng-click]', '[tabindex]:not([tabindex="-1"])'], 'links': ['a[href]', 'area[href]', 'link[href]', '[role="link"][href]'], 'images': ['img'], 'media': ['audio', 'img', 'video'], 'url': ['[src]', '[href]'], 'inputs': ['input[type="text"]', 'input[type="date"]', 'input[type="datetime-local"]', 'input[type="email"]', 'input[type="month"]', 'input[type="number"]', 'input[type="password"]', 'input[type="search"]', 'input[type="tel"]', 'input[type="time"]', 'input[type="url"]', 'input[type="week"]', 'input:not([type])', '[contenteditable]:not([contenteditable="false"])', 'textarea']}
+# c.hints.selectors = {'all': ['a', 'area', 'textarea', 'select', 'input:not([type="hidden"])', 'button', 'frame', 'iframe', 'img', 'link', 'summary', '[contenteditable]:not([contenteditable="false"])', '[onclick]', '[onmousedown]', '[role="link"]', '[role="option"]', '[role="button"]', '[role="tab"]', '[role="checkbox"]', '[role="switch"]', '[role="menuitem"]', '[role="menuitemcheckbox"]', '[role="menuitemradio"]', '[role="treeitem"]', '[aria-haspopup]', '[ng-click]', '[ngClick]', '[data-ng-click]', '[x-ng-click]', '[tabindex]:not([tabindex="-1"])'], 'links': ['a[href]', 'area[href]', 'link[href]', '[role="link"][href]'], 'images': ['img'], 'media': ['audio', 'img', 'video'], 'url': ['[src]', '[href]'], 'inputs': ['input[type="text"]', 'input[type="date"]', 'input[type="datetime-local"]', 'input[type="email"]', 'input[type="month"]', 'input[type="number"]', 'input[type="password"]', 'input[type="search"]', 'input[type="tel"]', 'input[type="time"]', 'input[type="url"]', 'input[type="week"]', 'input:not([type])', '[contenteditable]:not([contenteditable="false"])', 'textarea']}
 
 ## Make characters in hint strings uppercase.
 ## Type: Bool
@@ -1724,6 +1726,15 @@
 ##   - auto: Disable on Qt6 < 6.6.0, enable otherwise
 ##   - never: Enable accelerated 2d canvas
 # c.qt.workarounds.disable_accelerated_2d_canvas = 'auto'
+
+## Disable the Hangouts extension. The Hangouts extension provides
+## additional APIs for Google domains only. Hangouts has been replaced
+## with Meet, which appears to work without this extension. Note this
+## setting gets ignored and the Hangouts extension is always disabled to
+## avoid crashes on Qt 6.5.0 to 6.5.3 if dark mode is enabled, as well as
+## on Qt 6.6.0.
+## Type: Bool
+# c.qt.workarounds.disable_hangouts_extension = False
 
 ## Work around locale parsing issues in QtWebEngine 5.15.3. With some
 ## locales, QtWebEngine 5.15.3 is unusable without this workaround. In
@@ -2146,7 +2157,7 @@
 ## Type: List of FuzzyUrl, or FuzzyUrl
 # c.url.start_pages = ['https://start.duckduckgo.com']
 
-## URL parameters to strip with `:yank url`.
+## URL parameters to strip when yanking a URL.
 ## Type: List of String
 # c.url.yank_ignored_parameters = ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_name']
 
@@ -2364,12 +2375,12 @@
 # config.bind('xO', 'cmd-set-text :open -b -r {url:pretty}')
 # config.bind('xo', 'cmd-set-text -s :open -b')
 # config.bind('yD', 'yank domain -s')
-# config.bind('yM', 'yank inline [{title}]({url}) -s')
+# config.bind('yM', 'yank inline [{title}]({url:yank}) -s')
 # config.bind('yP', 'yank pretty-url -s')
 # config.bind('yT', 'yank title -s')
 # config.bind('yY', 'yank -s')
 # config.bind('yd', 'yank domain')
-# config.bind('ym', 'yank inline [{title}]({url})')
+# config.bind('ym', 'yank inline [{title}]({url:yank})')
 # config.bind('yp', 'yank pretty-url')
 # config.bind('yt', 'yank title')
 # config.bind('yy', 'yank')

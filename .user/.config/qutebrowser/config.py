@@ -37,20 +37,10 @@ config.load_autoconfig(False)
 # I like Hack, but for some reason bold doesn't work in qutebrowser. May have to use something else.
 c.fonts.default_family = [ 'Hack', 'monospace' ]
 c.fonts.default_size = '14px'
-c.fonts.completion.category = 'bold default_size default_family'
-c.fonts.completion.entry = 'default_size default_family'
-c.fonts.contextmenu = 'default_size default_family'
-c.fonts.debug_console = 'default_size default_family'
-c.fonts.downloads = 'default_size default_family'
 c.fonts.hints = 'bold 12px default_family'
-c.fonts.keyhint = 'default_size default_family'
-c.fonts.messages.error = 'default_size default_family'
-c.fonts.messages.info = 'default_size default_family'
-c.fonts.messages.warning = 'default_size default_family'
 c.fonts.prompts = 'default_size default_family'
 c.fonts.statusbar = 'bold default_size default_family'
 c.fonts.tabs.selected = 'bold default_size default_family'
-c.fonts.tabs.unselected = 'normal default_size default_family'
 c.fonts.tooltip = 'default_size default_family'
 c.fonts.web.size.default = 16
 c.fonts.web.size.default_fixed = 14
@@ -198,6 +188,11 @@ c.colors.webpage.darkmode.threshold.background = 160
 c.colors.webpage.darkmode.threshold.foreground = 128
 c.colors.webpage.preferred_color_scheme = 'dark'
 
+# darkmode exceptions:
+for domain in ['mossberg.com', 'smith-wesson.com']:
+    with config.pattern('*://*.' + domain + '/*') as d:
+        d.colors.webpage.darkmode.enabled = False
+
 ## content  ::
 c.content.default_encoding = 'utf-8'
 c.content.headers.accept_language = 'en-US,en;q=0.9'
@@ -240,6 +235,13 @@ c.content.javascript.prompt = True
 c.content.local_content_can_access_file_urls = True
 c.content.local_content_can_access_remote_urls = True
 c.content.local_storage = True
+
+# enable everything in devtools:
+for tool in ['devtools', 'chrome-devtools', 'chrome', 'qute']:
+    with config.pattern(tool + '://*') as t:
+        t.content.cookies.accept = 'all'
+        t.content.images = True
+        t.content.javascript.enabled = True
 
 # media:
 c.content.autoplay = False
@@ -320,19 +322,6 @@ c.messages.timeout = 3000
 ## prompt ::
 #c.prompt.filebrowser = True
 c.prompt.radius = 0
-
-## qt webengine ::
-#c.qt.args = []
-#c.qt.chromium.low_end_device_mode = 'auto'
-#c.qt.chromium.process_model = 'process-per-site-instance'
-#c.qt.chromium.sandboxing = 'enable-all'
-#c.qt.environ = {}
-#c.qt.force_platform = None
-#c.qt.force_platformtheme = None
-#c.qt.force_software_rendering = 'none'
-#c.qt.highdpi = False
-#c.qt.workarounds.locale = False
-#c.qt.workarounds.remove_service_workers = False
 
 ## scrolling ::
 c.scrolling.bar = 'always'
@@ -415,14 +404,7 @@ c.zoom.default = '100%'
 #c.zoom.mouse_divider = 512
 #c.zoom.text_only = False
 
-## domain settings ::
-config.set('content.cookies.accept', 'all', 'devtools://*')
-config.set('content.images', True, 'chrome-devtools://*')
-config.set('content.images', True, 'devtools://*')
-config.set('content.javascript.enabled', True, 'chrome-devtools://*')
-config.set('content.javascript.enabled', True, 'chrome://*/*')
-config.set('content.javascript.enabled', True, 'devtools://*')
-config.set('content.javascript.enabled', True, 'qute://*/*')
+# email:
 config.set('content.register_protocol_handler', True, 'https://mail.google.com?extsrc=mailto&url=%25s')
 
 ## bindings ::
@@ -437,21 +419,20 @@ config.set('content.register_protocol_handler', True, 'https://mail.google.com?e
 
 # TODO: fix this to open largest image if setsrc is used
 config.bind(';I', ':hint images run open -t -- {hint-url}')
-config.unbind(';I')
-config.unbind(';Y')
-config.unbind(';b')
-config.unbind(';d')
-config.unbind(';f')
-config.unbind(';h')
-config.unbind(';i')
-config.unbind(';r')
-config.unbind('r')
-config.unbind('<Ctrl-Shift-w>')
-config.unbind('<Ctrl-v>')
-config.unbind('<Ctrl-w>')
-config.unbind('D')
-config.unbind('d')
-# TODO: maybe redo all semicolon bindings?
+
+
+# unbind defaults:
+mappings = [
+    ';I', ';Y', ';b', ';d', ';f', ';h', ';i', ';r', 'r', '<Ctrl-Shift-w>',
+    '<Ctrl-v>', '<Ctrl-w>', 'D', 'd', 'tch', 'tcH', 'tCh', 'tCH', 'tcu', 'tCu',
+    'tih', 'tiH', 'tIh', 'tIH', 'tiu', 'tIu', 'tph', 'tpH', 'tPh', 'tPH',
+    'tpu', 'tPu', 'tsh', 'tsH', 'tSh', 'tSH', 'tsu', 'tSu', 'PP', 'Pp', 'pP',
+    'sf', 'sk', 'sl'
+]
+for keys in mappings:
+    config.unbind(keys)
+
+# TODO: redo all semicolon bindings?
 config.bind(';;', 'hint links')
 config.bind(';<Ctrl-l>', 'config-source ;; reload -f')
 config.bind(';B', 'hint links tab-bg')
@@ -463,6 +444,7 @@ config.bind(';W', 'hint links window')
 config.bind(';f', 'hint links run open -- http://12ft.io/{hint-url}')
 config.bind(';m', 'hint all hover')
 config.bind(';x', 'hint all delete')
+config.bind(';s', 'cmd-set-text -s :set')
 config.bind('<Alt-h>', 'fake-key <Left>')
 config.bind('<Alt-j>', 'fake-key <Down>')
 config.bind('<Alt-k>', 'fake-key <Up>')
@@ -489,15 +471,18 @@ config.bind('H', 'back --quiet')
 config.bind('I', 'hint images run open -t -- {hint-url}')
 config.bind('L', 'forward --quiet')
 config.bind('R', 'hint --rapid links tab-bg')
-config.bind('SB', 'bookmark-list -t')
-config.bind('SH', 'history -t')
-config.bind('SM', 'messages -t')
-config.bind('SP', 'open -t ;; process')
-config.bind('SQ', 'open -t qute://help/')
-config.bind('Sb', 'bookmark-list')
-config.bind('Sm', 'messages')
-config.bind('Sp', 'process')
-config.bind('Sq', 'open qute://help/')
+config.bind('sb', 'bookmark-list')
+config.bind('Sb', 'bookmark-list -t')
+config.bind('sh', 'history')
+config.bind('Sh', 'history -t')
+config.bind('sm', 'messages')
+config.bind('Sm', 'messages -t')
+config.bind('Sp', 'open -t ;; process')
+config.bind('sp', 'process')
+config.bind('sq', 'open qute://help/')
+config.bind('Sq', 'open -t qute://help/')
+config.bind('Ss', 'open -t ;; set')
+config.bind('ss', 'set')
 config.bind('T', 'hint links tab-fg')
 config.bind('W', 'hint links window')
 config.bind('Yg', 'hint userscript xclip-git.bash')
@@ -513,12 +498,22 @@ config.bind('ey', 'spawn -u yt-dlp-mpv.sh download-only {url}')
 config.bind('ez', 'spawn -u zathura.sh')
 config.bind('g<Ctrl-e>', 'open -w {url}')
 config.bind('g<Ctrl-t>', 'open -t {url}')
-config.bind('gT', 'tab-prev')
 config.bind('gt', 'tab-next')
+config.bind('gT', 'tab-prev')
+config.bind('pt', 'open -t -- {clipboard}')
 config.bind('rf', 'open -- http://12ft.io/{url}')
-config.bind('sh', 'config-cycle -p -t fonts.hints 12px 14px 16px 20px 24px')
+config.bind('tf', 'config-cycle -p -t fonts.hints 12px 14px 16px 20px 24px')
 config.bind('tb', 'config-cycle -p -t statusbar.show always in-mode')
-config.bind('tg', 'config-cycle -p -t content.javascript.enabled ;; reload')
+config.bind('tC', 'config-cycle -p -t content.cookies.accept all no-3rdparty never ;; reload')
+config.bind('tc', 'config-cycle -p -t -u *://*.{url:host}/* content.cookies.accept all no-3rdparty never ;; reload')
+config.bind('tD', 'config-cycle -p -t colors.webpage.darkmode.enabled ;; reload')
+config.bind('td', 'config-cycle -p -t -u *://*.{url:host}/* colors.webpage.darkmode.enabled ;; reload')
+config.bind('tI', 'config-cycle -p -t content.images ;; reload')
+config.bind('ti', 'config-cycle -p -t -u *://.*{url:host}/* content.images ;; reload')
+config.bind('tP', 'config-cycle -p -t content.plugins ;; reload')
+config.bind('tp', 'config-cycle -p -t -u *://*.{url:host}/* content.plugins ;; reload')
+config.bind('tS', 'config-cycle -p -t content.javascript.enabled ;; reload')
+config.bind('ts', 'config-cycle -p -t -u *://*.{url:host}/* content.javascript.enabled ;; reload')
 config.bind('tt', 'config-cycle -p -t tabs.show always multiple never')
 config.bind('yg', 'spawn -u xclip-git.bash')
 
