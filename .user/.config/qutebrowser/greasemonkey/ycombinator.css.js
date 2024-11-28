@@ -4,9 +4,10 @@
 // ==/UserScript==
 /* ~/.config/qutebrowser/greasemonkey/ycominator.css.js :: */
 
-var colorBg = '#00002a';
-var colorBg1 = '#20204a';
-var colorBar = '#30305a';
+var style = getComputedStyle(document.body)
+var colorBg = style.getPropertyValue('--color-bg')
+var colorBg1 = style.getPropertyValue('--color-bg1')
+var colorBar = style.getPropertyValue('--color-bar')
 
 var hnmain = document.getElementById('hnmain');
 hnmain.style.background = colorBg1;
@@ -24,19 +25,6 @@ for (let i = 0; i < imgs.length; i++) {
 };
 
 GM_addStyle(`
-    :root {
-        --color-active: #0ef0f0;
-        --color-bar: #30305a;
-        --color-bg: #00002a;
-        --color-bg1: #20204a;
-        --color-code: #f5f5ff;
-        --color-comment: #50507a;
-        --color-em: #fc4cb8;
-        --color-fg: #d0d0fa;
-        --color-heading: #66b0ff;
-        --color-link: #32a6a6;
-    }
-
     body, td, input, textarea, .default, .title, .pagetop, .comment {
         font-size: 14px !important;
     }

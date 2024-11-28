@@ -362,7 +362,7 @@ nnoremap <expr> ]<space> 'mz<scriptcmd>append(line("."), repeat([""], ' .. v:cou
 nnoremap <leader><tab> <scriptcmd>setline(getpos('.')[1], slice(getline('.'), 0, getpos('.')[2] - 1) .. repeat(' ', v:count1 - getpos('.')[2] + 1) .. getline('.')[getpos('.')[2] - 1 : ])<bar>if v:count1 > getpos('.')[2]<bar>setpos('.', getpos('.')[0 : 1] + [v:count1 + 1] + getpos('.')[3 : 3])<bar>endif<cr>
 
 # toggle comment:
-noremap <>U <scriptcmd>CommentToggle('!')<cr>
+noremap <leader>U <scriptcmd>CommentToggle('!')<cr>
 noremap <leader>u <scriptcmd>CommentToggle()<cr>
 
 # toggle boolean:

@@ -39,7 +39,7 @@ remote='localhost'
 readonly -a args=("$@")
 readonly -a deps=()
 readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --nocolor -H --help)
-args_operands=() args_options=() args_parsed=()
+args_operands=() args_options=()
 readonly script="$(realpath "$BASH_SOURCE")"
 host="$HOSTNAME"
 
@@ -125,27 +125,33 @@ parse_args() {
 }
 
 # yaml parser:
-# Parses basic yaml text. Handles only entries at root level, can handle lists.
+# Parses basic single level yaml text, returns 3 if error.
 # Usage:
 #   yaml="$(<conf.yml)"
-#   parse_yaml
-#   for key in ${!yaml_@}; do ... ; done
-# TODO: add some error checking
+#   parse_yaml || exit
+#   for k in ${!yamlarr_@}; do declare -n l="$k"; printf "$k: (${l[*]})\n"; done
+#   for k in ${!yamlstr_@}; do printf "$k: ${!k}\n"; done
 parse_yaml() {
-    local in_list=0 key= list=()
+    local in_list=0 key= list=() regex_key='([A-Za-z][A-Za-z0-9_]*):\ *'
+    bad_yaml() { msg_error "yaml error: $l" ;}
+    end_list() { in_list=0
+        [[ ${#list[@]} -eq 0 ]] && { declare -g "yamlstr_$key"=; return ;}
+        declare -ga "yamlarr_$key"='("${list[@]}")' ;}
     while read -r l; do
+        [[ $l =~ ^\ *(#|$) ]] && continue
         if ((in_list)); then
-            if [[ $l =~ ^-\ +(.*) ]]; then
-                list+=("${BASH_REMATCH[1]}"); continue
-            else declare -ga "yaml_$key"='("${list[@]}")'; in_list=0
-        fi; fi
-        if [[ $l =~ ^([A-Za-z][A-Za-z0-9_-]*):\ *$ ]]; then
+            [[ $l =~ ^-\ +(.*) ]] && { list+=("${BASH_REMATCH[1]}"); continue ;}
+            end_list
+        fi
+        if [[ $l =~ ^$regex_key$ ]]; then
             key="${BASH_REMATCH[1]}"; list=(); in_list=1; continue
         fi
-        if [[ $l =~ ^([A-Za-z][A-Za-z0-9_]*):\ +([^ ].*)$ ]]; then
-            declare -g "yaml_${BASH_REMATCH[1]}"="${BASH_REMATCH[2]}"
+        if [[ $l =~ ^$regex_key\ +([^ ].*)$ ]]; then
+            declare -g "yamlstr_${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"; continue
         fi
+        bad_yaml; return 3
     done <<<"$yaml"
+    ((in_list)) && end_list; return 0
 }
 
 ## main ::
@@ -167,5 +173,10 @@ msg_debug "operands=(${args_operands[*]})"
 
 # errors:
 for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
+
+yaml="$(<conf.yml)"
+parse_yaml || exit
+for k in ${!yamlarr_@}; do declare -n l="$k"; printf "$k: (${l[*]})\n"; done
+for k in ${!yamlstr_@}; do printf "$k: ${!k}\n"; done
 
 # vim:ft=bash

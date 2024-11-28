@@ -34,7 +34,7 @@ def msg_warn(msg='') -> None:
 
 def main() -> int:
     if len(sys.argv) == 1:
-        print('USAGE: conf.py <FILE>')
+        print('usage: conf.py <file>')
         return 5
     file = str(sys.argv[1])
 

@@ -11,39 +11,43 @@ SYNOPSIS
 DESCRIPTION
     usync is an rsync wrapper configured by a basic yaml file. usync searches
     the current and parent directories for a file named .usync. The directory
-    containing .usync is the local base working directory while the contents of
-    .usync define a remote rsync host.
+    containing .usync is taken as the base working directory while the contents
+    of .usync define a remote rsync host.
 
     usync forms an rsync command to push/pull the contents of the base working
-    directory to/from the remote host using the rsync options: -azz --delete
-    --protect-args. Exclude patterns may be added in .usync or via command
-    line arguments.
+    directory to/from the remote host:
+
+        rsync -azz --delete [--exclude <pattern>]... <source> <destination>
+
+    Command line options override config file options.
 
 COMMANDS
+    help    Print help information.
     init    Create a new .usync file in current directory.
-    push    Push changes to remote rsync host.
     pull    Pull changes from remote rsync host.
+    push    Push changes to remote rsync host.
 
 OPTIONS
     -c, --config <file>         Set config file basename. (default: .usync)
     -d, --dir <directory>       Set remote rsync directory.
-    -e, --exclude <pattern>     Add to rsync exclude patterns.
+    -e, --exclude <pattern>     Add exclude pattern. Clear patterns if blank.
     -p, --port <port>           Set remote rsync port number.
-    -r, --remote, --url <url>   Set remote rsync url. May be an ssh alias
+    -r, --remote <url>          Set remote rsync url. May be an ssh alias
+    -s, --source <path>         Add source path. Clear paths if blank
     -u, --user <user>           Set remote rsync user.
     -D, --dryrun                Perform dry run making no changes.
     -Q, --quiet                 Don't write anything to stdout.
     -V, --verbose               Print more verbose information.
     --nocolor                   Disable colored output.
-    -H, --help                  Print help.
+    -H, --help                  Print help text.
 
 CONFIG
-    .usync - yaml file containing the following keys:
-        dir             Remote repo directory. Must be a full path. (required)
-        remote or url   Remote repo url. May be an ssh alias. (required)
-        port            Remote port.
-        user            Remote user.
-        exclude         List of patterns excluded via rsync --exclude option.
+    remote      Remote repo url. May be an ssh alias. (required)
+    remote_dir  Remote repo directory. Must be a full path. (required)
+    source      List of sources to pull/push. (required)
+    port        Remote port.
+    user        Remote user.
+    exclude     List of patterns to exclude via rsync --exclude option.
 
 ENVIRONMENT
     NOCOLOR=1   Disable colored output.
@@ -52,9 +56,11 @@ ENVIRONMENT
 HELPDOC
 }
 [[ $0 != "${BASH_SOURCE[0]}" ]] && { print_help; return 0 ;}
-[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
+[[ $1 =~ ^(-H|--help|help)$ ]] && { print_help; exit ;}
 
-# TODO: add paths explicitly?
+# TODO: test full path sources
+# TODO: check if source contains a source?
+# TODO: option to not --delete?
 
 ## settings ::
 DEBUG="${DEBUG:-0}"
@@ -65,20 +71,23 @@ VERBOSE="${VERBOSE:-0}"
 ## internal functions/variables ::
 readonly -a args=("$@")
 readonly -a deps=(rsync ssh)
-readonly -a opts=(init pull push
-    -c: --config: -d: --dir: -e: --exclude: -p: --port: -r: --remote: --url:
+readonly -a opts=(help init pull push
+    -c: --config: -d: --dir: -e: --exclude: -p: --port: -r: --remote: -s: --source:
     -u: --user: -D --dryrun -Q --quiet -V --verbose --debug --nocolor -H --help)
 args_operands=() args_options=()
-declare opt_dir opt_port opt_remote opt_user
+declare opt_dir opt_port opt_remote opt_user opt_exclude=() opt_source=()
+dir= port= remote= user= exclude=() source=()
 init=0 pull=0 push=0 dryrun=0
-dir= port= remote= user=
-excludes=()
+array=() array_new=()
+cmd_rsync=(rsync -Razz --delete '--info=copy1,del1,name1')
+cmd_sed=(sed -Ee '/\/$/d' -e '/^created /d')
+conf_txt=
 conf=.usync
 host="$HOSTNAME"
-in_exclude=0
 remote_dir=
-cmd_rsync=(rsync -azz --delete --protect-args '--info=copy1,del1,name1')
-cmd_sed=(sed -Ee '/\/$/d' -e '/^created /d')
+yaml=
+exclude_default=(.git /local)
+source_default=(./)
 
 # colors:
 blue=$'\e[38;5;12m'
@@ -150,6 +159,33 @@ parse_args() {
     args_operands=("${args[@]:a}")
 }
 
+# yaml parser:
+parse_yaml() {
+    local key= arr=() y= a=0
+    mapfile -t arr <<<"$yaml"
+    y="${arr[0]}"
+    bad_yaml() { msg_error "yaml error: $y" ;}
+    while [[ -n $y || $a -lt ${#arr[@]} ]]; do
+        if [[ $y =~ ^\ *(#|$) ]]; then
+            y="${arr[((++a))]}"
+        elif [[ $y =~ ^([A-Za-z][A-Za-z0-9_]*):\ *(.*) ]]; then
+            key="yaml_${BASH_REMATCH[1]}"; y="- ${BASH_REMATCH[2]}"
+        elif [[ $y =~ ^-\ +(.*) && -n $key ]]; then
+            declare -ga "$key"+='("${BASH_REMATCH[1]}")'; y="${arr[((++a))]}"
+        else
+            bad_yaml; return 3
+        fi
+    done
+}
+
+parse_array() {
+    array_new=()
+    for a in "${array[@]}"; do
+        [[ -n ${a+x} && -z $a ]] && { array_new=(); continue ;}
+        array_new+=("$a")
+    done
+}
+
 ## main ::
 trap exit INT
 ((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
@@ -163,16 +199,17 @@ while [[ -n "$1" ]]; do case "$1" in
     push) push=1 ;;
     -c|--config) shift; conf="$1" ;;
     -d|--dir) shift; opt_dir="$1" ;;
-    -e|--exclude) shift; excludes+=("$1") ;;
+    -e|--exclude) shift; opt_exclude+=("$1") ;;
     -p|--port) shift; opt_port="$1" ;;
-    -r|--url|--remote) shift; opt_remote="$1" ;;
+    -r|--remote) shift; opt_remote="$1" ;;
+    -s|--source) shift; opt_source+=("$1") ;;
     -u|--user) shift; opt_user="$1" ;;
     -D|--dryrun) dryrun=1 ;;
     -Q|--quiet) QUIET=1; VERBOSE=0 ;;
     -V|--verbose) QUIET=0; VERBOSE=1 ;;
     --debug) DEBUG=1 ;;
     --nocolor) clear_colors ;;
-    -H|--help) print_help; exit 0 ;;
+    -H|--help|help) print_help; exit 0 ;;
 esac; shift; done
 
 # errors:
@@ -182,22 +219,48 @@ for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
 ((init+push+pull)) || { msg_warn 'no command'; exit 0 ;}
 [[ $conf =~ / ]] && error "config file name is not a basename: $conf"
 [[ -z $conf ]] && error 'config file name cannot be blank'
-[[ -n ${opt_dir+x} && -z $opt_dir ]] && error 'blank remote directory name'
-[[ -n ${opt_remote+x} && -z $opt_remote ]] && error 'remote url cannot be blank'
+[[ -d $conf ]] && error 'config file is a directory'
+[[ -n ${opt_remote+x} && -z $opt_remote ]] && error 'no remote url'
+[[ -n ${opt_dir+x} && -z $opt_dir ]] && error 'no remote directory'
+[[ ${#opt_source[@]} -gt 0 && -z ${opt_source[-1]} ]] && error 'no sources'
 [[ -z $opt_port ]] || is_port "$opt_port" || error "invalid port: $opt_port"
 
 if ((init)); then
     # create new .usync file in current directory:
-    [[ -f $conf ]] && error "already exists: $conf"
-    touch "$conf"
-    { printf '## %s ::\n\n' "$(realpath "$conf")"
-    printf 'dir: %s\n' "${opt_dir:-$PWD}"
-    printf 'url: %s\n' "${opt_remote:-localhost}"
-    [[ -n "$opt_port" ]] && printf 'port: %s\n' "$opt_port"
-    [[ -n "$opt_user" ]] && printf 'user: %s\n' "$opt_user"
-    printf 'exclude:\n- .git\n- /local\n'
-    for e in "${excludes[@]}"; do printf '%s %s\n' '-' "$e"; done
-    printf '\n# vim:ft=yaml\n' ;} > "$conf"
+    [[ -e $conf ]] && error "already exists: $conf"
+    conf_txt="## $(realpath "$conf") ::\n\n"
+    conf_txt+="remote: ${opt_remote:-localhost}\n"
+    conf_txt+="remote_dir: ${opt_dir:-$PWD}\n"
+    conf_txt+='source:'
+    if [[ ${#opt_source[@]} -eq 0 ]]; then
+        source=("${source_default[@]}")
+    else
+        array=("${opt_source[@]}"); parse_array; source=("${array_new[@]}")
+    fi
+    if [[ ${#source[@]} -eq 1 ]]; then
+        conf_txt+=" ${source[0]}\n"
+    else
+        conf_txt+='\n'; for s in "${source[@]}"; do conf_txt+="- $s\n"; done
+    fi
+    if [[ ${#opt_exclude[@]} -eq 0 ]]; then
+        exclude=("${exclude_default[@]}")
+    else
+        array=("${opt_exclude[@]}"); parse_array; exclude=("${array_new[@]}")
+    fi
+    [[ ${#exclude[@]} -eq 0 ]] && conf_txt+='#'
+    conf_txt+='exclude:'
+    if [[ ${#exclude[@]} -eq 1 ]]; then
+        conf_txt+=" ${exclude[0]}\n"
+    else
+        conf_txt+='\n'; for e in "${exclude[@]}"; do conf_txt+="- $e\n"; done
+    fi
+    [[ -z "$opt_port" ]] && conf_txt+='#'; conf_txt+="port: $opt_port\n"
+    [[ -z "$opt_user" ]] && conf_txt+='#'; conf_txt+="user: $opt_user\n"
+    conf_txt+='\n# vim:ft=yaml'
+    ((dryrun)) || printf "$conf_txt\n" > "$conf"
+    msg "usync config created: $conf"
+    ((VERBOSE)) && printf "$conf_txt\n"
+    ((dryrun)) && msg_warn 'dryrun'
     exit 0
 fi
 
@@ -206,23 +269,16 @@ while [[ ! -f $conf && $PWD != / ]]; do cd ..; done
 [[ ! -f $conf ]] && error "config not found: $conf"
 
 # parse config:
-# TODO: dedicated config/yaml parsing function
-while read -r l; do
-    if ((in_exclude)); then
-        [[ $l =~ ^-\ +(.*) ]] && excludes+=("${BASH_REMATCH[1]}") && continue
-        in_exclude=0
-    fi
-    [[ $l =~ ^dir:\ +(.*) ]] && dir="${BASH_REMATCH[1]}" && continue
-    [[ $l =~ ^port:\ +(.*) ]] && port="${BASH_REMATCH[1]}" && continue
-    [[ $l =~ ^url:\ +(.*) ]] && remote="${BASH_REMATCH[1]}" && continue
-    [[ $l =~ ^remote:\ +(.*) ]] && remote="${BASH_REMATCH[1]}" && continue
-    [[ $l =~ ^user:\ +(.*) ]] && user="${BASH_REMATCH[1]}" && continue
-    [[ $l =~ exclude:\ * ]] && in_exclude=1 && continue
-done < "$conf"
-dir="${opt_dir:-$dir}"
-port="${opt_port:-$port}"
-remote="${opt_remote:-$remote}"
-user="${opt_user:-$user}"
+yaml="$(<"$conf")"
+parse_yaml || exit
+dir="${opt_dir:-$yaml_remote_dir}"
+port="${opt_port:-$yaml_port}"
+remote="${opt_remote:-$yaml_remote}"
+user="${opt_user:-$yaml_user}"
+array=("${yaml_exclude[@]}" "${opt_exclude[@]}"); parse_array
+exclude=("${array_new[@]}")
+array=("${yaml_source[@]}" "${opt_source[@]}"); parse_array
+source=("${array_new[@]}")
 
 # replace leading ~ with $HOME and remove trailing / from dir:
 [[ ${dir:0:1} == '~' ]] && dir="$HOME${dir:1}"
@@ -230,7 +286,8 @@ user="${opt_user:-$user}"
 
 # config errors:
 [[ -z $remote ]] && error 'no remote'
-[[ -z $dir ]] && error 'no directory'
+[[ -z $dir ]] && error 'no remote directory'
+[[ ${#source[@]} -eq 0 ]] && error 'no sources'
 [[ -z $port ]] || is_port "$port" || error "invalid port: $port"
 
 # resolve host and remote:
@@ -240,7 +297,8 @@ user="${opt_user:-$user}"
 
 # debug info:
 msg_debug "dir=$dir port=$port remote=$remote user=$user"
-msg_debug "excludes=(${excludes[*]})"
+msg_debug "source=(${source[*]})"
+msg_debug "exclude=(${exclude[*]})"
 
 # set remote_dir:
 if [[ $remote == localhost ]]; then
@@ -260,7 +318,7 @@ else
 fi
 
 # add excludes to rsync args:
-for e in "${excludes[@]}"; do cmd_rsync+=('--exclude' "$e"); done
+for e in "${exclude[@]}"; do cmd_rsync+=('--exclude' "$e"); done
 
 if ((dryrun)); then
     # add --dry-run to rsync args and set output colors to yellow:
@@ -283,10 +341,17 @@ if ((push)); then
         # create remote directory:
         cmd_rsync+=('--rsync-path' "mkdir -p '$dir' && rsync")
     fi
-    cmd_rsync+=("$PWD/" "$remote_dir")
+    for s in "${source[@]}"; do
+        [[ ${s:0:2} == ./ ]] && s="${s:2}"; cmd_rsync+=("$PWD/./$s")
+    done
+    cmd_rsync+=("$remote_dir")
+
 elif ((pull)); then
     msg "pulling $PWD/ from $remote_dir/"
-    cmd_rsync+=("$remote_dir/" "$PWD")
+    for s in "${source[@]}"; do
+        [[ ${s:0:2} == ./ ]] && s="${s:2}"; cmd_rsync+=("$remote_dir/./$s")
+    done
+    cmd_rsync+=("$PWD")
 fi
 
 # rsync:
