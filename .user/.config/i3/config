@@ -23,7 +23,7 @@ set_from_resource $ui0 i3wm.color12
 set_from_resource $ui1 i3wm.color10
 
 ## setting ::
-$exec_always [ -f "$HOME/.config/i3/config.sh" ] && "$HOME/.config/i3/config.sh"
+$exec_always [ -f "$HOME/.config/i3/wallpaper.bash" ] && "$HOME/.config/i3/wallpaper.bash"
 
 # bar:
 bar {
@@ -99,7 +99,7 @@ bindsym $mod+Return $exec $(dmenu_path | dmenu -fn "$font"-"$size" \
 
 # exit, lock, reload:
 bindsym $mod+Control+q $exec \
-    "cmd=$(printf 'exit\nlock\nreload' | dmenu -fn \\"$font\\"-\\"$size\\" \
+    "cmd=$(printf 'exit\nlock\nreload\nwallpaper' | dmenu -fn \\"$font\\"-\\"$size\\" \
         -nb \\"$bg0\\" -sb \\"$bg1\\" -sf \\"$ui1\\" -nf \\"$fg0\\" -i); \
     if [ $cmd = exit ]; then \
         i3-msg exit; \
@@ -109,6 +109,8 @@ bindsym $mod+Control+q $exec \
         i3lock -u -i /tmp/lock.png && rm /tmp/lock.png; \
     elif [ $cmd = reload ]; then \
         i3-msg restart; \
+    elif [ $cmd = wallpaper ]; then \
+        [ -f $HOME/.config/i3/wallpaper.bash ] && $HOME/.config/i3/wallpaper.bash; \
     fi"
 
 # toggle i3bar:

@@ -22,7 +22,6 @@ try:
 except:
     has_strictyaml = False
 
-
 def msg(msg='') -> None:
     print('\033[1;38;5;12m=> \033[0;38;5;15m' + msg + '\033[0m')
 

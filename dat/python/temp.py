@@ -1,68 +1,48 @@
 #!/usr/bin/env python3
+## temp.py ::
 
-"""NAME
-    temp.py - template python script
+"""Python example/template script."""
 
-USAGE
-    temp.py [OPTION...] [ARG...]
-
-DESCRIPTION
-    Python example/template script.
-
-OPTIONS
-    -i, --input INPUT
-        Add to input argument list.
-
-    -P, --print
-        Print command line arguments.
-
-    -H, --help
-        Print help.
-"""
-
+import os
 import sys
-
-def error(msg='') -> None:
-    msg_error(msg)
-    exit(1)
-
-def msg(msg='') -> None:
-    print(f'\033[1;38;5;12m=> \033[0;38;5;15m{msg}\033[0m')
-
-def msg_error(msg='') -> None:
-    print(f'\033[1;38;5;9mE: \033[0;38;5;15m{msg}\033[0m', file=sys.stderr)
-
-def msg_warn(msg='') -> None:
-    print(f'\033[1;38;5;11mW: \033[0;38;5;15m{msg}\033[0m', file=sys.stderr)
+import argparse
+#import yaml
+import cliutils
 
 def main() -> int:
-    flg_print = False
-    opt_args = []
-    opt_inputs = []
-    a = 1
-    while a < len(sys.argv):
-        arg = sys.argv[a]
-        if arg in ['-H', '--help']:
-            print(__doc__)
-            exit(0)
-        elif arg in ['-P', '--print']:
-            flg_print = True
-        elif arg in ['-i', '--input']:
-            a += 1
-            if a >= len(sys.argv):
-                error(f'option requires an argument: {arg}')
-            opt_inputs += [sys.argv[a]]
-        elif arg == '--':
-            a += 1
-            break
-        else:
-            break
-        a += 1
-    opt_args = sys.argv[a:]
+    p = cliutils.ArgumentParser(description=__doc__)
+    p.add_argument('-a', '--arg', dest='args', action='append', metavar='<arg>',
+                   default=[], help='append to args')
+    p.add_argument('-M', '--nocolor', action='store_true', help='disable colored output')
+    p.add_argument('-Q', '--quiet', action='store_true', help='output nothing to stdout')
+    p.add_argument('pargs', metavar='<arg>', nargs=argparse.REMAINDER, help='positional arguments')
+    args = p.parse_args()
 
-    if flg_print:
-        msg(f'opt_inputs = [{', '.join(opt_inputs)}]')
-        msg(f'opt_args = [{', '.join(opt_args)}]')
+    # set envronment:
+    debug = os.environ.get('DEBUG', '0').lower() in ['1', 'true', 'yes']
+    nocolor = os.environ.get('NOCOLOR', '0').lower() in ['1', 'true', 'yes']
+    quiet = os.environ.get('QUIET', '0').lower() in ['1', 'true', 'yes']
+    verbose = os.environ.get('VERBOSE', '0').lower() in ['1', 'true', 'yes']
+    if args.nocolor:
+        nocolor = True
+    if args.quiet:
+        quiet = True
+
+    # initialize messages:
+    msg = cliutils.Message(nocolor=nocolor)
+
+    ## main ::
+    if len(args.args) > 0:
+        msg('args:')
+        for arg in args.args:
+            msg.msg2(arg)
+    if len(args.pargs) > 0:
+        msg('pargs:')
+        for arg in args.pargs:
+            msg.msg2(arg)
+
+    if debug:
+        msg.warn('DEBUG MODE')
 
     return 0
 

@@ -422,14 +422,14 @@ config.bind(';I', ':hint images run open -t -- {hint-url}')
 
 
 # unbind defaults:
-mappings = [
+keys_unbind = [
     ';I', ';Y', ';b', ';d', ';f', ';h', ';i', ';r', 'r', '<Ctrl-Shift-w>',
     '<Ctrl-v>', '<Ctrl-w>', 'D', 'd', 'tch', 'tcH', 'tCh', 'tCH', 'tcu', 'tCu',
     'tih', 'tiH', 'tIh', 'tIH', 'tiu', 'tIu', 'tph', 'tpH', 'tPh', 'tPH',
     'tpu', 'tPu', 'tsh', 'tsH', 'tSh', 'tSH', 'tsu', 'tSu', 'PP', 'Pp', 'pP',
     'sf', 'sk', 'sl'
 ]
-for keys in mappings:
+for keys in keys_unbind:
     config.unbind(keys)
 
 # TODO: redo all semicolon bindings?

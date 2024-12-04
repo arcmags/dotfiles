@@ -1,0 +1,75 @@
+#!/bin/bash
+## xstream ::
+
+print_help() { cat <<'HELPDOC'
+NAME
+    xstream - stream x window to remote machine
+
+SYNOPSIS
+    xstream [remote] [port]
+
+DESCRIPTION
+
+    #Stream x window to remote using ffmpeg.
+    #Remote machine can view stream with: mpv udp://localhost:<port>
+HELPDOC
+}
+[[ $0 != "${BASH_SOURCE[0]}" ]] && { print_help; return 0 ;}
+[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
+
+## settings ::
+readonly -a deps=(ffmpeg xwininfo)
+remote="${1:-localhost}"
+port="${2:-6666}"
+border=4
+framerate=15
+bitrate='3200k'
+
+## internal functions/variables ::
+# colors:
+blue=$'\e[38;5;12m'
+bold=$'\e[1m'
+cyan=$'\e[38;5;14m'
+green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m'
+magenta=$'\e[38;5;13m'
+off=$'\e[0m'
+red=$'\e[38;5;9m'
+white=$'\e[38;5;15m'
+yellow=$'\e[38;5;11m'
+clear_colors() { unset blue bold cyan green grey magenta off red white yellow ;}
+error() { msg_error "$@"; exit 5 ;}
+
+# messages:
+msg() { ((QUIET)) || printf "$bold$blue=> $off$white$*$off\n" ;}
+msg2() { ((QUIET)) || printf "$bold$blue > $off$white$*$off\n" ;}
+msg_debug() { ((DEBUG)) && printf "${yellow}D: $off$*\n" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white$*$off\n" >&2 ;}
+msg_warn() { printf "$bold${yellow}W: $off$white$*$off\n" >&2 ;}
+
+# errors:
+error() { msg_error "$*"; exit 3 ;}
+
+# tests:
+is_cmd() { command -v "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
+
+## main() ::
+trap exit INT
+for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
+is_port "$port" || error "bad port: $port"
+
+xinfo="$(xwininfo)"
+[[ $xinfo =~ .*Absolute\ upper-left\ X:\ +([0-9]+) ]] && x="${BASH_REMATCH[1]}"
+[[ $xinfo =~ .*Absolute\ upper-left\ Y:\ +([0-9]+) ]] && y="${BASH_REMATCH[1]}"
+[[ $xinfo =~ .*Width:\ +([0-9]+) ]] && w="${BASH_REMATCH[1]}"
+[[ $xinfo =~ .*Height:\ +([0-9]+) ]] && h="${BASH_REMATCH[1]}"
+x=$((x - border))
+y=$((y - border))
+w=$((w + border * 2))
+h=$((h + border * 2))
+
+ffmpeg -f x11grab -s "${w}x${h}" -framerate "$framerate" -i ":0.0+${x},${y}" \
+    -b "$bitrate" -tune zerolatency -f mpegts "udp://$remote:$port"
+
+# vim:ft=bash

@@ -1,9 +1,10 @@
 ## conf.yml ::
 
-dest: ~
 copy: true
+dest: home
 list:
 - 22
 - 44
+- 666
 
 # vim:ft=yaml

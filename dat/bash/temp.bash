@@ -29,10 +29,10 @@ HELPDOC
 [[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
 
 ## settings ::
-DEBUG="${DEBUG:-0}"
-NOCOLOR="${NOCOLOR:-0}"
-QUIET="${QUIET:-0}"
-VERBOSE="${VERBOSE:-0}"
+[[ ${DEBUG,,} =~ ^(1|true|yes)$ ]] && DEBUG=1 || DEBUG=0
+[[ ${NOCOLOR,,} =~ ^(1|true|yes)$ ]] && NOCOLOR=1 || NOCOLOR=0
+[[ ${QUIET,,} =~ ^(1|true|yes)$ ]] && QUIET=1 || QUIET=0
+[[ ${VERBOSE,,} =~ ^(1|true|yes)$ ]] && VERBOSE=1 || VERBOSE=0
 remote='localhost'
 
 ## internal functions/variables ::
@@ -86,8 +86,7 @@ exec_cmd() { ((VERBOSE)) && msg_cmd "$@"; "$@" ;}
 # arg parser:
 # Parses command line options, separates combined options, returns 3 if error.
 # Usage:
-#   args=("$@")
-#   opts=(-f --for -b: --bar: help)
+#   args=("$@"); opts=(-f --for -b: --bar: help)
 #   parse_args || exit
 #   set -- "${args_options[@]}"
 #   while [[ -n $1 ]]; do case "$1" in ... esac; shift; done
@@ -129,29 +128,41 @@ parse_args() {
 # Usage:
 #   yaml="$(<conf.yml)"
 #   parse_yaml || exit
-#   for k in ${!yamlarr_@}; do declare -n l="$k"; printf "$k: (${l[*]})\n"; done
-#   for k in ${!yamlstr_@}; do printf "$k: ${!k}\n"; done
+#   echo "value: $yaml_value"
 parse_yaml() {
-    local in_list=0 key= list=() regex_key='([A-Za-z][A-Za-z0-9_]*):\ *'
-    bad_yaml() { msg_error "yaml error: $l" ;}
-    end_list() { in_list=0
-        [[ ${#list[@]} -eq 0 ]] && { declare -g "yamlstr_$key"=; return ;}
-        declare -ga "yamlarr_$key"='("${list[@]}")' ;}
-    while read -r l; do
-        [[ $l =~ ^\ *(#|$) ]] && continue
-        if ((in_list)); then
-            [[ $l =~ ^-\ +(.*) ]] && { list+=("${BASH_REMATCH[1]}"); continue ;}
-            end_list
-        fi
-        if [[ $l =~ ^$regex_key$ ]]; then
-            key="${BASH_REMATCH[1]}"; list=(); in_list=1; continue
-        fi
-        if [[ $l =~ ^$regex_key\ +([^ ].*)$ ]]; then
-            declare -g "yamlstr_${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"; continue
-        fi
-        bad_yaml; return 3
-    done <<<"$yaml"
-    ((in_list)) && end_list; return 0
+    local key= arr=() line= a=0
+    mapfile -t arr <<<"$yaml"; line="${arr[0]}"
+    bad_yaml() { msg_error "yaml error: $line" ;}
+    while [[ -n $line || $a -lt ${#arr[@]} ]]; do
+        if [[ $line =~ ^([A-Za-z][A-Za-z0-9_]*):\ *(.*) ]]; then
+            key="yaml_${BASH_REMATCH[1]}"; declare -ga "$key"='()'
+            if [[ -n ${BASH_REMATCH[2]} ]]; then
+                line="- ${BASH_REMATCH[2]}"; continue
+            fi
+        elif [[ $line =~ ^-\ +(.*) && -n $key ]]; then
+            declare -ga "$key"+='("${BASH_REMATCH[1]}")'
+        elif [[ ! $line =~ ^\ *(#|$) ]]; then
+            bad_yaml; return 3
+        fi; line="${arr[((++a))]}"
+    done
+}
+
+parse_yaml() {
+    local key= arr=() line= a=0
+    mapfile -t arr <<<"$yaml"; line="${arr[0]}"
+    bad_yaml() { msg_error "yaml error: $line" ;}
+    while [[ -n $line || $a -lt ${#arr[@]} ]]; do
+        if [[ $line =~ ^([A-Za-z][A-Za-z0-9_]*):\ *(.*) ]]; then
+            key="yaml_${BASH_REMATCH[1]}"; declare -ga "$key"='()'
+            if [[ -n ${BASH_REMATCH[2]} ]]; then
+                line="- ${BASH_REMATCH[2]}"; continue
+            fi
+        elif [[ $line =~ ^-\ +(.*) && -n $key ]]; then
+            declare -ga "$key"+='("${BASH_REMATCH[1]}")'
+        elif [[ ! $line =~ ^\ *(#|$) ]]; then
+            bad_yaml; return 3
+        fi; line="${arr[((++a))]}"
+    done
 }
 
 ## main ::
@@ -176,7 +187,8 @@ for d in "${deps[@]}"; do is_cmd "$d" || error "missing dependency: $d"; done
 
 yaml="$(<conf.yml)"
 parse_yaml || exit
-for k in ${!yamlarr_@}; do declare -n l="$k"; printf "$k: (${l[*]})\n"; done
-for k in ${!yamlstr_@}; do printf "$k: ${!k}\n"; done
+msg2 "copy: $yaml_copy"
+msg2 "dest: $yaml_dest"
+printf -v list '%s, ' "${yaml_list[@]}"; msg2 "list: [${list:0:-2}]"
 
 # vim:ft=bash

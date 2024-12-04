@@ -45,10 +45,10 @@ command_not_found_handle() { printf '\e[1;38;5;11mC: \e[0;38;5;15m%s\e[0m\n' "$1
 export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 export PS2='\[\e[0m\] '
 
-[ -d "$UDIR/lib/python" ] && export PYTHONPATH="$UDIR/lib/python"
+[ -d "$UDIR/dat/python/lib" ] && export PYTHONPATH="$UDIR/dat/python/lib"
 [ -f "$UDIR/.user/.pythonrc" ] && export PYTHONSTARTUP="$UDIR/.user/.pythonrc"
 
-[ -d "$UDIR/lib/figlet" ] && export FIGLET_FONTDIR="$UDIR/lib/figlet"
+[ -d "$UDIR/dat/figfonts" ] && export FIGLET_FONTDIR="$UDIR/dat/figfonts"
 
 is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
 

@@ -16,8 +16,8 @@ DESCRIPTION
 OPTIONS
     -c, --colors <count>    Terminal colors to print. (default: 16, max: 256)
     -g, --graygrey <value>  Preferred spelling of gray/grey. (default: grey)
-    -A, --all               Print every named colors. (requires magick)
-    -M, --most              Print every named colors besides 100 shades of grey.
+    -A, --all               Print all named colors. (requires magick)
+    -M, --most              Print named colors besides the 100 shades of grey.
     -Q, --quiet             Print less verbose output.
     -X, --xrdb              Print .Xresources colors. (requires xrdb)
     -H, --help              Print help.
