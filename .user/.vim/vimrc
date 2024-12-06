@@ -300,6 +300,8 @@ nnoremap [t gT
 nnoremap ]t gt
 nnoremap [T 1gt
 nnoremap ]T 1gtgT
+nnoremap <c-j> gt
+nnoremap <c-k> gT
 
 # move tab:
 nnoremap <c-w>Gt <scriptcmd>TabMove()<cr>
@@ -310,8 +312,8 @@ nnoremap <leader>/A /[^ -~]<cr>
 nnoremap <leader>/u /https\?:[^ ]*<cr>
 
 ## mappings: navigation ::
-nnoremap <c-j> gj
-nnoremap <c-k> gk
+#nnoremap <c-j> gj
+#nnoremap <c-k> gk
 
 ## mappings: text ::
 nnoremap Q gwip
@@ -459,6 +461,7 @@ command! -bang BufWipeHidden BufWipeHidden(<q-bang>)
 command! -nargs=1 -complete=command BufCmd var c = ''<bar>BufTmp()<bar>redir => c<bar>sil <args><bar>redir END<bar>sil put =c<bar>:%s/\%^\(\n\s*\)\+//e<bar>setl nomod
 command! BufTmp BufTmp()
 command! -nargs=? -complete=help Help Help(<q-args>)
+command! TermBuf TermBuf()
 command! TextJoinBlankLines TextJoinBlankLines()
 command! TextToUnix TextToUnix()
 command! -bang TextTrim TextTrim(<q-bang>)
