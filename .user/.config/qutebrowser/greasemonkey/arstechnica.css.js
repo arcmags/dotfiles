@@ -2,6 +2,7 @@
 // @name        Ars Technica
 // @include     *://arstechnica.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/arstechnica.css.js :: */
 
 GM_addStyle(`

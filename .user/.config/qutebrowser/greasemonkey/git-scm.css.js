@@ -2,6 +2,7 @@
 // @name        git-scm
 // @include     *://git-scm.com*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/git-scm.css.js :: */
 
 GM_addStyle(`

@@ -3,6 +3,7 @@
 include zathura.colors
 set font "Hack normal 10"
 
+set database sqlite
 set selection-clipboard clipboard
 set window-title-basename true
 set statusbar-home-tilde true

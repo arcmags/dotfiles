@@ -2,6 +2,7 @@
 // @name        YouTube
 // @include     *://*.youtube.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/youtube.css.js :: */
 
 document.addEventListener('load', () => {

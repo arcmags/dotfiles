@@ -10,16 +10,14 @@ export UHOST="$HOSTNAME"
 [ -f '/etc/hostname-' ] && UHOST="$(cat /etc/hostname-)"
 
 upwd() {
-    PWD_REALPATH="$(realpath "$PWD")"
-    case "$PWD_REALPATH" in
-        "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#$UDIR_REALPATH}" ;;
-        "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#$HOME_REALPATH}" ;;
-        *) case "$PWD" in
-            "$UDIR_REALPATH"*) printf '%s' "-${PWD#$UDIR_REALPATH}" ;;
-            "$HOME_REALPATH"*) printf '%s' "~${PWD#$HOME_REALPATH}" ;;
+    case "$PWD" in
+        "$UDIR_REALPATH"*) printf '%s' "-${PWD#$UDIR_REALPATH}" ;;
+        "$HOME_REALPATH"*) printf '%s' "~${PWD#$HOME_REALPATH}" ;;
+        *)  PWD_REALPATH="$(realpath "$PWD")"; case "$PWD_REALPATH" in
+            "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#$UDIR_REALPATH}" ;;
+            "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#$HOME_REALPATH}" ;;
             *) printf '%s' "$PWD" ;;
-        esac
-    esac
+    esac; esac
 }
 
 ## utils ::
@@ -42,8 +40,11 @@ path_add "$HOME/bin"
 ## environment ::
 command_not_found_handle() { printf '\e[1;38;5;11mC: \e[0;38;5;15m%s\e[0m\n' "$1"; return 127 ;}
 
+#export ENV="$HOME/.profile"
+
 export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 export PS2='\[\e[0m\] '
+[ "$USER" = 'dery' ] && PS1='\[\e[0;38;5;13m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 
 [ -d "$UDIR/dat/python/lib" ] && export PYTHONPATH="$UDIR/dat/python/lib"
 [ -f "$UDIR/.user/.pythonrc" ] && export PYTHONSTARTUP="$UDIR/.user/.pythonrc"
@@ -118,6 +119,8 @@ export S_COLORS_SGR='H=33;1:I=36;1:M=34;1:N=32;1:Z=34;1'
 export ZSTD_CLEVEL=19
 
 ## functions: aliases ::
+is_bin ash && [ -f "$HOME/.ashrc" ] && ash() { ENV="$HOME/.ashrc" command ash ;}
+
 cdb() { cd "$UDIR/bin" ;}
 cdd() { cd "$UDIR/dat" ;}
 cdg() { cd "$UDIR/git" ;}
@@ -152,13 +155,8 @@ ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@" ;}
 lsl() { ls -l "$@" ;}
 lss() { ls -s "$@" ;}
 
-lsblk() {
-    if printf '%s\n' "$@" | grep -Fxq -- '-O'; then
-        LANG=C command lsblk "$@"
-    else
-        LANG=C command lsblk -o NAME,FSTYPE,SIZE,FSUSED,MOUNTPOINTS "$@"
-    fi
-}
+lsblk() { command lsblk -i "$@" ;}
+lsb() { lsblk -o NAME,FSTYPE,SIZE,FSUSED,MOUNTPOINTS "$@" ;}
 
 is_bin minicom && minicom() { command minicom -F ' /dev/%D | %T | %C ' "$@" ;}
 
@@ -189,20 +187,35 @@ is_bin tt && tt() { command tt -notheme -noskip -blockcursor -nohighlight "$@" ;
 
 is_bin vim && [ "$TERM" = 'linux' ] && vim() { TERM='linux-16color' command vim "$@" ;}
 
+is_bin startx && [ -f "$HOME/.xinitrc" ] && startx() { command startx "$HOME/.xinitrc" "$@" ;}
+
 is_bin zathura && zathura() { command zathura --fork "$@" ;}
 
 ## functions: commands ::
+ascii() {
+    is_bin iconv || error 'missing dep: iconv'
+    cat "${1:-/dev/stdin}" | iconv -f utf-8 -t ascii//TRANSLIT
+}
+
 calc() {
     is_bin bc || error 'missing dep: bc'
     printf 'scale=3;%s\n' "$*" | bc -l
 }
 
 cdtt() {
-    dir_tmp="$(mktemp -d "$TMPDIR/tmp.XXX")"
+    dir_tmp="$(mktemp -d "$TMPDIR/tmp.XXX.d")"
     [ -n "$1" ] && cp -r "$@" "$dir_tmp"
     cd "$dir_tmp"
     unset dir_tmp
 }
+
+cpd() (
+    suffix="_$(date +%Y%m%d_%H%M%S)"
+    for a in "$@"; do
+        [ ! -e "$a" ] && continue
+        cp -r "$a" "$a$suffix"
+    done
+)
 
 error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2; return 2 ;}
 
@@ -212,6 +225,10 @@ gpgreset() {
 }
 
 reload() { . "$HOME/.profile" ;}
+
+pkgbuild() {
+    curl -s "https://gitlab.archlinux.org/archlinux/packaging/packages/$1/-/raw/main/PKGBUILD"
+}
 
 screenshot() {
     png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
@@ -228,7 +245,8 @@ screenshot() {
 
 tb() {
     is_bin nc || error 'missing dep: nc'
-    url_tb="$(nc termbin.com 9999 | tr -d '\0')"
+    #url_tb="$(nc termbin.com 9999 | tr -d '\0')"
+    url_tb="$(cat "${1:-/dev/stdin}" | nc termbin.com 9999 | tr -d '\0')"
     [ -z "$url_tb" ] && error 'connection error'
     printf '%s\n' "$url_tb"
     [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url_tb" | xclip
@@ -263,6 +281,8 @@ uvim() {
     fi
 }
 
+usudo() { is_bin sudo || error 'missing dep: sudo'; command sudo -E env "PATH=$PATH" "$@" ;}
+
 xclip() {
     is_bin xclip || error 'missing dep: xclip'
     [ -z "$DISPLAY" ] && error 'no display'
@@ -270,5 +290,10 @@ xclip() {
 }
 xput() { xclip -o ;}
 xyank() { xclip ;}
+
+xreload() {
+    [ -z "$DISPLAY" ] && error 'no display'
+    [ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
+}
 
 # vim:ft=sh

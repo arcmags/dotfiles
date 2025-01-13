@@ -1,6 +1,6 @@
 ## /etc/vconsole.map ::
-# us.map with CapsLock mapped to Escape:
 
+# us.map with CapsLock mapped to Escape.
 keymaps 0-2,4-6,8-9,12
 alt_is_meta
 include "qwerty-layout"
@@ -55,4 +55,4 @@ keycode  58 = Escape
 keycode  86 = less             greater          bar
 keycode  97 = Control
 
-# vim: set ft=config:
+# vim:ft=config

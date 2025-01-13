@@ -2,6 +2,7 @@
 // @name        xkcd
 // @include     *://xkcd.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/xkcd.css.js :: */
 
 var content = document.getElementById('middleContainer');

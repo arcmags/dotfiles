@@ -2,6 +2,7 @@
 // @name        CNN Lite
 // @include     *://lite.cnn.com*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/cnn-lite.css.js :: */
 
 GM_addStyle(`

@@ -103,6 +103,9 @@ g:html_number_lines = 0
 g:html_pre_wrap = 0
 g:html_use_encoding = 'utf-8'
 
+# vidir:
+g:vidir_dir_videos = g:UDIR .. '/local/in/videos_out'
+
 ## autocommands ::
 augroup vimrc
     autocmd!
@@ -170,6 +173,7 @@ nnoremap gR R
 nnoremap <leader>: :silent !
 
 # terminal buffer (b:term):
+# TODO: mappings to send keys/cmds to term buffers, check status, etc...
 nnoremap <c-w>; <scriptcmd>TermBuf()<cr>
 nnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 tnoremap <c-w>; <scriptcmd>TermBuf()<cr>
@@ -207,40 +211,39 @@ nnoremap <leader>lq <cmd>lclose<cr>
 nnoremap <leader>lw <cmd>lopen<cr>
 
 # buffer:
-nnoremap <expr> <c-w><c-e> '<cmd>let w:last = ' .. bufnr('%') .. '<cr><cmd>Explore<cr>'
+nnoremap <c-w><c-e> <cmd>Explore<cr>
 nnoremap <c-w>N <cmd>enew<cr>
-nnoremap <c-w>T <scriptcmd>BufTmp()<cr>
-nnoremap <c-w>\ <cmd>terminal ++curwin ++noclose<cr>
+nnoremap <c-w>T <cmd>exec 'sil edit ' .. system('mktemp --tmpdir tmp.XXX.txt')<cr>
+nnoremap <c-w>' <cmd>terminal ++curwin ++noclose<cr>
+nnoremap <c-w><c-'> <cmd>terminal ++curwin ++noclose<cr>
 nnoremap <c-w>e <cmd>Explore<cr>
-nnoremap <expr> <c-w>E '<scriptcmd>Explore<cr><cmd>BufWipe ' .. bufnr() .. '<cr>'
+nnoremap <expr> <c-w>E '<cmd>Explore<cr><cmd>BufWipe ' .. bufnr() .. '<cr>'
 tnoremap <c-w><c-e> <cmd>enew<bar>Explore<cr>
-tnoremap <c-w>T <scriptcmd>BufTmp()<cr>
+tnoremap <c-w>T <cmd>exec 'sil edit ' .. system('mktemp --tmpdir tmp.XXX.txt')<cr>
 tnoremap <c-w>e <cmd>enew<bar>Explore<cr>
-tnoremap <expr> <c-w>E '<scriptcmd>Explore<cr><cmd>BufWipe! ' .. bufnr() .. '<cr>'
+tnoremap <expr> <c-w>E '<cmd>Explore<cr><cmd>BufWipe! ' .. bufnr() .. '<cr>'
 
 # remove trailing whitespace and leading/trailing blank lines, save buffer if modified:
 noremap <c-s> <esc><scriptcmd>TextTrim()<cr><cmd>update<cr>
 noremap! <c-s> <esc><scriptcmd>TextTrim()<cr><cmd>update<cr>
 
 # show alternate buffer in current window:
-nnoremap <c-w><c-u> <cmd>b#<cr>
-nnoremap <c-w>u <cmd>b#<cr>
-tnoremap <c-w><c-u> <cmd>b#<cr>
-tnoremap <c-w>u <cmd>b#<cr>
-
-# show next/previous buffer in current window:
-nnoremap <c-w><c-n> <cmd>sil bn<cr>
-nnoremap <c-w>n <cmd>sil bn<cr>
-nnoremap <c-n> <cmd>sil bn<cr>
-tnoremap <c-w><c-n> <cmd>sil bn<cr>
-tnoremap <c-w>n <cmd>sil bn<cr>
-nnoremap <c-w><c-p> <cmd>sil bp<cr>
-nnoremap <c-w>p <cmd>sil bp<cr>
-nnoremap <c-p> <cmd>sil bp<cr>
-tnoremap <c-w><c-p> <cmd>sil bp<cr>
-tnoremap <c-w>p <cmd>sil bp<cr>
-nnoremap ]b <cmd>sil bn<cr>
-nnoremap [b <cmd>sil bp<cr>
+nnoremap <c-w><c-u> <cmd>sil! b#<cr>
+nnoremap <c-w>u <cmd>sil! b#<cr>
+tnoremap <c-w><c-u> <cmd>sil! b#<cr>
+tnoremap <c-w>u <cmd>sil! b#<cr>
+nnoremap <c-w><c-n> <cmd>sil! bn<cr>
+nnoremap <c-w>n <cmd>sil! bn<cr>
+nnoremap <c-n> <cmd>sil! bn<cr>
+nnoremap <c-w><c-p> <cmd>sil! bp<cr>
+nnoremap <c-w>p <cmd>sil! bp<cr>
+nnoremap <c-p> <cmd>sil! bp<cr>
+nnoremap ]b <cmd>sil! bn<cr>
+nnoremap [b <cmd>sil! bp<cr>
+tnoremap <c-w><c-n> <cmd>sil! bn<cr>
+tnoremap <c-w>n <cmd>sil! bn<cr>
+tnoremap <c-w><c-p> <cmd>sil! bp<cr>
+tnoremap <c-w>p <cmd>sil! bp<cr>
 
 # list all buffers, fill command line with `:b `:
 nnoremap <leader>b <scriptcmd>BufList()<cr>:b<Space>
@@ -279,9 +282,6 @@ nnoremap <c-w>m <c-w>x
 tnoremap <c-w><c-m> <c-w>x
 tnoremap <c-w>m <c-w>x
 
-# drop down terminal window:
-tnoremap <expr> <c-w>` '<scriptcmd>BufWipe("!")<bar>' .. (winnr("$") > 1 ? 'clo!' : 'q!') .. '<cr>'
-
 # quit if last window, close otherwise:
 nnoremap <expr> <c-q> '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1 ? 'q' : 'qa')) .. '<cr>'
 nnoremap <expr> <c-w><c-q> '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1 ? 'q' : 'qa')) .. '<cr>'
@@ -294,14 +294,14 @@ tnoremap <expr> <c-w>q '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1
 ## mappings: tabs ::
 nnoremap <c-w><c-t> <cmd>tab split<cr>
 nnoremap <c-w>t <cmd>tab split<cr>
-tnoremap <c-w><c-t> <cmd>tab split<cr>
-tnoremap <c-w>t <cmd>tab split<cr>
 nnoremap [t gT
 nnoremap ]t gt
 nnoremap [T 1gt
 nnoremap ]T 1gtgT
 nnoremap <c-j> gt
 nnoremap <c-k> gT
+tnoremap <c-w><c-t> <cmd>tab split<cr>
+tnoremap <c-w>t <cmd>tab split<cr>
 
 # move tab:
 nnoremap <c-w>Gt <scriptcmd>TabMove()<cr>
@@ -310,10 +310,6 @@ nnoremap <c-w>GT <scriptcmd>TabMove('-')<cr>
 ## mappings: search ::
 nnoremap <leader>/A /[^ -~]<cr>
 nnoremap <leader>/u /https\?:[^ ]*<cr>
-
-## mappings: navigation ::
-#nnoremap <c-j> gj
-#nnoremap <c-k> gk
 
 ## mappings: text ::
 nnoremap Q gwip
@@ -453,12 +449,10 @@ nnoremap <leader>rs <cmd>setl spell?<cr>
 nnoremap <leader>rb <cmd>setl bl?<cr>
 
 ## commands ::
-command! -bang BufLast BufLast(<q-bang>)
 command! -bang BufList BufList(<q-bang>)
 command! BufMatch BufMatch()
 command! -bang -nargs=* -complete=buffer BufWipe BufWipe(<q-bang>, [<f-args>])
 command! -bang BufWipeHidden BufWipeHidden(<q-bang>)
-command! -nargs=1 -complete=command BufCmd var c = ''<bar>BufTmp()<bar>redir => c<bar>sil <args><bar>redir END<bar>sil put =c<bar>:%s/\%^\(\n\s*\)\+//e<bar>setl nomod
 command! BufTmp BufTmp()
 command! -nargs=? -complete=help Help Help(<q-args>)
 command! TermBuf TermBuf()
@@ -473,9 +467,7 @@ command! -nargs=? CntSet CntSet(<args>)
 
 ## functions ::
 def BooleanToggle(bang = '')
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     var line0 = line('.')
     var line1 = line0
     if mode() ==? 'v'
@@ -539,18 +531,6 @@ def BooleanToggle(bang = '')
             silent setline(line, text1)
         endif
     endfor
-enddef
-
-def BufLast(bang = '')
-    if exists('w:last') && bufexists(w:last)
-        const buf = bufnr('%')
-        exec 'buffer ' .. w:last
-        if bang == '!'
-            exec 'bwipeout ' .. buf
-        endif
-    else
-        bprev
-    endif
 enddef
 
 def BufList(bang = '')
@@ -625,50 +605,39 @@ def BufMatch()
 enddef
 
 def BufTmp()
-    var t = 1
-    var tmp = g:TMPDIR .. printf('/tmp%02d', t) .. '.txt'
-    while filereadable(tmp) || bufexists(tmp)
-        t += 1
-        tmp = g:TMPDIR .. printf('/tmp%02d', t) .. '.txt'
-    endwhile
-    exec 'sil edit ' .. tmp
+    exec 'sil edit ' .. system('mktemp --tmpdir tmp.XXX.txt')
 enddef
 
 # TODO: wipe b:term if it exists?
 def BufWipe(bang = '', args = [])
-    var bufs = copy(args)
-    if len(bufs) == 0
-        add(bufs, bufname('%'))
-    endif
     const wincur = winnr()
-    var buf: number
-    for b in bufs
-        if match(b, '^\d\+$') >= 0
-            buf = str2nr(b)
-        else
-            buf = bufnr(b)
-        endif
-        if !bufexists(buf)
-            continue
-        elseif empty(bang) && getbufvar(buf, '&modified')
-            Msg('E: unsaved buffer modified: ' .. bufname(buf))
-            continue
+    var bufs = []
+    for arg in args
+        if type(arg) == 0 | bufs += [arg] | continue | endif
+        if match(arg, '^\d\+$') >= 0 | bufs += [str2nr(arg)] | continue | endif
+        if bufnr(arg) > 0 | bufs += [bufnr(arg)] | endif
+    endfor
+    if len(bufs) == 0 | add(bufs, bufnr('%')) | endif
+    for buf in bufs
+        if !bufexists(buf) | continue | endif
+        if empty(bang) && getbufvar(buf, '&modified')
+            Msg('E: unsaved buffer modified: ' .. bufname(buf)) | continue
         endif
         for tab in range(1, tabpagenr('$'))
             for win in filter(range(1, winnr('$')), 'winbufnr(v:val) == ' .. buf)
                 exec ':' .. win .. 'wincmd w'
-                if len(filter(range(1, bufnr('$')), 'buflisted(v:val) && v:val != ' .. buf)) > 0
-                    sil bp
-                else
-                    enew
+                if len(filter(range(1, bufnr('$')), 'buflisted(v:val) && v:val != ' .. buf)) == 0
+                    enew | continue
                 endif
+                if bufnr('#') > 0 && bufexists(bufnr('#'))
+                    exec 'b ' .. bufnr('#') | continue
+                endif
+                sil! bp
             endfor
             tabnext
         endfor
         exec ':' .. wincur .. 'wincmd w'
-        if bufexists(buf)
-            exec 'bwipeout' .. bang .. ' ' .. buf
-        endif
+        if bufexists(buf) | exec 'bwipeout' .. bang .. ' ' .. buf | endif
     endfor
 enddef
 
@@ -685,9 +654,7 @@ def BufWipeHidden(bang = '')
 enddef
 
 def CommentToggle(bang = '')
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     var line0 = line('.')
     var line1 = line0
     if mode() ==? 'v'
@@ -740,9 +707,7 @@ def CntSet(start = 1)
 enddef
 
 def DateUpdate()
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     if match(getline('.'), '\d\d\d\d-\d\d-\d\d') >= 0
         if match(getline('.'), strftime('%F')) < 0
             sil keepp s/\d\d\d\d-\d\d-\d\d/\=strftime('%F')/
@@ -776,9 +741,7 @@ def HiGroupQuery()
 enddef
 
 def HTMLToggle(bang = '')
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     var line0 = line('.')
     var line1 = line0
     if mode() ==? 'v'
@@ -860,32 +823,36 @@ def g:StatusLine(): string
             bufpath = substitute(bufpath, '^' .. g:HOME, '~', '')
         endif
         bufpath ..= bufpath != '/' ? '/' : ''
-    endif
-    if buftype == 'quickfix'
+    elseif buftype == 'quickfix'
         var vars = getwininfo(g:statusline_winid)[0]['variables']
         if index(keys(vars), 'quickfix_title') >= 0
             bufpath = vars['quickfix_title'][1 : ]
         endif
     endif
-    buftag = buftag ?? '%{&modified ? "+" : " "}'
+    if filetype == 'news'
+        bufname = substitute(expand('%:p:t'), '\.txt', '', '')
+        bufpath = ''
+        buftag = ' '
+    else
+        buftag = buftag ?? '%{&modified ? "+" : " "}'
+    endif
     line =  buftag .. bufname .. sepbar .. '%*%<'
     if g:statusline_winid == win_getid(winnr())
         line ..= '%#StatusLinePath#' .. bufpath .. '%=%( %#StatusLineType#'
           .. filetype .. sepbar .. '%*%#StatusLinePct#%P' .. sepbar
-          .. '%#StatusLineLen#%2L' .. sepcolon .. '%2l' .. sepbar .. '%#StatusLineLen#'
+          .. '%#StatusLineLen#%2{strlen(getline("."))}' .. sepcolon
+          .. '%2c' .. sepbar .. '%#StatusLineLen#'
     else
-        line ..= bufpath .. '%=%( ' .. filetype .. sepbar .. '%P'
-          .. sepbar .. '%2L' .. sepcolon .. '%2l' .. sepbar
+        line ..= bufpath .. '%=%( ' .. filetype .. sepbar .. '%P' .. sepbar
+          .. '%2{strlen(getline("."))}' .. sepcolon .. '%2c' .. sepbar
     endif
-    line ..= '%2{strlen(getline("."))}' .. sepcolon .. '%2c %)'
+    line ..= '%2L' .. sepcolon .. '%2l %)'
     return line
 enddef
 
 def TextJoinBlankLines()
     # merge repeated blanks lines:
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     const pos = getpos('.')
     call TextTrim()
     sil! keepp g/^\n\{2,}/d
@@ -921,9 +888,7 @@ enddef
 
 def TextTrim(bang = '')
     # remove trailing whitespace and leading/trailing blank lines:
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     const pos = getpos('.')
     sil keepp :%s/\s\+$//e
     sil keepp :%s/\($\n\s*\)\+\%$//e
@@ -935,9 +900,7 @@ enddef
 
 def TextToUnix()
     # remove all \r, set encoding=utf-8 format=unix nobomb, tabs to spaces, trim text:
-    if ! &modifiable
-        return
-    endif
+    if ! &modifiable | return | endif
     const pos = getpos('.')
     sil keepp :%s/\r//e
     sil setlocal fileencoding=utf-8 fileformat=unix nobomb
@@ -1030,7 +993,7 @@ def TermBuf(cmd = '')
     const buf = bufnr()
     if &buftype != 'terminal'
         if ! exists('b:termbuf') || ! bufexists(b:termbuf)
-            var termbuf = term_start('bash', {'term_rows': 4})
+            var termbuf = term_start('bash', {'term_rows': 8})
             b:filebuf = buf
             setbufvar(buf, 'termbuf', termbuf)
         else
@@ -1043,7 +1006,7 @@ def TermBuf(cmd = '')
                 endif
             endfor
             if ! term_visible
-                :4split
+                :8split
                 exec 'silent buffer ' .. b:termbuf
             endif
         endif
@@ -1091,9 +1054,7 @@ enddef
 
 def Write(bang = '')
     call TextTrim()
-    if ! &modified
-        return
-    endif
+    if ! &modified | return | endif
     if bang == '!'
         exec "silent w !sudo tee > /dev/null %"
         edit!

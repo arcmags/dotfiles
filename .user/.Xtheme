@@ -20,4 +20,7 @@
 *.color14: #4dffff
 *.color15: #f5f5ff
 
+!! sxiv ::
+Sxiv.foreground: #50507a
+
 ! vim:ft=xdefaults

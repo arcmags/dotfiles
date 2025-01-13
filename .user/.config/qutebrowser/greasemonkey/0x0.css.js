@@ -2,6 +2,7 @@
 // @name        0x0.st
 // @include     *://0x0.st*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/0x0.css.js :: */
 
 GM_addStyle(`

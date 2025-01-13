@@ -62,8 +62,11 @@ HELPDOC
 
 # TODO: add option to select between absolute/relative links
 # TODO: rework verbose output/dryrun
-# TODO: check if any src contains any src:
+# TODO: check if any src contains any src
 # TODO: build and check srcs before creating any links/copies
+# TODO: absolute paths, prefix dir options?
+# TODO: setting for hostname dependency?
+# TODO: different source lists for different opts, actions?
 
 ## variables ::
 # args:
@@ -154,8 +157,6 @@ if [ "$flg_init" = true ]; then
     [ -f "$conf" ] && error "$conf already exists"
     touch "$conf"
     { printf '## %s ::\n\n' "$(realpath "$conf")"
-    printf 'dir: %s\nsrcs:\n' "$HOME"
-    for s in "${opt_srcs[@]}"; do printf '%s %s\n' '-' "$s"; done
     printf '\n# vim:ft=yaml\n' "$HOME" ;} > "$conf"
     exit 0
 fi
@@ -180,9 +181,10 @@ done
 dir="${opt_dir:-$dir}"
 srcs+=("${opt_srcs[@]}")
 
-# replace leading ~ with $HOME and remove trailing / from dir:
+# replace leading ~ with $HOME and ensure trailing / in dir:
+# TODO: check for ./
 [ "${dir:0:1}" = '~' ] && dir="$HOME${dir:1}"
-[ "${dir: -1}" = '/' ] && dir="${dir:0:-1}"
+[ "${dir: -1}" = '/' ] || dir+='/'
 
 # no destination directory:
 [ -z "$dir" ] && error 'no destination directory'
@@ -201,9 +203,10 @@ fi
 for src in "${srcs[@]}"; do
     # remove trailing slash from src file/dir:
     [ "${src: -1}" = '/' ] && src="${src:0:-1}"
+    # TODO: more checking source names!
 
     # set destination path and dir:
-    dpath="$dir/$src"
+    dpath="$dir$src"
     ddir="${dpath%/*}"
 
     # set src destination directory and name:
@@ -253,7 +256,7 @@ for src in "${srcs[@]}"; do
         [ "$flg_dryrun" != true ] && ln -sf "$spath" "$dpath"
     elif [ "$flg_copy" = true ]; then
         msg_cmd cp -r "$spath" "$dpath"
-        cp -r "$spath" "$dpath"
+        [ "$flg_dryrun" != true ] && cp -r "$spath" "$dpath"
     fi
 done
 

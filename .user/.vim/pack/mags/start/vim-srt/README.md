@@ -18,7 +18,8 @@ Strip trailing whitespaces, remove leading and trailing blank lines, merge
 repeated blank lines, fix timecode syntax errors, add missing spaces after
 leading dashes, combine musical notes and pound symbols and add missing spaces
 around them, remove blank subtitles, renumber all subtitles. Optionally convert
-file to unix, change encoding to utf-8, and replace tabs with spaces:
+file to unix, change encoding to utf-8, replace tabs with spaces, and remove
+font colors:
 
     :SRTClean
 
@@ -28,11 +29,11 @@ Renumber subtiles:
 
 Skew all subtitle timecodes, calculated from two timecodes and offsets:
 
-    :SRTSkew <TIME> <NUMBER> <TIME> <NUMBER>
+    :SRTSkew <timecode> <ms> <timecode> <ms>
 
-Shift all subtitle timescodes by NUMBER milliseconds (positive or negative):
+Shift all subtitle timescodes (positive or negative milliseconds):
 
-    :SRTShift <NUMBER>
+    :SRTShift <ms>
 
 Convert text to ASCII with transliteration (requires `iconv`):
 
@@ -46,10 +47,18 @@ Convert text to ASCII with transliteration (requires `iconv`):
 
 ## Customization
 
-`g:srt_maps` -  Create default mappings. default: true
+`g:srt_colors` - Remove font colors with `:SRTClean`. (default: true)
 
-`g:srt_tabs` - Keep tabs with `:SRTClean`. default: false
+`g:srt_maps` - Create default mappings. (default: true)
 
-`g:srt_unix` - Convert file to unix with `:SRTClean`. default: true
+`g:srt_tabs` - Keep tabs with `:SRTClean`. (default: false)
 
-`g:srt_utf8` - Set encoding to utf-8 with `:SRTClean`. default: true
+`g:srt_unix` - Convert file to unix with `:SRTClean`. (default: true)
+
+`g:srt_utf8` - Set encoding to utf-8 with `:SRTClean`. (default: true)
+
+<!--metadata:
+author: Chris Magyar <c.magyar.ec@gmail.com>
+description: Vim subtitle file plugin.
+keywords: vim, vim9script, srt, subtitles
+-->

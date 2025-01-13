@@ -4,6 +4,7 @@
 ;\  undo-hilite
 ^N  next-file
 ^P  prev-file
+^Q  quit
 ^X  remove-file
 ;tn toggle-option N
 ;tw toggle-option S

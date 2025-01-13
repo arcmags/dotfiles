@@ -16,7 +16,7 @@ command! -nargs=1 SRTShift SRTShift(<f-args>)
 command! -bang -nargs=* SRTSkew SRTSkew(<q-bang>, <f-args>)
 command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
 
-# TODO: functions to remove <font color>, <b>, <i>, alignments?
+# TODO: functions to remove: <b>, <i>, alignments?
 
 def MsToTime(ms: number): string
     # convert milliseconds to timestamp:
@@ -60,20 +60,24 @@ enddef
 
 def SRTClean()
     const pos = getpos('.')
-    # remove carriage returns, convert to unix:
     if !exists('g:srt_unix') || g:srt_unix
+        # remove carriage returns, convert to unix:
         sil keepp :%s/\r//e
         sil setlocal fileformat=unix nobomb
     endif
-    # convert to utf-8:
     if !exists('g:srt_utf8') || g:srt_utf8
+        # convert to utf-8:
         sil keepp :%s/\r//e
         sil setlocal fileencoding=utf-8
     endif
-    # replace tabs with spaces:
     if !exists('g:srt_tabs') || !g:srt_tabs
+        # replace tabs with spaces:
         setlocal expandtab
         retab
+    endif
+    if !exists('g:srt_colors') || g:srt_colors
+        # remove font colors:
+        sil keepp :%s/<\/\?font[^>]*>//ge
     endif
     # TODO: instead of all this, parse subtitles as objects?
     # TODO: populate scan/warn/error results in quickfix window?

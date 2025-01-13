@@ -2,6 +2,7 @@
 // @name        Leader Telegram
 // @include     *://*.leadertelegram.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/leadertelegram.css.js :: */
 
 GM_addStyle(`

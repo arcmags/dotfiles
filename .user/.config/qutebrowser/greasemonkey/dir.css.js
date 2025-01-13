@@ -2,6 +2,7 @@
 // @name        local directory
 // @include     file://*/
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/dir.css.js :: */
 
 var header = document.getElementById('header');

@@ -39,8 +39,8 @@ pid_script="$$"
 #trap <some_function> USR2
 
 ## terminal codes ::
-clear_line=$'\033[2K'
-clear_to_beginning_of_line=$'\033[1K'
+clear_line=$'\e[2K'
+clear_to_beginning_of_line=$'\e[1K'
 
 # color:
 bold=$'\e[1m'

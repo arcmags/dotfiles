@@ -5,7 +5,16 @@ include "/usr/share/nano/*.nanorc"
 set mouse
 set tabsize 4
 set tabstospaces
-set titlecolor brightcyan
-set statuscolor brightcyan
+
+# colors:
+set errorcolor brightred
+set functioncolor cyan
 set keycolor brightblue
-set functioncolor brightcyan
+set statuscolor white
+set titlecolor brightgreen
+set numbercolor magenta
+set spotlightcolor brightyellow,blue
+
+# binding:
+unbind ^X all
+bind ^Q exit main

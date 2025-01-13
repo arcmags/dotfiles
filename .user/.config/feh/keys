@@ -20,6 +20,9 @@ next_dir
 ## mappings ::
 close q
 
+# open xterm window with env var img=<current image>:
+action_7 C-semicolon
+
 # close every feh window:
 action_6 Q
 

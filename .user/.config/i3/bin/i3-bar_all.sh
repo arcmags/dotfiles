@@ -385,8 +385,8 @@ mk_BSys() {
     cCPU="$cPlain"
     sCPU+='%%'
     # cpu temp from sensors
-    str_cpu_temp=`sensors 2>/dev/null | \
-        grep -Po '.*Core \d\d?.*?\+\K\d\d?(?=\.)'`
+    str_cpu_temp=`sensors 2>/dev/null | grep -Po '.*Core \d\d?.*?\+\K\d\d?(?=\.)'`
+    [ -z "$str_cpu_temp" ] && str_cpu_temp=`sensors 2>/dev/null | grep -Po '.*Tctl: *\+\K\d\d?(?=\.)'`
     temp=0
     local c=0
     for t in $str_cpu_temp; do

@@ -50,7 +50,7 @@ ffmpeg_metadata-clear() {
 ffmpeg_srt-add() {
     ffmpeg_args=(-i "$1" -i "$2" -map 0:0 -map 0:1 -map 1:0 -c copy
         -map_metadata -1 -fflags +bitexact -flags:a +bitexact -flags:v +bitexact
-        -metadata:s:s:0 language=eng)
+        -metadata:s:s:0 language=en)
     [ -n "$3" ] && ffmpeg_args+=(-metadata title="$3")
     ffmpeg "${ffmpeg_args[@]}" "${1%.*}_sub.${1##*.}"
 }

@@ -2,6 +2,7 @@
 // @name        Christian Science Monitor Text Edition
 // @include     *://www.csmonitor.com/text_edition*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/csmonitor-text.css.js :: */
 
 GM_addStyle(`

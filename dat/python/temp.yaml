@@ -1,0 +1,45 @@
+name: Config
+description: congifuration template file
+
+types:
+- yaml
+- json
+- toml
+
+# comment: null values:
+empty:
+- ~
+-
+- null
+
+# comment: booleans:
+truth:
+- true
+- yes
+- on
+
+dict:
+  version: 66
+  defaults:
+  - 1
+  - 3
+  - 6
+
+  subdict:
+    target: null
+    link: /dev/null
+    defaults:
+    - 0
+    - 2
+    - 6
+    run: true
+    exec: false
+
+  list-of-lists:
+  - 6
+  - - x
+    - y
+  - [1, 2]
+  - single entry
+  - - w
+    - z

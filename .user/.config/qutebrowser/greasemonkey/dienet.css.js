@@ -4,6 +4,7 @@
 // @include     *://die.net*
 // @include     *://www.die.net*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/dienet.css.js :: */
 
 GM_addStyle(`

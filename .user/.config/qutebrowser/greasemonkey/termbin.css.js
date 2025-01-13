@@ -2,6 +2,7 @@
 // @name        termbin
 // @include     *://termbin.com*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/termbin.css.js :: */
 
 GM_addStyle(`

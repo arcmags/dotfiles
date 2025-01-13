@@ -2,6 +2,7 @@
 // @name        Fandom
 // @include     *://*.fandom.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/fandom.css.js :: */
 
 GM_addStyle(`

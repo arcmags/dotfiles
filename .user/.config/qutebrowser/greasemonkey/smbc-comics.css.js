@@ -2,6 +2,7 @@
 // @name        SMBC
 // @include     *://*.smbc-comics.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/smbc-comics.css.js :: */
 
 GM_addStyle(`

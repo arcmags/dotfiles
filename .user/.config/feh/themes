@@ -22,6 +22,7 @@ feh \
   --action3 ';identify -format "%%f  %%wx%%h  %%b  %%kc\n" %F' \
   --action4 ";pkill --signal SIGUSR1 '^feh$'" \
   --action5 ";pkill --signal SIGUSR2 '^feh$'" \
-  --action6 ";pkill --signal KILL '^feh$'"
+  --action6 ";pkill --signal KILL '^feh$'" \
+  --action7 ';img=%F xterm -T xterm_float_sm &'
 
 # vim: set ft=sh:

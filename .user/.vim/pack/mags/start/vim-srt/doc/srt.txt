@@ -12,22 +12,22 @@ COMMANDS                                                *srt-commands*
                 and pound symbols and add missing spaces around them, remove
                 blank subtitles, renumber all subtitles.
 
-                Optionally convert file to unix, change encoding to utf-8, and
-                replace tabs with spaces:
+                Optionally convert file to unix, change encoding to utf-8,
+                replace tabs with spaces, and remove font colors.
 
                                                         *:SRTNumber*
 :SRTNumber      Renumber subtitles.
 
                                                         *:SRTShift*
-:SRTShift {num} Shift all subtitle timecodes by {num} milliseconds.
+:SRTShift {ms} Shift all subtitle timecodes by {ms} milliseconds.
 
                                                         *:SRTSkew*
-:SRTSkew[!] {timecode1} {num1} {timecode2} {num2}
+:SRTSkew[!] {timecode1} {ms1} {timecode2} {ms2}
                 Apply linear skew to all subtitle timecodes.
 
                 A skew function is calculated from two timecodes ({timecode1}
-                and {timecode2}) and their corresponding shift values ({num1}
-                and {num2}) in milliseconds.
+                and {timecode2}) and their corresponding shift values ({ms1}
+                and {ms2}) in milliseconds.
 
                 If [!] is specified, the skew function is calculated using
                 {timecode1} and {timecode2} as video times, not subtitle times.
@@ -43,6 +43,8 @@ MAPS                                                    *srt-maps*
 <localleader>m  |:SRTClean|
 
 SETTINGS                                                *srt-settings*
+
+*g:srt_colors*    Remove font colors wth :SRTClean.  default: true
 
 *g:srt_maps*      Create default mappings.  default: true
 

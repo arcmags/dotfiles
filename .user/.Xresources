@@ -3,6 +3,9 @@
 #include ".Xtheme"
 *.borderWidth: 0
 
+!! sxiv ::
+Sxiv.font: Hack-10
+
 !! urxvt ::
 URxvt*scrollTtyKeypress: true
 URxvt*scrollTtyOutput: false

@@ -386,7 +386,7 @@ c.url.searchengines = {
     'mc': 'https://minecraft.fandom.com/wiki/Special:Search?query={}',
     'pip': 'https://pypi.org/search/?q={}',
     'pb': 'https://thepiratebay.org/search.php?q={}',
-    'subdl': 'https://subdl.com/search?query={}',
+    'subdl': 'https://subdl.com/search/{}',
     'w': 'https://en.wikipedia.org/w/index.php?search={}',
     'yt': 'https://www.youtube.com/results?search_query={}',
     'yts': 'https://yts.mx/browse-movies/{}',

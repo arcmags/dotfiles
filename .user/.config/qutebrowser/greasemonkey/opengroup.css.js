@@ -2,6 +2,7 @@
 // @name        Open Group Publications
 // @include     https://pubs.opengroup.org/onlinepubs*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/opengroup.css.js :: */
 
 var hrs = document.getElementsByTagName('hr');

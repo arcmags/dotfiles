@@ -12,6 +12,7 @@
 // @include     *://*.wiktionary.org/*
 // @include     *://wiki.archlinux.org/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/wiki.css.js :: */
 
 GM_addStyle(`
@@ -25,5 +26,8 @@ GM_addStyle(`
 
     .vector-menu-heading {
         border-bottom: 1px solid #606060 !important;
+    }
+    .cn-fundraising {
+        display: none !important;
     }
 `);

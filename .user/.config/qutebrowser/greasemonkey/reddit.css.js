@@ -2,6 +2,7 @@
 // @name        Reddit
 // @include     *://*.reddit.com/*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/reddit.css.js :: */
 
 GM_addStyle(`

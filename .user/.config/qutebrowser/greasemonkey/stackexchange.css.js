@@ -8,6 +8,7 @@
 // @include     *://askubuntu.com*
 // @include     *://serverfault.com*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/stackexchange.css.js :: */
 
 GM_addStyle(`

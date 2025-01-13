@@ -26,11 +26,11 @@ HELPDOC
 
 ## settings ::
 graygrey=grey
-NOCOLOR="${NOCOLOR:-0}"
+NO_COLOR="${NO_COLOR:-0}"
 skipspaces=1
 skipX11=1
 url='https://gitlab.freedesktop.org/xorg/app/rgb/raw/master/rgb.txt'
-readonly graygrey NOCOLOR skipspaces skipX11 url
+readonly graygrey NO_COLOR skipspaces skipX11 url
 
 ## internal functions/variables ::
 color=0
@@ -65,7 +65,7 @@ is_cmd() { command -v "$1" &>/dev/null ;}
 
 ## main ::
 trap exit INT
-((NOCOLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
+((NO_COLOR)) || ! [[ -t 1 && -t 2 ]] && clear_colors
 
 # parse args:
 while [[ -n $1 ]]; do case "$1" in

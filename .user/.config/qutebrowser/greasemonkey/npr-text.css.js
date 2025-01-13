@@ -2,6 +2,7 @@
 // @name        NPR Text-Only
 // @include     *://text.npr.org*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/npr-text.css.js :: */
 
 GM_addStyle(`

@@ -2,6 +2,7 @@
 // @name        Hacker News
 // @include     *://news.ycombinator.com*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/ycominator.css.js :: */
 
 var style = getComputedStyle(document.body)

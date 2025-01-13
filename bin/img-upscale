@@ -1,153 +1,277 @@
 #!/bin/bash
 ## img-upscale ::
 
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
 print_help() { cat <<'HELPDOC'
-NAME
-    img-upscale - upscale images
+Usage:
+  img-upscale [option...] <image...>
 
-SYNOPSIS
-    img-upscale [OPTION...] <IMAGE...>
+Upscale images with waifu2x.
 
-DESCRIPTION
-    Upscale images with waifu2x.
+Options:
+  -m, --model <model>   upscale model (anime/cunet/photo, default: cunet)
+  -n, --noise <level>   denoise level (-1/0/1/2/3, default=0)
+  -o, --output <format> output filename format (default: %p_u%s%m%n.%t)
+  -q, --quality <level> jpg quality level (0-100, default=92)
+  -s, --scale <level>   upscale level (1/2/4/8/16/32, default=2)
+  -J, --jpg             output to jpg file
+  -P, --png             output to png file
+  -Q, --quiet           print nothing to stdout
+  -V, --verbose         print more verbose information
+  -H, -h, --help        print help and exit
 
-OPTIONS
-    -J, --jpg
-        Output to jpg file.
+Format:
+  %%    a literal %
+  %d    directory containing input image
+  %F    input image filename
+  %f    input image filename without extension
+  %M    upscale model
+  %m    first letter of upscale model
+  %n    denoise level
+  %P    input image directory+filename
+  %p    input image directory+filename without extension
+  %s    upscale level
+  %t    output image type
 
-    -P, --png
-        Output to png file.
-
-    -Q, --quiet
-        Suppress all messages.
-
-    -V, --verbose
-        Print executed commands.
-
-    -m, --model MODEL
-        Set upscale model (anime/cunet/photo, default=cunet).
-
-    -n, --noise LEVEL
-        Set denoise level (-1/0/1/2/3, default=0).
-
-    -q, --quality LEVEL
-        Set jpg quality level (0-100, default=92).
-
-    -s, --scale LEVEL
-        Set upscale level (1/2/4/8/16/32, default=2).
-
-    -H, --help
-        Print help.
+Environment:
+  NO_COLOR      disable colored output
+  QUIET         run silently
+  VERBOSE       run verbosely
 HELPDOC
-}; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 1 ;}
+exit ;}
+[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
 
-## control ::
+## settings ::
+debug=0; no_color=0; quiet=0; verbose=0
 bin_waifu2x='waifu2x-ncnn-vulkan'
-deps=(identify magick "$bin_waifu2x")
-flg_success=false
 path_models="/usr/share/$bin_waifu2x"
+model=cunet; noise=0; quality=92; scale=2
+output='%p_u%s%m%n.%t'
 
-# args:
-a=0 arg="$1" args=("$@")
-flg_quiet=false
-flg_verbose=false
-opt_model=cunet
-opt_noise=0
-opt_qual=92
-opt_scale=2
-opt_type=
+## internal functions/variables ::
+readonly -a args=("$@")
+readonly -a deps=("$bin_waifu2x" identify magick)
+readonly -a opts=(
+    -m: --model: -n: --noise: -o: --output: -q: --quality: -s: --scale:
+    -J --jpg -P --png -H -h --help -M --nocolor -Q --quiet -V --verbose)
+readonly script="$(realpath "$BASH_SOURCE")"
+args_options=() args_positionals=()
+dir_model=
+img_out=
+imgs=()
+imgs_error=()
+text_sub=
+type=jpg
 
-## functions ::
-error() { msg_error "$@"; exit 5 ;}
+# colors:
+black=$'\e[38;5;0m'; blue=$'\e[38;5;12m'; cyan=$'\e[38;5;14m'
+green=$'\e[38;5;10m'; grey=$'\e[38;5;8m'; magenta=$'\e[38;5;13m'
+orange=$'\e[38;5;3m'; red=$'\e[38;5;9m' white=$'\e[38;5;15m'
+yellow=$'\e[38;5;11m'; bold=$'\e[1m'; off=$'\e[0m'
+clear_colors() {
+    nocolor=1
+    export NO_COLOR=true
+    unset black blue cyan green grey magenta orange red white yellow bold off
+}
+
+# messages:
+msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
+msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg_debug() { printf "$yellow$BASH_LINENO$bold: $off$white%s$off\n" "$*" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
+msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
+msg_plain() { printf "$off$white  %s$$off\n" "$*" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
+msg_cmd() {
+    local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
+    [[ $EUID -eq 0 ]] && printf "$bold$red #" || printf "$bold$blue $"
+    printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
+}
+
+# errors:
+error_exit() { msg_error "$*"; exit 3 ;}
+
+# tests:
+check_deps() {
+    local deps_e=()
+    for dep in "${deps[@]}"; do is_cmd "$dep" || deps_e+=("$dep"); done
+    [[ ${#deps_e} -gt 0 ]] && msg_error "missing deps: ${deps_e[*]}"
+    return ${#deps_e[@]}
+}
 is_cmd() { command -v "$1" &>/dev/null ;}
-is_img() { [ -f "$1" ] && identify "$1" &>/dev/null ;}
-msg() { printf "\e[1;38;5;12m=> \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg_cmd() { printf "\e[1;38;5;12m $ \e[0;38;5;15m$1\e[0m\n" "${@:2}" ;}
-msg_error() { printf "\e[1;38;5;9mE: \e[0;38;5;15m$1\e[0m\n" "${@:2}" >&2 ;}
-msg_to() { msg "$1$(printf ' \e[1;38;5;12m-> \e[0;38;5;15m%s\e[0m' "${@:2}")" ;}
-msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
+is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
+
+# parsers:
+parse_args() {
+    local a=0 opt= sflgs= sopts= arg="${args[0]}"
+    local -a lflgs=() lopts=()
+    args_options=() args_positionals=()
+    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
+    bad_optarg() { msg_error "option requires an argument: $arg" ;}
+    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
+    for opt in "${opts[@]}"; do case "$opt" in
+        -?) sflgs="$sflgs${opt:1}" ;;
+        -?:) sopts="$sopts${opt:1:1}" ;;
+        *:) lopts+=("${opt:0:-1}") ;;
+        *) lflgs+=("$opt") ;;
+    esac; done
+    while [[ -n $arg ]]; do case "$arg" in
+        --) ((a++)); break ;;
+        -[$sflgs]) args_options+=("$arg") ;;
+        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
+            args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
+            args_options+=("$arg" "${args[((++a))]}") ;;
+        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
+            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
+            args_options+=("${arg%%=*}" "${arg#*=}") ;;
+        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
+                args_options+=("$arg")
+            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
+                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
+                args_options+=("$arg" "${args[((++a))]}")
+            else break; fi ;;
+    esac; arg="${args[((++a))]}"; done
+    args_positionals=("${args[@]:a}")
+}
+
+sub_text() {
+    local i=0 found=0
+    text_sub=
+    for sub in "${subs[@]}"; do
+        [[ ${sub:1:1} == : ]] || { msg_error "invalid sub: $sub"; return 3 ;}
+    done
+    while [[ $i -lt ${#text} ]]; do
+        repl="${text:i:1}"
+        if [[ ${text:i:1} == % ]]; then
+            ((i++))
+            if [[ ${text:i:1} == % ]]; then
+                repl='%'
+            else
+                found=0; for sub in "${subs[@]}"; do
+                    if [[ ${text:i:1} == ${sub:0:1} ]]; then
+                        repl="${sub:2}"; ((found++))
+                fi; done
+                if ! ((found)); then
+                    msg_error "invalid format character: ${text:i:1}"
+                    return 3
+                fi
+                ((found)) || { msg_error "invalid format: ${text:i:1}"; return 3 ;}
+        fi; fi
+        text_sub+="$repl"; ((i++))
+    done
+}
+
+# cleanup, exit:
+trap_exit() { rm -f "$img_tmp" ;}
+trap_int() { printf '\n'; msg_error 'keyboard interrupt'; exit 99 ;}
 
 ## main ::
-trap exit INT
-while [ -n "$arg" ]; do case "$arg" in
-    -H|--help) print_help; exit 0 ;;
-    -J|--jpg) opt_type=jpg; arg="${args[((++a))]}" ;;
-    -P|--png) opt_type=png; arg="${args[((++a))]}" ;;
-    -Q|--quiet) flg_quiet=true; flag_verbose=false; arg="${args[((++a))]}" ;;
-    -V|--verbose) flg_quiet=false; flg_verbose=true; arg="${args[((++a))]}" ;;
-    -m|--model)
-        [ $# -le $((a+1)) ] && error "arg required: $arg"
-        opt_model="${args[((++a))]}"; arg="${args[((++a))]}" ;;
-    -n|--noise)
-        [ $# -le $((a+1)) ] && error "arg required: $arg"
-        opt_noise="${args[((++a))]}"; arg="${args[((++a))]}" ;;
-    -q|--quality)
-        [ $# -le $((a+1)) ] && error "arg required: $arg"
-        opt_qual="${args[((++a))]}"; arg="${args[((++a))]}" ;;
-    -s|--scale)
-        [ $# -le $((a+1)) ] && error "arg required: $arg"
-        opt_scale="${args[((++a))]}"; arg="${args[((++a))]}" ;;
-    -[HJPQV]*)
-        [[ ! "${arg:2:1}" =~ [HJPQVmnqs] ]] && error "unknown option: ${arg:2:1}"
-        args[a--]="-${arg:2}"; arg="${arg:0:2}" ;;
-    -[mnqs]*) args[a]="${arg:2}"; arg="${arg:0:2}"; ((a--)) ;;
-    --) ((a++)); break ;;
-    *) break ;;
-esac; done
-args=("${args[@]:a}")
+trap trap_int INT
+trap trap_exit EXIT
 
-# check dependencies:
-for dep in "${deps[@]}"; do is_cmd "$dep" || error "missing dep: $dep"; done
+# set from env:
+[[ -n $DEBUG ]] && debug=1
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && { no_color=1; clear_colors ;}
+[[ -n $QUIET ]] && { quiet=1; verbose=0 ;}
+[[ -n $VERBOSE ]] && { quiet=0; verbose=1 ;}
 
-# set upscale model:
-opt_model="${opt_model,,}"
-if [ "$opt_model" = 'anime' ]; then
-    model="$path_models/models-upconv_7_anime_style_art_rgb"
-elif [ "$opt_model" = 'cunet' ]; then
-    model="$path_models/models-cunet"
-elif [ "$opt_model" = 'photo' ]; then
-    model="$path_models/models-upconv_7_photo"
-else
-    error "invalid model: $opt_model"
-fi
+# parse args:
+parse_args || exit
+set -- "${args_options[@]}"
+while [[ -n $1 ]]; do case "$1" in
+    -m|--model) shift; model="$1" ;;
+    -n|--noise) shift; noise="$1" ;;
+    -o|--output) shift; output="$1" ;;
+    -q|--quality) shift; quality="$1" ;;
+    -s|--scale) shift; scale="$1" ;;
+    -J|--jpg) type='jpg' ;;
+    -P|--png) type='png' ;;
+    -Q|--quiet) quiet=1; verbose=0 ;;
+    -V|--verbose) quiet=0; verbose=1 ;;
+    -M|--nocolor) no_color=1; clear_colors ;;
+    -h|-H|--help) print_help ;;
+esac; shift; done
 
-# check options:
-[ ! -d "$model" ] && error "invalid model dir: $model"
-[[ ! "$opt_noise" =~ ^(-1|0|1|2|3)$ ]] && error "invalid denoise level: $opt_noise"
-[[ ! "$opt_scale" =~ ^(1|2|4|16|32)$ ]] && error "invalid upscale level: $opt_scale"
-[[ ! "$opt_qual" =~ ^([1-9]|[1-9][0-9]|100)$ ]] && error "invalid jpg quality: $opt_qual"
+# check for errors:
+check_deps || exit
+[[ $model =~ ^(anime|cunet|photo)$ ]] || error "invalid model: $model"
+[[ $noise =~ ^(-1|0|1|2|3)$ ]] || error "invalid denoise level: $noise"
+[[ $quality =~ ^([1-9]|[1-9][0-9]|100)$ ]] || error "invalid jpg quality: $quality"
+[[ $scale =~ ^(1|2|4|16|32)$ ]] || error "invalid upscale level: $scale"
 
-trap 'rm -f "$img_tmp"' EXIT
-for img in "${args[@]}"; do
-    ! is_img "$img" && msg_error "invalid image: $img" && continue
+# set model directory:
+case "${model,,}" in
+    anime) dir_model="$path_models/models-upconv_7_anime_style_art_rgb" ;;
+    cunet) dir_model="$path_models/models-cunet" ;;
+    photo) dir_model="$path_models/models-upconv_7_photo" ;;
+esac
 
-    # set output image name and extension:
-    if [ -n "$opt_type" ]; then
-        ext="$opt_type"
+# check positional args:
+for arg in "${args_positionals[@]}"; do
+    if is_img "$arg"; then
+        imgs+=("$arg")
     else
-        ext="${img##*.}"
-        ext="${ext,,}"
-        [ -z "$ext" ] || [ "$ext" = 'jpeg' ] && ext='jpg'
+        imgs_error+=("$arg")
     fi
-    img_out="${img%.*}_u${opt_scale}n${opt_noise}${opt_model:0:1}.${ext}"
+done
+[[ -n $imgs_error ]] && msg_warn "not images: ${imgs_error[*]}"
+
+for img in "${imgs[@]}"; do
+    # set format variables:
+    dir=''; file="$img"; file_base="$img"; path="$img"
+    if [[ $img =~ ^(.*/)(.*)$ ]]; then
+        dir="${BASH_REMATCH[1]}"
+        file="${BASH_REMATCH[2]}"
+        file_base="${BASH_REMATCH[2]}"
+    fi
+    if [[ $file =~ ^([^.].*)\.(.*)$ ]]; then
+        file_base="${BASH_REMATCH[1]}"
+
+        # TODO: tmp type for each img
+        if [[ -z $type ]]; then
+            type="${BASH_REMATCH[2]}"; type="${type,,}"
+            [[ $type == jpeg ]] && type=jpg
+        fi
+
+    fi
+    path_base="$dir${file_base}"
+    [[ -z $type ]] && type=jpg
+
+    # format output filename:
+    text="$output"
+    subs=("d:$dir" "F:$file" "f:${file_base}" "M:$model" "m:${model:0:1}"
+        "n:$noise" "P:${path_base}" "p:$path" "s:$scale" "t:$type")
+    sub_text || exit
+    img_out="$text_sub"
+    ((debug)) && { msg_debug "$img $yellow->$white $img_out"; continue ;}
 
     # upscale image:
     img_tmp="$(mktemp --tmpdir XXX.png)"
-    flg_success=false
-    [ "$flg_quiet" = 'false' ] && msg_to "$img" "$img_out"
-    [ "$flg_verbose" = true ] && msg_cmd "waifu2x-ncnn-vulkan -m $model -s $opt_scale -n $opt_noise -i $img -o ${img_tmp}"
-    waifu2x-ncnn-vulkan -m "$model" -s "$opt_scale" -n "$opt_noise" -i "$img" -o "${img_tmp}" &>/dev/null && flg_success=true
-    [ "$flg_quiet" = 'false' ] && [ "$flg_success" = 'false' ] &&  msg_error "$img" && continue
-
-    # convert to jpg:
-    if [ "$ext" = 'jpg' ]; then
-        [ "$flg_verbose" = true ] && msg_cmd "magick $img_tmp -quality $opt_qual $img_out"
-        magick "$img_tmp" -quality "$opt_qual" "$img_out"
+    cmd_waifu2x=("$bin_waifu2x" -m "$dir_model" -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}")
+    success=0
+    ((quiet)) || msg "$img $bold$blue->$off$white $img_out"
+    if ((verbose)); then
+        msg_cmd "${cmd_waifu2x[@]}"
+        "${cmd_waifu2x[@]}" && success=1
     else
-        [ "$flg_verbose" = true ] && msg_cmd "cp $img_tmp $img_out"
-        cp "$img_tmp" "$img_out"
+        "${cmd_waifu2x[@]}" &>/dev/null && success=1
     fi
-    rm "$img_tmp"
+    if ((success)); then
+        # convert to jpg:
+        if [[ $ext == jpg ]]; then
+            ((verbose)) && msg_cmd magick "$img_tmp" -quality "$quality" "$img_out"
+            magick "$img_tmp" -quality "$quality" "$img_out"
+        else
+            ((verbose)) && msg_cmd cp "$img_tmp" "$img_out"
+            cp "$img_tmp" "$img_out"
+        fi
+    else
+        msg_error "waifu2x error: $img"
+    fi
+    rm -f "$img_tmp"
 done
 
 # vim:ft=bash

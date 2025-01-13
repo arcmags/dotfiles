@@ -1,6 +1,8 @@
 #!/bin/bash
 ## mv-date ::
 
+# TODO: redo:
+
 print_help() { cat <<'HELPDOC'
 NAME
     mv-date - rename/sort files by creation date
@@ -20,7 +22,7 @@ HELPDOC
 readonly -a deps=(exiftool)
 #readonly -a opts=(-r: --remote: -Q --quiet -V --verbose --nocolor -H --help)
 DEBUG="${DEBUG:-0}"
-NOCOLOR="${NOCOLOR:-0}"
+NO_COLOR="${NO_COLOR:-0}"
 QUIET="${QUIET:-0}"
 VERBOSE="${VERBOSE:-0}"
 remote='localhost'

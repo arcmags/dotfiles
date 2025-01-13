@@ -22,7 +22,7 @@ xset s on s blank s 1200 1200 +dpms dpms 2400 2400 2400
 export TERMINAL=xterm
 
 # theme:
-[ -d "$HOME/.themes/utheme" ] && export GTK_THEME=utheme:dark
+[ "$USER" != 'dery' ] && [ -d "$HOME/.themes/utheme" ] && export GTK_THEME=utheme:dark
 export QT_QPA_PLATFORMTHEME='qt5ct'
 
 # thunar:

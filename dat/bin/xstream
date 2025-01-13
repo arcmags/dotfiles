@@ -9,9 +9,12 @@ SYNOPSIS
     xstream [remote] [port]
 
 DESCRIPTION
+    Stream x window to remote using ffmpeg.
+    Remote machine can view stream with: mpv udp://localhost:<port>
 
-    #Stream x window to remote using ffmpeg.
-    #Remote machine can view stream with: mpv udp://localhost:<port>
+OPTIONS
+    remote      remote hostname to stream to (default: localhost)
+    port        remote port to stream to (default: 6666)
 HELPDOC
 }
 [[ $0 != "${BASH_SOURCE[0]}" ]] && { print_help; return 0 ;}

@@ -3,6 +3,7 @@
 // @include     *://man7.org/*
 // @include     *://man.freebsd.org/cgi/man.cgi*
 // ==/UserScript==
+
 /* ~/.config/qutebrowser/greasemonkey/man7.css.js :: */
 
 GM_addStyle(`

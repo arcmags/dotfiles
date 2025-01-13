@@ -1,0 +1,18 @@
+{
+  "type": "floating_con",
+  "nodes": [
+    {
+      "floating": "user_on",
+      "geometry": {
+        "width": 960,
+        "height": 720
+      },
+      "marks": ["float"],
+      "swallows": [
+        {
+          "class": ".*"
+        }
+      ]
+    }
+  ]
+}
