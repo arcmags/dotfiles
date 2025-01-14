@@ -1,0 +1,12 @@
+## ~/.config/terminal-colors.d/dmesg.scheme ::
+
+alert       38;5;13
+crit        38;5;3
+err         38;5;9
+segfault    1;38;5;9
+subsys      38;5;12
+timebreak   38;5;8
+time        38;5;8
+warn        38;5;11
+
+# vim:ft=conf

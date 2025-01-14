@@ -1,0 +1,113 @@
+.TH USYNC 1 "2024-12-27" "usync" "Usync Manual"
+.SH NAME
+usync \- push/pull changes from remote host
+
+.SH SYNOPSIS
+\fBusync\fR <\fIcommand\fR> [\fIoption\fR...]
+
+.SH DESCRIPTION
+\fBusync\fR is an \fBrsync\fR wrapper configured by a basic yaml file.
+\fBusync\fR searches the current and parent directories for a file named
+\fI.usync\fR. The directory containing \fI.usync\fR is taken as the  base
+working directory while the contents of \fI.usync\fR define a remote rsync
+host.
+.P
+usync forms an rsync command to push/pull the contents of the base working
+directory to/from the remote host:
+.P
+    \fBrsync -aRzz \fR[\fB--delete\fR] [\fB--exclude \fR<\fIpattern\fR>]... <\fIsource\fR>... <\fIdestination\fR>
+.P
+Command line options override config file options.
+
+.SH COMMANDS
+.TP
+\fBinit\fR
+Create a new \fI.usync\fR file in current directory.
+.TP
+\fBpull\fR
+Pull changes from remote rsync host.
+.TP
+\fBpush\fR
+Push changes to remote rsync host.
+
+.SH OPTIONS
+.TP
+\fB\-c\fR, \fB\-\-config\fR <\fIfile\fR>
+Set config file basename. (default: \fI.usync\fR)
+.TP
+\fB\-d\fR, \fB\-\-dir\fR <\fIdirectory\fR>
+Set remote rsync directory.
+.TP
+\fB\-e\fR, \fB\-\-exclude\fR <\fIpattern\fR>
+Add exclude pattern, clear patterns if blank.
+.TP
+\fB\-p\fR, \fB\-\-port\fR <\fIport\fR>
+Set remote rsync port number.
+.TP
+\fB\-r\fR, \fB\-\-remote\fR <\fIurl\fR>
+Set remote rsync url. May be an ssh alias.
+.TP
+\fB\-s\fR, \fB\-\-source\fR <\fIpath\fR>
+Add source path, clear paths if blank.
+.TP
+\fB\-u\fR, \fB\-\-user\fR <\fIport\fR>
+Set remote rsync user.
+.TP
+\fB\-D\fR, \fB\-\-dryrun\fR
+Perform dry run making no changes.
+.TP
+\fB\-M\fR, \fB\-\-nocolor\fR
+Disable colored output.
+.TP
+\fB\-N, \-\-nodelete\fR
+Don't use rsync \fB--delete\fR option.
+.TP
+\fB\-Q\fR, \fB\-\-quiet\fR
+Print nothing to stdout.
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+Print more verbose information.
+.TP
+\fB\-H\fR, \fB\-h\fR, \fB\-\-help\fR
+Print help text.
+
+.SH CONFIGURATION
+\fBusync\fR is configured by a yaml file \fI.usync\fR that defines a remote
+rsync host and directory. This file must be present to \fBpush\fR or \fBpull\fR
+from a remote host.
+.P
+A valid \fI.usync\fR file has the following keys:
+.TP
+\fBdelete\fR
+Use rsync \fB--delete\fR option. (default: true)
+.TP
+\fBexclude\fR
+List of patterns to exclude via rsync \fB--exclude\fR option. See \fBFILTER
+RULES\fR section of rsync manual for details and syntax. (default: unset)
+.TP
+\fBport\fR
+Remote ssh port. (default: unset)
+.TP
+\fBremote\fR
+Remote rsync url. May be an ssh alias. (required)
+.TP
+\fBremote_dir\fR
+Remote rsync directory. Must be a full path. (required)
+.TP
+\fBuser\fR
+Remote ssh user. (default: unset)
+
+.SH ENVIRONMENT
+\fBusync\fR is affected by the following environment variables:
+.TP
+\fBNO_COLOR\fR
+Disable colored output.
+.TP
+\fBQUIET\fR
+Run silently.
+.TP
+\fBVERBOSE\fR
+Run verbosely.
+
+.SH REQUIREMENTS
+\fBrsync\fR and \fBssh\fR

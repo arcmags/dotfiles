@@ -1,0 +1,10 @@
+## ~/.config/terminal-colors.d/scheme ::
+
+err         38;5;9
+error       38;5;9
+header      1;38;5;12
+warn        38;5;11
+warning     38;5;11
+welcome     38;5;14
+
+# vim:ft=conf

@@ -1,0 +1,10 @@
+#!/usr/bin/ash
+
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
+
+export PS1='\[\e[1;38;5;10m\]@\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
+
+## functions: commands ::
+reload() { . "$HOME/.ashrc" ;}
+
+# vim:ft=sh

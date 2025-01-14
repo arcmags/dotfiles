@@ -1,0 +1,48 @@
+## ~/.newsboat/urls ::
+
+https://www.ajplus.net/stories?format=rss "~Al Jazerra"
+https://www.ajplus.net/stories/tag/World?format=rss "~Al Jazerra - world" world
+
+https://feeds.bbci.co.uk/news/rss.xml "~BBC"
+https://feeds.bbci.co.uk/news/science_and_environment/rss.xml "~BBC - science" science environment
+https://feeds.bbci.co.uk/news/technology/rss.xml "~BBC - tech" tech
+https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml "~BBC - US" US
+https://feeds.bbci.co.uk/news/world/rss.xml "~BBC - world" world
+
+https://www.theguardian.com/rss "~The Guardian"
+https://www.theguardian.com/science/rss "~The Guardian - science" science
+https://www.theguardian.com/us/technology/rss "~The Guardian - tech" tech
+https://www.theguardian.com/us-news/rss "~The Guardian - US" US
+https://www.theguardian.com/world/rss "~The Guardian - world" world
+
+http://rss.cnn.com/rss/cnn_topstories.rss "~CNN"
+http://rss.cnn.com/rss/cnn_tech.rss "~CNN - tech" tech
+http://rss.cnn.com/rss/cnn_us.rss "~CNN - US" US
+http://rss.cnn.com/rss/cnn_world.rss "~CNN - world" world
+
+https://rss.csmonitor.com/feeds/all "~CSM"
+https://rss.csmonitor.com/feeds/environment "~CSM - environment" environment
+https://rss.csmonitor.com/feeds/science "~CSM - science" science
+https://rss.csmonitor.com/feeds/usa "~CSM - US" US
+https://rss.csmonitor.com/feeds/world "~CSM - world" world
+
+https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml "~New York Times"
+https://rss.nytimes.com/services/xml/rss/nyt/Climate.xml "~New York Times - environment" environment
+https://rss.nytimes.com/services/xml/rss/nyt/Science.xml "~New York Times - science" science
+https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml "~New York Times - tech" tech
+https://rss.nytimes.com/services/xml/rss/nyt/World.xml "~New York Times - world" world
+https://rss.nytimes.com/services/xml/rss/nyt/US.xml "~New York Times - US" US
+
+https://feeds.arstechnica.com/arstechnica/index "~Ars Technica"
+https://feeds.arstechnica.com/arstechnica/features "~Ars Technica - features"
+https://feeds.arstechnica.com/arstechnica/technology-lab "~Ars Technica - tech" tech
+https://feeds.arstechnica.com/arstechnica/science "~Ars Technica - science" science
+
+https://www.sciencedaily.com/rss/all.xml "~Science Daily" science
+https://www.sciencedaily.com/rss/top/technology.xml "~Science Daily - tech" tech
+
+https://www.wired.com/feed/category/ideas/rss "~Wired - ideas"
+https://www.wired.com/feed/category/science/rss "~Wired - science" science
+https://www.wired.com/feed/category/security/rss "~Wired - security" security
+
+# vim:ft=conf

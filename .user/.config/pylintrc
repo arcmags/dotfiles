@@ -1,0 +1,11 @@
+## ~/.config/pylintrc ::
+
+[MESSAGES CONTROL]
+disable = C0321
+
+[DESIGN]
+max-args = 8
+max-attributes = 16
+max-positional-arguments = 8
+
+# vim: ft=yaml

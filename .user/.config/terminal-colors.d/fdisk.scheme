@@ -1,0 +1,8 @@
+## ~/.config/terminal-colors.d/fdisk.scheme ::
+
+header      1;38;5;12
+help-title  1;38;5;12
+warn        38;5;11
+welcome     38;5;14
+
+# vim:ft=conf

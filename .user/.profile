@@ -46,10 +46,9 @@ export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[3
 export PS2='\[\e[0m\] '
 [ "$USER" = 'dery' ] && PS1='\[\e[0;38;5;13m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 
-[ -d "$UDIR/dat/python/lib" ] && export PYTHONPATH="$UDIR/dat/python/lib"
-[ -f "$UDIR/.user/.pythonrc" ] && export PYTHONSTARTUP="$UDIR/.user/.pythonrc"
+[ -d "$UDIR/lib/python" ] && export PYTHONPATH="$UDIR/lib/python"
 
-[ -d "$UDIR/dat/figfonts" ] && export FIGLET_FONTDIR="$UDIR/dat/figfonts"
+[ -d "$UDIR/lib/figfonts" ] && export FIGLET_FONTDIR="$UDIR/lib/figfonts"
 
 is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
 
@@ -156,7 +155,7 @@ lsl() { ls -l "$@" ;}
 lss() { ls -s "$@" ;}
 
 lsblk() { command lsblk -i "$@" ;}
-lsb() { lsblk -o NAME,FSTYPE,SIZE,FSUSED,MOUNTPOINTS "$@" ;}
+lsb() { lsblk -o NAME,FSTYPE,SIZE,FSUSED,MOUNTPOINTS,UUID "$@" ;}
 
 is_bin minicom && minicom() { command minicom -F ' /dev/%D | %T | %C ' "$@" ;}
 

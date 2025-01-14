@@ -1,0 +1,120 @@
+## ~/.newsboat/config ::%N %V - %?O?Open File&Save File? - %f
+
+show-keymap-hint no
+swap-title-and-hints yes
+browser "~/.newsboat/browser.bash %t -- %u -- %T"
+scrolloff 8
+reload-threads 4
+
+ignore-article "*" "title =~ \"Podcast\""
+
+## colors ::
+color background            color7  color0
+color listnormal            color6  color0
+color listfocus             color6  color5
+color listnormal_unread     color12 color0
+color listfocus_unread      color14 color5
+color title                 color10 color4  bold
+color info                  color6  color4
+color hint-key              color14 color4
+color hint-keys-delimiter   color8  color4  bold
+color hint-separator        color8  color4  bold
+color hint-description      color12 color4
+color article               color15 color0
+color end-of-text-marker    color5  color0
+
+## formatting ::
+datetime-format "%b %d %R"
+
+# feed list:
+feedlist-title-format " [feeds%?T?:%T?]%> news | %u/%t "
+feedlist-format "%2i  %t%> %U/%c "
+
+# article list:
+articlelist-title-format " %T | %U%> news | %u/%t "
+articlelist-format "%3i  %D  %t%?T? [%T]?%> %f"
+
+# article:
+itemview-title-format " %T%> news | %u/%t "
+highlight article "^Feed:.*" color14 color0
+highlight article "^Title:.*" color10 color0
+highlight article "^Author:.*" color2 color0
+highlight article "^Date:.*" color6 color0
+highlight article "^Link:.*" color12 color0
+highlight article "^(Author|Feed|Title|Date|Link):" color8 color0
+
+# search results:
+searchresult-title-format " s:%s%?F? | f:%F? %> news | %u/%t "
+
+# tag selection:
+selecttag-title-format " [tags] %> news "
+
+# filter selection:
+selectfilter-title-format " [filters] %> news "
+
+# help:
+help-title-format " [help] %> news "
+
+# url:
+urlview-title-format " [urls] %> news "
+
+# dialogs:
+dialogs-title-format " [dialogs] %> news "
+
+# browser:
+dirbrowser-title-format " %?O?open dir&save file? - %f %> news "
+filebrowser-title-format " %?O?open file&save file? - %f %> news "
+
+## bindings ::
+bind-key ^W view-dialogs
+bind-key ^V edit-urls
+
+bind-key R reload articlelist
+
+bind-key j down
+bind-key k up
+
+bind-key j next articlelist
+bind-key k prev articlelist
+
+bind-key J next-feed articlelist
+bind-key K prev-feed articlelist
+
+bind-key G end
+bind-key g home
+
+bind-key ^D halfpagedown
+bind-key ^U halfpageup
+bind-key ^F pagedown
+bind-key ^B pageup
+
+bind-key \ toggle-show-read-feeds
+
+bind-key s sort
+bind-key S rev-sort
+
+bind-key h quit
+unbind-key h feedlist
+
+unbind-key q feedlist
+
+bind-key - quit
+unbind-key - feedlist
+
+bind-key T clear-tag
+bind-key F clear-filter
+
+bind-key l open
+bind-key l open-in-browser-and-mark-read article
+
+bind-key o open-in-browser-and-mark-read article
+bind-key o open-in-browser-and-mark-read articlelist
+
+unbind-key ,
+bind-key ; macro-prefix
+macro e set browser "~/.newsboat/browser.bash web -- %u -- %T"; open-in-browser-and-mark-read; set browser "~/.newsboat/browser.bash %t -- %u -- %T"
+macro w set browser "~/.newsboat/browser.bash w3m -- %u -- %T"; open-in-browser-and-mark-read; set browser "~/.newsboat/browser.bash %t -- %u -- %T"
+
+bind-key ENTER open-in-browser-and-mark-read article
+
+# vim:ft=conf

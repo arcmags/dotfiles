@@ -1,0 +1,11 @@
+#!/bin/sh
+## ~/.config/sxiv/exec/image-info ::
+# sxiv statusbar script.
+
+# args:
+#   $1 -- path to image file
+#   $2 -- image width
+#   $3 -- image height
+
+exec 2>/dev/null
+printf ' %s | %s | %s' "${1##*/}" "$2x$3" "$(du -Dh -- "$1" | cut -f1)"

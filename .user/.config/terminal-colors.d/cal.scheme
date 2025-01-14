@@ -1,0 +1,9 @@
+## ~/.config/terminal-colors.d/cal.scheme ::
+
+header      38;5;12
+today       1;38;5;3
+weekend     38;5;14
+weeknumber  38;5;6
+workday     38;5;15
+
+# vim:ft=conf

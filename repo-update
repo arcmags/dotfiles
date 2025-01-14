@@ -11,7 +11,6 @@ files_src=(
     dat/c/
     dat/cpp/
     dat/css/
-    dat/gdnsd/
     dat/hostnamer/
     dat/html/
     dat/minecraft/datapacks/
@@ -37,6 +36,7 @@ files_src=(
     .user/.config/feh/
     .user/.config/fontconfig/
     .user/.config/fzf/
+    .user/.config/gallery-dl/
     .user/.config/i3/
     .user/.config/i3status/
     .user/.config/imv/
@@ -48,6 +48,7 @@ files_src=(
     .user/.config/pacman/
     .user/.config/picom.conf
     .user/.config/pycodestyle
+    .user/.config/pylintrc
     .user/.config/qmk/qmk.ini
     .user/.config/qt5ct/
     .user/.config/qt6ct/
@@ -57,6 +58,8 @@ files_src=(
     .user/.config/qutebrowser/greasemonkey/
     .user/.config/qutebrowser/userscripts/
     .user/.config/ranger/
+    .user/.config/sxiv/
+    .user/.config/terminal-colors.d/
     .user/.config/text-gen.yml
     .user/.config/ttyper/
     .user/.config/vifm/colors/
@@ -73,19 +76,27 @@ files_src=(
     .user/.irssi/utheme.theme
     .user/.local/share/applications/
     .user/.local/share/fonts/
+    .user/.local/share/man/
     .user/.local/share/xfce4/
     .user/.moc/config
     .user/.moc/keymap.conf
     .user/.moc/themes/
     .user/.mozilla/firefox/default/chrome/
+    .user/.mozilla/firefox/default/user.js
+    .user/.newsboat/config
+    .user/.newsboat/urls
+    .user/.newsboat/browser.bash
     .user/.themes/
-    .user/.vim/.uvim
     .user/.vim/after/
     .user/.vim/colors/utheme.vim
+    .user/.vim/ftdetect/
     .user/.vim/pack/mags/
+    .user/.vim/syntax/
+    .user/.vim/.uvim
     .user/.vim/vimrc
     .user/.w3m/config
     .user/.w3m/keymap
+    .user/.ashrc
     .user/.Xmodmap
     .user/.Xresources
     .user/.Xtheme

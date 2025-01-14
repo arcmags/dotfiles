@@ -1,0 +1,27 @@
+#!/bin/bash
+## ~/.config/sxiv/exec/key-handler ::
+# sxiv key handler.
+
+# args:
+#   $1 -- keypress: [C-][M-][S-]<key>
+#   stdin -- list of images, newline separated
+
+rotate() {
+    for img in "${imgs[@]}"; do ext="${img##*.}"; case "${ext,,}" in
+        jpg|jpeg) jpegtran -rotate "$1" -copy all -outfile "$img" "$img" ;;
+        *) mogrify -rotate "$1" "$img" ;;
+    esac; done
+}
+
+## main ::
+exec 2>/dev/null
+mapfile -t imgs < <(sort -u < /dev/stdin)
+
+case "$1" in
+    C-x|Delete) rm "${imgs[@]}" ;;
+    less) rotate 270 ;;
+    greater) rotate 90 ;;
+    slash)  rotate 180 ;;
+esac
+
+# vim:ft=bash
