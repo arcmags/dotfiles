@@ -1,7 +1,7 @@
 # Arch Linux and Windows 11 Dual Boot
 
-These are some notes/instructions I made while setting up (*trying to setup*)
-an Arch Linux and Windows 11 dual boot machine.
+These are some notes/instructions I made while setting up an Arch Linux and
+Windows 11 dual boot machine.
 
 For over 15 years I've ran various dual boot Linux/Windows systems with very
 few problems, until Windows 11.
@@ -18,7 +18,7 @@ few problems, until Windows 11.
 - storage: 2TB Samsung 990 EVO Plus NVME SSD
 - storage: 2TB Crucial CT2000BX500 SATA SSD
 
-Arch Linux on the NVME SSD, Windows on the SATA SSD.
+Arch Linux on the NVME SSD, Windows on the SATA SSD. Secure boot disabled.
 
 ## Installation
 
@@ -65,13 +65,6 @@ fails the next time it's attempted to chainload. (GRUB: *error: no such device:
 bootloader in its scan) If Windows is launched again directly from it's own
 bootloader, it seems to reset this and allow chainloading again (just once).
 
-TODO: A possible solution is to use the EFI partition created by Windows so
-it's on the same drive as Windows. (unfounded theory, but worth a shot)
-
-TODO: A possible solution is to accept that Windows 11 sucks so bad it will
-never dual boot properly, and to just always use the BIOS menu for boot
-selection.
-
 ### Windows First (success)
 
 - install Windows on SATA drive
@@ -96,6 +89,7 @@ Confirm it's disabled with the powershell command:
 
 <!--metadata:
 author: Chris Magyar
+date: 2025-01-25
 description: Dual booting Arch Linux and Windows 11.
 keywords: Windows 11, Arch Linux, Linux, dual boot
 -->

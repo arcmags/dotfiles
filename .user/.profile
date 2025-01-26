@@ -27,6 +27,7 @@ is_bin() (
     return 1
 )
 
+# TODO: take multiple args?
 path_add() {
     expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
 }
@@ -191,10 +192,20 @@ is_bin startx && [ -f "$HOME/.xinitrc" ] && startx() { command startx "$HOME/.xi
 is_bin zathura && zathura() { command zathura --fork "$@" ;}
 
 ## functions: commands ::
+# TODO: make these all scripts?
 ascii() {
     is_bin iconv || error 'missing dep: iconv'
     cat "${1:-/dev/stdin}" | iconv -f utf-8 -t ascii//TRANSLIT
 }
+
+bak() (
+    suffix="_$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$UDIR/dat/bak"
+    for a in "$@"; do
+        [ ! -e "$a" ] && continue
+        cp -r "$a" "$UDIR/dat/bak/$a$suffix"
+    done
+)
 
 calc() {
     is_bin bc || error 'missing dep: bc'
@@ -207,14 +218,6 @@ cdtt() {
     cd "$dir_tmp"
     unset dir_tmp
 }
-
-cpd() (
-    suffix="_$(date +%Y%m%d_%H%M%S)"
-    for a in "$@"; do
-        [ ! -e "$a" ] && continue
-        cp -r "$a" "$a$suffix"
-    done
-)
 
 error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2; return 2 ;}
 
@@ -244,7 +247,6 @@ screenshot() {
 
 tb() {
     is_bin nc || error 'missing dep: nc'
-    #url_tb="$(nc termbin.com 9999 | tr -d '\0')"
     url_tb="$(cat "${1:-/dev/stdin}" | nc termbin.com 9999 | tr -d '\0')"
     [ -z "$url_tb" ] && error 'connection error'
     printf '%s\n' "$url_tb"

@@ -4,6 +4,7 @@
         "sleep": [1, 3],
         "sleep-request": [1, 3],
         "filename": "{num:>03}.{extension}",
-        "directory": ["{category}", "{title} {gallery_id}"]
+        "directory": ["{category}", "{title} {gallery_id}"],
+        "base-directory": "./gdl/"
     }
 }

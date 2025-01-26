@@ -56,9 +56,11 @@ HELPDOC
 [[ $1 =~ ^(-H|-h|--help)$ ]] && { print_help; exit ;}
 
 # TODO: allow full path sources?
-# TODO: check if source contains a source?
-# TODO: stat command?
+# TODO: check if any src contains any src
+# TODO: stat command
 # TODO: check for leading ~
+# TODO: bash regex instead of sed for rsync output parsing?
+# TODO: yellow msg_cmd (and msg) if dryrun?
 
 ## settings ::
 debug=0; nocolor=0; quiet=0; verbose=0
@@ -88,6 +90,7 @@ exclude_default=(.git /local)
 host="$HOSTNAME"
 remote_dir=
 source_default=(./)
+status_exit=0
 yaml=
 
 # colors:
@@ -367,11 +370,15 @@ fi
 ((verbose)) && msg_cmd "${cmd_rsync[@]}"
 if ((quiet)); then
     "${cmd_rsync[@]}" 1>/dev/null
+    status_exit=$?
 else
     "${cmd_rsync[@]}" | "${cmd_sed[@]}"
+    status_exit=$?
 fi
 
 # dryrun warning:
 ((dryrun)) && msg_warn 'dryrun'
+
+exit $status_exit
 
 # vim:ft=bash

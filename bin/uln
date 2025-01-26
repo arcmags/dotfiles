@@ -61,9 +61,9 @@ HELPDOC
 }; [ "$0" != "$BASH_SOURCE" ] && { print_help; return 0 ;}
 
 # TODO: add option to select between absolute/relative links
-# TODO: rework verbose output/dryrun
 # TODO: check if any src contains any src
-# TODO: build and check srcs before creating any links/copies
+# TODO: stat command
+# TODO: check for leading ~
 # TODO: absolute paths, prefix dir options?
 # TODO: setting for hostname dependency?
 # TODO: different source lists for different opts, actions?

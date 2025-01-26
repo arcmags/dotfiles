@@ -31,15 +31,15 @@ exit ;}
 [[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
 
 ## settings ::
-debug=0; no_color=0; quiet=0; verbose=0
+debug=0; dryrun=0; no_color=0; quiet=0; verbose=0
 
 ## internal functions/variables ::
 readonly -a args=("$@")
-readonly -a deps=()
+readonly -a deps=(curl)
 readonly -a opts=(-l: --list: -v: --var: -H -h --help -M --nocolor -Q --quiet -V --verbose)
 readonly path_script="$(realpath "$BASH_SOURCE")"
 readonly script="$(basename "$BASH_SOURCE")"
-declare var
+unset var
 args_options=() args_positionals=()
 formats=("S:$path_script" "s:$script")
 list=()
@@ -57,7 +57,6 @@ clear_colors() {
 # messages:
 msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
-msg_debug() { printf "$yellow$BASH_LINENO$bold: $off$white%s$off\n" "$*" >&2 ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
 msg_plain() { printf "$off$white  %s$$off\n" "$*" ;}
@@ -68,7 +67,7 @@ msg_cmd() {
     printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
 }
 
-# tests:
+# utils:
 check_deps() {
     # Check dependencies, return number missing (O if no error).
     # Input:
@@ -84,34 +83,6 @@ check_deps() {
 is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
 is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
-
-# formatting, parsing, etc:
-format_text() {
-    # Format text containing %char sequences, return 3 if error.
-    # Inputs:
-    #   text -- format string
-    #   formats -- array of char:replacement pairs
-    # Output:
-    #   text_formatted -- formatted text
-    # Usage:
-    #   formats=(a:action d:dir p:path); text='01_%d-%a_%%_%p'
-    #   format_text || exit
-    #   echo "$text_formatted"
-    # TODO: printf style padding options?
-    local fmt= f=0 i=-1
-    text_formatted=
-    for fmt in "${formats[@]}"; do
-        [[ ${fmt:1:1} == : ]] || { msg_error "invalid fmt map: $fmt"; return 3 ;}
-    done
-    while [[ $i -le ${#text} ]]; do
-        [[ ${text:((++i)):1} == % ]] || { text_formatted+="${text:i:1}"; continue ;}
-        [[ ${text:((++i)):1} == % ]] && { text_formatted+='%'; continue ;}; f=0
-        for fmt in "${formats[@]}"; do if [[ ${text:i:1} == ${fmt:0:1} ]]; then
-            text_formatted+="${fmt:2}"; f=1; break
-        fi; done
-        ((f)) || { msg_error "invalid fmt char: ${text:i:1}"; return 3 ;}
-    done
-}
 
 parse_args() {
     # Parse command line options, separate options, return 3 if error.
@@ -160,19 +131,19 @@ parse_args() {
 }
 
 parse_arr() {
-    # Parse array, remove duplicates, clear array at every blank entry.
+    # Parse array, remove dupes, optionally clear array at empty entries.
     # Input:
+    #   $1 -- if set to clear, clear array at empty entires
     #   arr -- array
     # Output:
     #   arr_new -- parsed array
     # Usage:
     #   arr=(1 2 3 2 4)
     #   parse_arr; printf "${arr_new[*]}"
-    # TODO: array outputs for different options (i.e. not clearing on blanks...)
     local dup=0
     arr_new=()
     for a in "${arr[@]}"; do dup=0
-        [[ -z $a ]] && { arr_new=(); continue ;}
+        [[ -z $a && $1 == clear ]] && { arr_new=(); continue ;}
         for b in "${arr_new[@]}"; do [[ $a == $b ]] && { dup=1; break ;}; done
         ((dup)) || arr_new+=("$a")
     done
@@ -205,9 +176,47 @@ parse_yaml() {
     done
 }
 
+sub_text() {
+    # Format text containing %char sequences, return 3 if error.
+    # Inputs:
+    #   text -- format string
+    #   subs -- array of char:replacement pairs
+    # Output:
+    #   text_subbed -- formatted text
+    # Usage:
+    #   subs=(n:name v:value); text='%n : %v'
+    #   sub_text || exit
+    #   echo "$text_subbed"
+    # TODO: printf style padding options?
+    local i=0 found=0 repl= sub=
+    text_subbed=
+    for sub in "${subs[@]}"; do
+        [[ ${sub:1:1} == : ]] || { msg_error "invalid sub: $sub"; return 3 ;}
+    done
+    while [[ $i -lt ${#text} ]]; do
+        repl="${text:i:1}"
+        if [[ ${text:i:1} == % ]]; then
+            ((i++))
+            if [[ ${text:i:1} == % ]]; then
+                repl='%'
+            else
+                found=0; for sub in "${subs[@]}"; do
+                    if [[ ${text:i:1} == ${sub:0:1} ]]; then
+                        repl="${sub:2}"; ((found++))
+                fi; done
+                if ! ((found)); then
+                    msg_error "invalid format character: ${text:i:1}"
+                    return 3
+                fi
+                ((found)) || { msg_error "invalid format: ${text:i:1}"; return 3 ;}
+        fi; fi
+        text_subbed+="$repl"; ((i++))
+    done
+}
+
 # error, exit, trap:
 error() { msg_error "$*"; exit 3 ;}
-trap_exit() { ((debug)) && msg_debug '[exit]' ;}
+trap_exit() { ((debug)) && msg_error '[exit]' ;}
 trap_int() { printf '\n'; msg_error '[sigint]'; exit 99 ;}
 
 ## main ::
@@ -239,16 +248,20 @@ check_deps || exit
 file="$HOME/user/dat/conf/simple.yaml"
 if [[ -f $file ]]; then
     yaml="$(<"$file")"
-    if parse_yaml; then
-        if ! ((quiet)); then
-            msg "yaml parsed: $file"
-            printf -v arr '%s, ' "${yaml_list[@]}"; arr="${a:0:-2}"
-            msg2 "copy: $yaml_copy"
-            msg2 "dest: $yaml_dest"
-            msg2 "list: [$arr]"
-fi; fi; else
+    if parse_yaml && ! ((quiet)); then
+        msg "yaml parsed: $file"
+        printf -v arr '%s, ' "${yaml_list[@]}"; arr="${a:0:-2}"
+        msg2 "copy: $yaml_copy"
+        msg2 "dest: $yaml_dest"
+        msg2 "list: [$arr]"
+    fi
+else
     msg_error "file not found: $file"
 fi
+
+# variable checks:
+[[ -z ${var+x} ]] && msg "var is not set"
+[[ -n ${var+x} && -z $var ]] && msg "var is set and empty"
 
 # prompt for user input:
 if [[ -z ${var+x} ]]; then

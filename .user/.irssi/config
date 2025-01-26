@@ -85,7 +85,7 @@ chatnets = {
 channels = (
   { chatnet = "libera"; name = "#archlinux"; autojoin = "yes"; },
   { chatnet = "libera"; name = "#archlinuxarm"; autojoin = "no"; },
-  { chatnet = "libera"; name = "#archlinux-aur"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#archlinux-aur"; autojoin = "yes"; },
   { chatnet = "libera"; name = "#archlinux-offtopic"; autojoin = "no"; },
   { chatnet = "libera"; name = "#archlinux-security"; autojoin = "no"; },
   { chatnet = "libera"; name = "#archlinuxarm"; autojoin = "no"; },
@@ -132,7 +132,7 @@ channels = (
   { chatnet = "libera"; name = "#ruby"; autojoin = "no"; },
   { chatnet = "libera"; name = "##science"; autojoin = "no"; },
   { chatnet = "libera"; name = "#security"; autojoin = "no"; },
-  { chatnet = "libera"; name = "#systemd"; autojoin = "no"; },
+  { chatnet = "libera"; name = "#systemd"; autojoin = "yes"; },
   { chatnet = "libera"; name = "#thelounge"; autojoin = "no"; },
   { chatnet = "libera"; name = "#thelounge-offtopic"; autojoin = "no"; },
   { chatnet = "libera"; name = "#tmux"; autojoin = "yes"; },
