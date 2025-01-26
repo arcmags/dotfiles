@@ -8,13 +8,13 @@ few problems, until Windows 11.
 
 ## Hardware
 
-- mobo: ASUS Prime B650M-F
 - cpu: AMD Ryzen 7 9700X
 - memory: 32GB DDR5
 - gpu: AMD Radeon RX 7700 XT
-- gpu: AMD Granite Ridge (builtin)
-- audio: AMD Navi 31 (builtin)
-- network: Realtek RTL8111/8168/8211/8411 PCI Express (builtin)
+- mobo: ASUS Prime B650M-F
+  - audio: AMD Navi 31 (builtin)
+  - gpu: AMD Granite Ridge (builtin)
+  - network: Realtek RTL8111/8168/8211/8411 PCI Express (builtin)
 - storage: 2TB Samsung 990 EVO Plus NVME SSD
 - storage: 2TB Crucial CT2000BX500 SATA SSD
 
@@ -27,9 +27,19 @@ first and allowing Windows to use the EFI partition created by Linux. Sometimes
 this messes up the bootloader, but it's not hard to straighten out if you know
 what you're doing, and it's generally a one-time fix.
 
-I've usually (not always) installed Linux and Windows on separate drives,
-meaning that the EFI partition and the Windows partition are generally (not
-always) on separate drives.
+Windows 11 seems to have issues (as noted below) if the EFI partition used to
+boot is not managed by Windows.
+
+### Windows First
+
+- install Windows on SATA drive
+  - Windows creates 100MB EFI partition
+  - disable fast startup and hibernate in Windows
+- install Arch Linux on NVME drive
+  - mount EFI partition (on SATA drive) created by Windows to /efi
+- add Windows menu entry to GRUB
+
+This setup works without any issues.
 
 ### Linux First (issues)
 
@@ -42,9 +52,6 @@ always) on separate drives.
 
 After successful installation, Windows periodically gets a blue screen of death
 saying that it cannot find the EFI partition.
-
-TODO: A possible solution is to create the EFI partition on the SATA drive
-instead of the NVME drive so that it's on the same drive as Windows?
 
 ### Windows First (issues)
 
@@ -59,22 +66,11 @@ After successful installation, if Windows is always launched directly from it's
 own bootloader, that is, it's not chainloaded (from GRUB or rEFInd), everything
 works fine.
 
-However, when the Windows is launched by chainloading it's bootloader. ,it
-fails the next time it's attempted to chainload. (GRUB: *error: no such device:
-<UUID>*) (rEFInd: doesn't display a Windows option because it doesn't find a
-bootloader in its scan) If Windows is launched again directly from it's own
-bootloader, it seems to reset this and allow chainloading again (just once).
-
-### Windows First (success)
-
-- install Windows on SATA drive
-  - Windows creates 100MB EFI partition
-  - disable fast startup and hibernate in Windows
-- install Arch Linux on NVME drive
-  - mount EFI partition (on SATA drive) created by Windows to /efi
-- add Windows menu entry to GRUB
-
-This setup appears to work without any issues.
+However, when Windows is launched by chainloading it's bootloader, it fails the
+next time it's attempted to chainload. (GRUB: *error: no such device: <UUID>*)
+(rEFInd: doesn't display a Windows option because it doesn't find a bootloader
+in its scan) If Windows is launched again directly from it's own bootloader, it
+seems to reset this and allow chainloading again (just once).
 
 ## Notes
 
