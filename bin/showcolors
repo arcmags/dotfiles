@@ -1,34 +1,30 @@
 #!/bin/bash
-## colors ::
+## showcolors ::
 
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
 print_help() { cat <<'HELPDOC'
-NAME
-    colors - print terminal colors
+Usage:
+  showcolors [option...] [color...]
 
-SYNOPSIS
-    colors [option...] [color...]
+Print colors in the terminal. The default behavior with no arguments prints the
+terminal colors 0-15. Additional colors may be specified by hex (FFFFFF), rgb
+(255,255,255), or name.
 
-DESCRIPTION
-    Print colors in the terminal. The default behavior with no arguments
-    prints the terminal colors 0-15. Additional colors may be specified by hex
-    (FFFFFF), rgb (255,255,255), or name.
+Options:
+  -c, --colors <count>    Terminal colors to print. (default: 16, max: 256)
+  -g, --graygrey <value>  Preferred spelling of gray/grey. (default: grey)
+  -A, --all               Print all named colors. (requires magick)
+  -M, --most              Print all named colors except the 100 shades of grey.
+  -Q, --quiet             Print less verbose output.
+  -X, --xrdb              Print .Xresources colors. (requires xrdb)
+  -H, --help              Print help.
 
-OPTIONS
-    -c, --colors <count>    Terminal colors to print. (default: 16, max: 256)
-    -g, --graygrey <value>  Preferred spelling of gray/grey. (default: grey)
-    -A, --all               Print all named colors. (requires magick)
-    -M, --most              Print named colors besides the 100 shades of grey.
-    -Q, --quiet             Print less verbose output.
-    -X, --xrdb              Print .Xresources colors. (requires xrdb)
-    -H, --help              Print help.
-
-REQUIREMENTS
-    imagemagick     parse/print named colors (optional)
-    xrdb            print xresources colors (optional)
+Requirements:
+  imagemagick   parse/print named colors (optional)
+  xrdb          print xresources colors (optional)
 HELPDOC
-}
-[[ $0 != "$BASH_SOURCE" ]] && { print_help; return 0 ;}
-[[ $1 =~ ^(-H|--help)$ ]] && { print_help; exit ;}
+exit ;}
+[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
 
 ## settings ::
 graygrey=grey

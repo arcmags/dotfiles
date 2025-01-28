@@ -27,28 +27,27 @@ Environment:
   QUIET         run silently
   VERBOSE       run verbosely
 HELPDOC
-exit ;}
+exit "${1:-0}" ;}
 [[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
 
 ## settings ::
-debug=0; dryrun=0; no_color=0; quiet=0; verbose=0
+debug=0 nocolor=0 quiet=0 verbose=0
 
 ## internal functions/variables ::
-readonly -a args=("$@")
+readonly -a args=("$@"); args_options=() args_positionals=()
 readonly -a deps=(curl)
-readonly -a opts=(-l: --list: -v: --var: -H -h --help -M --nocolor -Q --quiet -V --verbose)
+readonly -a opts=(-l: --list: -v: --var: -M --nocolor -Q --quiet -V --verbose -H -h --help)
 readonly path_script="$(realpath "$BASH_SOURCE")"
 readonly script="$(basename "$BASH_SOURCE")"
 unset var
-args_options=() args_positionals=()
 formats=("S:$path_script" "s:$script")
 list=()
 
 # colors:
-black=$'\e[38;5;0m'; blue=$'\e[38;5;12m'; cyan=$'\e[38;5;14m'
-green=$'\e[38;5;10m'; grey=$'\e[38;5;8m'; magenta=$'\e[38;5;13m'
-orange=$'\e[38;5;3m'; red=$'\e[38;5;9m' white=$'\e[38;5;15m'
-yellow=$'\e[38;5;11m'; bold=$'\e[1m'; off=$'\e[0m'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m'
+green=$'\e[38;5;10m' grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m'
+orange=$'\e[38;5;3m' red=$'\e[38;5;9m' white=$'\e[38;5;15m'
+yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
 clear_colors() {
     export NO_COLOR=true; nocolor=1
     unset black blue cyan green grey magenta orange red white yellow bold off
@@ -63,7 +62,7 @@ msg_plain() { printf "$off$white  %s$$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
 msg_cmd() {
     local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
-    [[ $EUID -eq 0 ]] && printf "$bold$red #" || printf "$bold$blue $"
+    [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
     printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
 }
 
@@ -75,10 +74,10 @@ check_deps() {
     # Usage:
     #   deps=(cmd1 cmd2 cmd3)
     #   check_deps || exit
-    local deps_e=()
+    local deps_err=()
     for dep in "${deps[@]}"; do is_cmd "$dep" || deps_e+=("$dep"); done
-    [[ ${#deps_e} -gt 0 ]] && msg_error "missing deps: ${deps_e[*]}"
-    return ${#deps_e[@]}
+    [[ ${#deps_err} -gt 0 ]] && msg_error "missing deps: ${deps_err[*]}"
+    return ${#deps_err[@]}
 }
 is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
@@ -86,10 +85,10 @@ is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
 
 parse_args() {
     # Parse command line options, separate options, return 3 if error.
-    # Inputs:
+    # Input:
     #   args -- array of command line arguments
     #   opts -- array of valid options; options with a color require arguments
-    # Outputs:
+    # Output:
     #   args_options -- array of parsed, separated options and option arguments
     #   args_positionals -- array of positional arguments
     # Usage:
@@ -113,7 +112,7 @@ parse_args() {
         --) ((a++)); break ;;
         -[$sflgs]) args_options+=("$arg") ;;
         -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
-            args_options+=("${arg:0:2}"); arg="-${arg:2}"; continue ;;
+            args_options+=("${arg:0:2}") arg="-${arg:2}"; continue ;;
         -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
             args_options+=("$arg" "${args[((++a))]}") ;;
         -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
@@ -149,6 +148,29 @@ parse_arr() {
     done
 }
 
+parse_path() {
+    # Parse path into directory, basename, name, extension.
+    # Input:
+    #   path -- path string to parse, does not need to exist
+    # Output:
+    #   path_basename -- path_name + path_ext
+    #   path_dir -- dir containing path, ends with /, empty if current dir
+    #   path_ext -- path extension
+    #   path_name -- path without directory and/or extension
+    # Usage:
+    #   path='dir1/dir2/file.ext'
+    #   parse_path; printf "${path_name} + ${path_ext}\n"
+   path_basename="$path" path_dir= path_ext=
+    [[ ${path_basename: -1} == / ]] && path_basename="${path_basename:0:-1}"
+    if [[ $path_basename =~ / ]]; then
+        path_dir="${path_basename%/*}/" path_basename="${path_basename##*/}"
+        [[ ${path_dir:0:2} == ./ ]] && path_dir="${path_dir:2}"
+    fi; path_name="$path_basename"
+    if [[ $path_basename =~ ^(.+)(\..*) ]]; then
+        path_ext="${BASH_REMATCH[2]}" path_name="${BASH_REMATCH[1]}"
+    fi
+}
+
 parse_yaml() {
     # Parse basic single level yaml text, return 3 if error.
     # Input:
@@ -158,8 +180,9 @@ parse_yaml() {
     # Usage:
     #   yaml="$(<conf.yml)"
     #   parse_yaml || exit
-    #   echo "value: $yaml_value"
+    #   printf "value: $yaml_value\n"
     # TODO: multi-level yaml, quoted strings, more documentation
+    # TODO: while read loop
     local key= arr=() line= a=0
     mapfile -t arr <<<"$yaml"; line="${arr[0]}"
     while [[ -n $line || $a -lt ${#arr[@]} ]]; do
@@ -178,7 +201,7 @@ parse_yaml() {
 
 sub_text() {
     # Format text containing %char sequences, return 3 if error.
-    # Inputs:
+    # Input:
     #   text -- format string
     #   subs -- array of char:replacement pairs
     # Output:
@@ -186,7 +209,7 @@ sub_text() {
     # Usage:
     #   subs=(n:name v:value); text='%n : %v'
     #   sub_text || exit
-    #   echo "$text_subbed"
+    #   printf "$text_subbed\n"
     # TODO: printf style padding options?
     local i=0 found=0 repl= sub=
     text_subbed=
@@ -216,8 +239,9 @@ sub_text() {
 
 # error, exit, trap:
 error() { msg_error "$*"; exit 3 ;}
-trap_exit() { ((debug)) && msg_error '[exit]' ;}
+trap_exit() { ((debug)) && msg_warn '[exit]' ;}
 trap_int() { printf '\n'; msg_error '[sigint]'; exit 99 ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
 
 ## main ::
 trap trap_int INT
@@ -225,9 +249,9 @@ trap trap_exit EXIT
 
 # set from env:
 [[ -n $DEBUG ]] && debug=1
-[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && { no_color=1; clear_colors ;}
-[[ -n $QUIET ]] && { quiet=1; verbose=0 ;}
-[[ -n $VERBOSE ]] && { quiet=0; verbose=1 ;}
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
+[[ -n $QUIET ]] && quiet=1 verbose=0
+[[ -n $VERBOSE ]] && quiet=0 verbose=1
 
 # parse args:
 parse_args || exit
@@ -235,9 +259,9 @@ set -- "${args_options[@]}"
 while [[ -n $1 ]]; do case "$1" in
     -l|--list) shift; list+=("$1") ;;
     -v|--var) shift; var="$1" ;;
-    -Q|--quiet) quiet=1; verbose=0 ;;
-    -V|--verbose) quiet=0; verbose=1 ;;
-    -M|--nocolor) no_color=1; clear_colors ;;
+    -Q|--quiet) quiet=1 verbose=0 ;;
+    -V|--verbose) quiet=0 verbose=1 ;;
+    -M|--nocolor) clear_colors ;;
     -h|-H|--help) print_help ;;
 esac; shift; done
 
@@ -245,19 +269,19 @@ esac; shift; done
 check_deps || exit
 
 # parse yaml:
-file="$HOME/user/dat/conf/simple.yaml"
-if [[ -f $file ]]; then
-    yaml="$(<"$file")"
-    if parse_yaml && ! ((quiet)); then
-        msg "yaml parsed: $file"
-        printf -v arr '%s, ' "${yaml_list[@]}"; arr="${a:0:-2}"
-        msg2 "copy: $yaml_copy"
-        msg2 "dest: $yaml_dest"
-        msg2 "list: [$arr]"
-    fi
-else
-    msg_error "file not found: $file"
-fi
+#file="$HOME/user/dat/conf/simple.yaml"
+#if [[ -f $file ]]; then
+    #yaml="$(<"$file")"
+    #if parse_yaml && ! ((quiet)); then
+        #msg "yaml parsed: $file"
+        #printf -v arr '%s, ' "${yaml_list[@]}"; arr="${a:0:-2}"
+        #msg2 "copy: $yaml_copy"
+        #msg2 "dest: $yaml_dest"
+        #msg2 "list: [$arr]"
+    #fi
+#else
+    #msg_error "file not found: $file"
+#fi
 
 # variable checks:
 [[ -z ${var+x} ]] && msg "var is not set"
@@ -268,16 +292,24 @@ if [[ -z ${var+x} ]]; then
     read -erp "$green$bold> $off${white}var: $off" var
 fi
 
-# print args:
-if ! ((quiet)); then
-    msg2 "list: (${list[*]})"
-    msg2 "pargs: (${args_positionals[*]})"
-    msg2 "var: $var"
-fi
+path="$var"
+parse_path
+msg "$path"
+msg2 "path_dir: $path_dir"
+msg2 "path_basename: $path_basename"
+msg2 "path_name: $path_name"
+msg2 "path_ext: $path_ext"
 
-formats+=(a:action d:dir p:path)
-text='01_%d-%a_%%_%p_%s-%S'
-format_text || exit
-msg "$text -> $text_formatted"
+# print args:
+#if ! ((quiet)); then
+    #msg2 "list: (${list[*]})"
+    #msg2 "pargs: (${args_positionals[*]})"
+    #msg2 "var: $var"
+#fi
+
+#subs+=(a:action d:dir p:path)
+#text='01_%d-%a_%%_%p'
+#sub_text || exit
+#msg "$text -> $text_subbed"
 
 # vim:ft=bash

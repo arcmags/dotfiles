@@ -1,41 +1,32 @@
 #!/bin/bash
 ## ~/bin/futf ::
 
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
 print_help() { cat <<'HELPDOC'
-NAME
-    futf
+Usage:
+  futf [option...] <file...>
 
-SYNOPSIS
-    futf [OPTION...] FILE...
+Convert file to utf-8 encoded unix text. By default: replace tabs with
+spaces (except in makefiles), remove trailing whitespaces, remove
+leading/trailing blank lines, and backup original file.
 
-DESCRIPTION
-    Convert file to utf-8 encoded unix text. By default: replace tabs with
-    spaces (except in makefiles), remove trailing whitespaces, remove
-    leading/trailing blank lines, and backup original file.
-
-OPTIONS
-    -t, --tabwidth <NUM>
-        Set number of spaces to replace tabs with.
-
-    -L, --lines
-        Keep leading and trailing blank lines.
-
-    -O, --overwrite
-        Overwrite input file.
-
-    -S, --spaces
-        Keep trailing whitespaces.
-
-    -T, --tabs
-        Keep tabs.
-
-    -H, --help
-        Print help.
+Options:
+  -t, --tabwidth <num>  number of spaces per tab
+  -L, --lines           keep leading and trailing blank lines
+  -O, --overwrite       overwrite input file
+  -S, --spaces          keep trailing whitespaces
+  -T, --tabs            keep tabs
+  -H, -h, --help        print help and exit
 
 REQUIREMENTS
     cmp, dos2unix, expand, iconv, uchardet
 HELPDOC
-}
+exit "${1:-0}" ;}
+[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
+
+# TODO: take stdin?
+# TODO: -A --ascii option
+# TODO: do without dos2unix, expand, ...?
 
 # options:
 ext_original='_org'
