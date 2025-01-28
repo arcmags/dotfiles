@@ -6,22 +6,18 @@ print_help() { cat <<'HELPDOC'
 Usage:
   showcolors [option...] [color...]
 
-Print colors in the terminal. The default behavior with no arguments prints the
+Print terminal colors. The default behavior with no arguments prints the
 terminal colors 0-15. Additional colors may be specified by hex (FFFFFF), rgb
 (255,255,255), or name.
 
 Options:
-  -c, --colors <count>    Terminal colors to print. (default: 16, max: 256)
-  -g, --graygrey <value>  Preferred spelling of gray/grey. (default: grey)
-  -A, --all               Print all named colors. (requires magick)
-  -M, --most              Print all named colors except the 100 shades of grey.
-  -Q, --quiet             Print less verbose output.
-  -X, --xrdb              Print .Xresources colors. (requires xrdb)
-  -H, --help              Print help.
-
-Requirements:
-  imagemagick   parse/print named colors (optional)
-  xrdb          print xresources colors (optional)
+  -c, --colors <count>    number of terminal colors to display (default: 16)
+  -g, --graygrey <value>  preferred spelling of gray/grey (default: grey)
+  -A, --all               show all named colors (requires magick)
+  -M, --most              show all named colors except greys (requires magick)
+  -Q, --quiet             show less verbose output
+  -X, --xrdb              show .Xresources colors (requires xrdb)
+  -H, -h, --help          print help and exit
 HELPDOC
 exit ;}
 [[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
@@ -145,6 +141,7 @@ if [[ $n_colors != 0 ]]; then
         for ((j=i;j<i+8&&j<n_colors;j++)); do
             printf '\e[48;5;%dm\e[38;5;%dm%s\e[0m' $j $j "$blockn"
         done
+
         if ! ((QUIET)); then
             if [[ $n_colors -gt 8 && $((i+8)) -gt $n_colors ]]; then
                 printf "%$(((8-n_colors+i)*(n+1)))s"

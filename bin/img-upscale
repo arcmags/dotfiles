@@ -26,7 +26,7 @@ Environment:
   QUIET         run silently
   VERBOSE       run verbosely
 HELPDOC
-exit ;}
+exit "${1:-0}" ;}
 [[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
 
 ## settings ::
@@ -65,7 +65,7 @@ msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
-msg_plain() { printf "$off$white  %s$$off\n" "$*" ;}
+msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
 msg_cmd() {
     local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
@@ -132,7 +132,7 @@ parse_path() {
 # error, exit, trap:
 error() { msg_error "$*"; exit 3 ;}
 trap_exit() { rm -f "${imgs_tmp[@]}" ;}
-trap_int() { printf '\n'; msg_error '[sigint]'; exit 99 ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
 
 ## main ::
 trap trap_int INT
@@ -181,7 +181,6 @@ for arg in "${args_positionals[@]}"; do
     ((dup)) && continue
     is_img "$arg" || { imgs_err+=("$arg"); continue ;}
     imgs+=("$arg")
-# TODO: deal with multiple error images: quotes, commas?
 done
 [[ -n $imgs_err ]] && msg_warn "image error: ${imgs_err[*]}"
 
@@ -238,8 +237,7 @@ for img in "${imgs[@]}"; do
         ((list)) && printf '%s\n' "$img_out"
     fi
 
-    # cleanup:
-    trap_exit
+    rm -f "${imgs_tmp[@]}"
 done
 
 

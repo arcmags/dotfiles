@@ -58,7 +58,7 @@ msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
-msg_plain() { printf "$off$white  %s$$off\n" "$*" ;}
+msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
 msg_cmd() {
     local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
@@ -87,7 +87,7 @@ parse_args() {
     # Parse command line options, separate options, return 3 if error.
     # Input:
     #   args -- array of command line arguments
-    #   opts -- array of valid options; options with a color require arguments
+    #   opts -- array of valid options; options with colon require arguments
     # Output:
     #   args_options -- array of parsed, separated options and option arguments
     #   args_positionals -- array of positional arguments
@@ -199,6 +199,26 @@ parse_yaml() {
     done
 }
 
+print_opts() {
+    # Print options and values defined in opts array.
+    local opt= val= str=
+    for opt in "${opts[@]}"; do
+        [[ ${opt:0:2} == -- ]] || continue
+        [[ $opt == --help ]] && continue
+        opt="${opt:2}"
+        [[ ${opt: -1} == : ]] && opt="${opt:0:-1}"
+        declare -n "val=$opt"
+        if [[ -z ${val+x} ]]; then
+            msg2 "$opt: <null>"
+        elif [[ $(declare -p "$opt") =~ ^declare\ -a ]]; then
+            printf -v str ' %q' "${val[@]}"; str="${str:1}"
+            msg2 "$opt: ($str)"
+        else
+            msg2 "$opt: $val"
+        fi
+    done
+}
+
 sub_text() {
     # Format text containing %char sequences, return 3 if error.
     # Input:
@@ -240,7 +260,6 @@ sub_text() {
 # error, exit, trap:
 error() { msg_error "$*"; exit 3 ;}
 trap_exit() { ((debug)) && msg_warn '[exit]' ;}
-trap_int() { printf '\n'; msg_error '[sigint]'; exit 99 ;}
 trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
 
 ## main ::
@@ -264,6 +283,7 @@ while [[ -n $1 ]]; do case "$1" in
     -M|--nocolor) clear_colors ;;
     -h|-H|--help) print_help ;;
 esac; shift; done
+((debug)) && print_opts
 
 # check for errors:
 check_deps || exit
@@ -284,21 +304,14 @@ check_deps || exit
 #fi
 
 # variable checks:
-[[ -z ${var+x} ]] && msg "var is not set"
+[[ -n $var ]] && msg "var is not empty"
 [[ -n ${var+x} && -z $var ]] && msg "var is set and empty"
+[[ -z ${var+x} ]] && msg "var is not set"
 
 # prompt for user input:
 if [[ -z ${var+x} ]]; then
     read -erp "$green$bold> $off${white}var: $off" var
 fi
-
-path="$var"
-parse_path
-msg "$path"
-msg2 "path_dir: $path_dir"
-msg2 "path_basename: $path_basename"
-msg2 "path_name: $path_name"
-msg2 "path_ext: $path_ext"
 
 # print args:
 #if ! ((quiet)); then

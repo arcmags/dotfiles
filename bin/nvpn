@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ## nvpn ::
 # Establish tcp vpn connection with a random top-ranked nordvpn server.
 
