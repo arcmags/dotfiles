@@ -4,13 +4,22 @@
 [[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
 print_help() { cat <<'HELPDOC'
 Usage:
-  futf [option...] <file...>
+  futf [option...] [file...]
 
-Convert file to utf-8 encoded unix text. By default: replace tabs with
-spaces (except in makefiles), remove trailing whitespaces, remove
-leading and trailing blank lines, and backup original file.
+Convert files or stdin to utf-8 encoded unix text:
+  + convert to UTF-8 file encoding
+  + remove BOM
+  + remove carriage returns
+  + ensure EOL on last line
+  + replace tabs with spaces (default: true)
+  + remove trailing whitespaces from every line (default: true)
+  + remove leading and trailing blank lines (default: true)
+  - convert to pure ASCII (default: false)
+
+Files are backuped up and overwritten if any changes are made.
 
 Options:
+  -b, --bak <str>   backup filename suffix (default: _bak)
   -t, --tab <num>   spaces per tab (default: 4)
   -A, --ascii       convert to pure ascii
   -B, --keepblanks  keep leading and trailing blank lines
@@ -34,15 +43,16 @@ exit "${1:-0}" ;}
 debug=0 nocolor=0 quiet=0 verbose=0
 ascii=0 keepblanks=0 keepspaces=0 keeptabs=0 nobackup=0
 overwrite=0 tab=4
-ext_org='_org'
+bak='_bak'
 
 ## internal functions/variables ::
 readonly -a args=("$@"); args_options=() args_positionals=()
 readonly -a deps=(cmp dos2unix expand iconv uchardet)
-readonly -a opts=(-t: --tab: -A --ascii -B --keepblanks
+readonly -a opts=(-b: --bak: -t: --tab: -A --ascii -B --keepblanks
     -N --nobackup -S --keepspaces -T --keeptabs
     -M --nocolor -Q --quiet -V --verbose -H -h --help)
-files_tmp=() enc= ext= file= file_tmp= file_tmp1= name=
+files=() files_err=() files_tmp=() file= file_tmp= file_tmp1=
+enc= ext= name= stdin=0
 
 # colors:
 black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m'
@@ -129,6 +139,7 @@ trap trap_exit EXIT
 parse_args || exit
 set -- "${args_options[@]}"
 while [[ -n $1 ]]; do case "$1" in
+    -b|--bak) shift; bak="$1" ;;
     -t|--tab) shift; tab="$1" ;;
     -A|--ascii) ascii=1 ;;
     -B|--keepblanks) keepblanks=1 ;;
@@ -143,15 +154,26 @@ esac; shift; done
 
 # check for errors:
 check_deps || exit
+[[ -z $bak ]] && error 'backup suffix empty'
 [[ $tab =~ ^[1-9][0-9]*$ ]] || error "invalid tab width: $tab"
 
-for file in "${args_positionals[@]}"; do
-    [[ -d $file ]] && { msg_warn "directory: $file"; continue ;}
-    [[ -f $file ]] || { msg_warn "not found: $file"; continue ;}
+# use stdin if no files given:
+if [[ ${#args_positionals[@]} -eq 0 ]]; then
+    read -t0 || { ((verbose)) && msg_warn 'no stdin'; exit ;}
+    file_tmp="$(mktemp --tmpdir tmp.XXX)"; files_tmp+=("$file_tmp")
+    files=("$file_tmp")
+    cat /dev/stdin > "$file_tmp"
+    stdin=1
+# check files:
+else for file in "${args_positionals[@]}"; do
+        [[ -f $file ]] || { files_err+=("$file"); continue ;}
+        files+=("$file")
+    done
+    [[ ${#files_err[@]} -gt 0 ]] && msg_warn "file errors: ${files_err[*]}"
+fi
 
-    # create and track tmp files:
-    file_tmp="$(mktemp --tmpdir tmp.XXX)"
-    file_tmp1="$(mktemp --tmpdir tmp.XXX)"
+for file in "${files[@]}"; do
+    file_tmp="$(mktemp --tmpdir tmp.XXX)" file_tmp1="$(mktemp --tmpdir tmp.XXX)"
     files_tmp+=("$file_tmp" "$file_tmp1")
     ((verbose)) && msg_cmd cp "$file" "$file_tmp"
     cp "$file" "$file_tmp"
@@ -177,9 +199,7 @@ for file in "${args_positionals[@]}"; do
                 file_tmp="$file_tmp1"
             else
                 msg_error "iconv error: $file"
-            fi
-        fi
-    else
+    fi; fi; else
         msg_error "uchardet error: $file"
     fi
 
@@ -215,18 +235,20 @@ for file in "${args_positionals[@]}"; do
         sed -i -e :a -e '/./,$!d;/^\n*$/{$d;N;};/\n$/ba' "$file_tmp"
     fi
 
+    if ((stdin)); then
+        cat "$file_tmp"
     # cp/mv new file:
-    if ! cmp -s "$file" "$file_tmp"; then
+    elif ! cmp -s "$file" "$file_tmp"; then
         if ! ((nobackup)); then
             name="$file" ext=
             [[ $file =~ ^(.+)(\..*) ]] && ext="${BASH_REMATCH[2]}" name="${BASH_REMATCH[1]}"
-            cp "$file" "$name${ext_org}$ext"
+            cp "$file" "$name$bak$ext"
         fi
         ((verbose)) && msg_cmd cp "$file_tmp" "$file"
         cp "$file_tmp" "$file"
         ((quiet)) || msg "$file ${green}[updated]"
-    elif ((verbose)); then
-        msg "$file ${blue}[unchanged]"
+    elif ! ((quiet)); then
+        msg "$file"
     fi
 done
 

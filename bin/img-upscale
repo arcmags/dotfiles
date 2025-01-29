@@ -38,9 +38,9 @@ model=cunet noise=0 quality=92 scale=2
 ## internal functions/variables ::
 readonly -a args=("$@")
 readonly -a deps=("$bin_waifu2x" identify magick)
-readonly -a opts=(
-    -m: --model: -n: --noise: -o: --output: -q: --quality: -s: --scale: -L --list
-    -J --jpg -P --png -H -h --help -M --nocolor -Q --quiet -V --verbose)
+readonly -a opts=( -m: --model: -n: --noise: -o: --output: -q: --quality:
+    -s: --scale: -L --list -J --jpg -P --png
+    -H -h --help -M --nocolor -Q --quiet -V --verbose)
 readonly script="$(realpath "$BASH_SOURCE")"
 args_options=() args_positionals=()
 dir_model=
