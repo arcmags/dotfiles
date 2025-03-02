@@ -1,0 +1,179 @@
+#!/bin/bash
+## dl-watch ::
+
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+print_help() { cat <<'HELPDOC'
+Usage:
+  dl-watch [option...] [<dir>]
+
+dlwatch is an inotify wrapper script that renames newly created files in a
+watched directory. File checksums are logged, and duplicate files are skipped.
+New unique files are sequentially numbered and moved to the output directory.
+
+Options:
+  -l, --log <name>      checksum log filename (default: dl-watch.log)
+  -o, --out <dir>       output directory (default: dl-watch)
+  -S, --scan            scan and rename files in watched directory at startup
+  -M, --nocolor         disable colored output
+  -H, --help            print help and exit
+
+Environment:
+  NO_COLOR      disable colored output
+HELPDOC
+exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
+
+## settings ::
+debug=0 nocolor=0 padding=4 scan=0 sleep=0.4
+file_log='dl-watch.log' dir_out='dl-watch' dir_watch=
+
+## internal functions/variables ::
+readonly -a args=("$@"); args_options=() args_positionals=()
+readonly -a deps=(inotifywait md5sum)
+readonly -a opts=(-l: --log: -o: --out: -S --scan -M --nocolor -H --help)
+ext= file= file_last= file_out= files=() log_last=
+f=0 l=0 m= md5= md5s=()
+
+# colors:
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+clear_colors() {
+    export NO_COLOR=1 nocolor=1
+    unset black blue cyan green grey magenta orange red white yellow bold off
+}
+
+# messages:
+msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
+msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
+msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
+
+# utils:
+check_deps() {
+    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
+}
+is_cmd() { command -v "$1" &>/dev/null ;}
+
+parse_args() {
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}"
+    local -a _lflgs=() _lopts=()
+    args_options=() args_positionals=()
+    _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
+    _eoptarg() { msg_error "option requires an argument: $_arg" ;}
+    _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
+    for _opt in "${opts[@]}"; do case "$_opt" in
+        -?) _sflgs="$_sflgs${_opt:1}" ;;
+        -?:) _sopts="$_sopts${_opt:1:1}" ;;
+        *:) _lopts+=("${_opt:0:-1}") ;;
+        *) _lflgs+=("$_opt") ;;
+    esac; done
+    while [[ -n $_arg ]]; do case "$_arg" in
+        --) ((_a++)); break ;;
+        -[$_sflgs]) args_options+=("$_arg") ;;
+        -[$_sflgs]*) [[ ! $_sflgs$_sopts =~ ${_arg:2:1} ]] && { _eopt; return 3 ;}
+            args_options+=("${_arg:0:2}") _arg="-${_arg:2}"; continue ;;
+        -[$_sopts]) [[ $((${#args[@]}-_a)) -le 1 ]] && { _eoptarg; return 3 ;}
+            args_options+=("$_arg" "${args[((++_a))]}") ;;
+        -[$_sopts]*) args_options+=("${_arg:0:2}" "${_arg:2}") ;;
+        *=*) [[ " ${_lflgs[*]} " =~ " ${_arg%%=*} " ]] && { _eflg; return 3 ;}
+            [[ " ${_lopts[*]} " =~ " ${_arg%%=*} " ]] || break
+            args_options+=("${_arg%%=*}" "${_arg#*=}") ;;
+        *) if [[ " ${_lflgs[*]} " =~ " $_arg " ]]; then
+                args_options+=("$_arg")
+            elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
+                [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
+                args_options+=("$_arg" "${args[((++_a))]}")
+            else break; fi ;;
+    esac; _arg="${args[((++_a))]}"; done
+    args_positionals=("${args[@]:_a}")
+}
+
+# error, exit, trap:
+error() { msg_error "$*"; exit 3 ;}
+trap_exit() { ((debug)) && msg_warn '[exit]' ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
+
+## main ::
+trap trap_int INT
+trap trap_exit EXIT
+
+# set from env:
+[[ -n $DEBUG ]] && debug=1
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
+
+# parse args:
+parse_args || exit
+set -- "${args_options[@]}"
+while [[ -n $1 ]]; do case "$1" in
+    -l|--log) shift; file_log="$1" ;;
+    -o|--out) shift; dir_out="$1" ;;
+    -S|--scan) scan=1 ;;
+    -M|--nocolor) clear_colors ;;
+    -H|--help) print_help ;;
+esac; shift; done
+[[ -n ${args_positionals[0]} ]] && dir_watch="${args_positionals[0]}"
+
+# check for errors:
+check_deps || exit
+[[ -n ${args_positionals[1]} ]] && error "too many args: ${args_positionals[*]}"
+[[ -z $file_log ]] && error "invalid log filename"
+[[ $file_log =~ / ]] && error "invalid log filename: $file_log"
+[[ -z $dir_out || $dir_out == ./ ]] && dir_out='.'
+[[ -z $dir_watch || $dir_watch == ./ ]] && dir_watch='.'
+[[ -d $dir_watch ]] || error "directory not found: $dir_watch"
+[[ $dir_out == "$dir_watch" ]] && error "out/watch directories are the same: $dir_out"
+
+# create output directory and output log, check for errors:
+mkdir -p "$dir_out" &>/dev/null || error "unable to create directory: $dir_out"
+dir_out="$(realpath "$dir_out")" dir_watch="$(realpath "$dir_watch")"
+[[ $dir_out == "$dir_watch" ]] && error "out/watch directories are the same: $dir_out"
+[[ -w $dir_out ]] || error "unable to write to directory: $dir_out"
+cd "$dir_watch"
+
+# get next file number:
+file_last="$(find "$dir_out/" -maxdepth 1 -type f -regex '.*/[0-9]+\..*' -printf '%f\n' | sort | tail -n1)"
+[[ $file_last =~ ^0*([1-9][0-9]*)\..* ]] && f="${BASH_REMATCH[1]}"
+[[ -f $dir_out/$file_log ]] && log_last="$(tail -n1 "$dir_out/$file_log")"
+[[ $log_last =~ .*\ +0*([1-9][0-9]*)\..* ]] && l="${BASH_REMATCH[1]}"
+[[ $l -gt $f ]] && f="$l"
+((f++))
+
+# get md5s and filenames:
+if [[ -f $dir_out/$file_log ]]; then while read -r line; do
+    [[ $line =~ ^([^\ ]+)\ +([^\ ]+) ]] && files+=("${BASH_REMATCH[1]}") md5s+=("${BASH_REMATCH[2]}")
+done < "$dir_out/$file_log"; fi
+
+# scan directory for new files:
+if ((scan)); then
+    msg "scanning directory: $dir_watch"
+    mv_files < <(find "$dir_watch/" -maxdepth 1 -type f -printf '%f\n')
+fi
+
+# watch directory for changes:
+msg "watching directory: $dir_watch"
+while read -r file; do
+    sleep "$sleep"
+    [[ ! -f $file || $file =~ .*\.part$ ]] && continue
+    # wait for non-empty file:
+    m=0; while [[ $m -lt 8 ]]; do [[ -s $file ]] && break; sleep "$sleep"; ((m++)); done
+    [[ $m -ge 8 ]] && { msg_warn "file empty: $file"; continue ;}
+    # check for existing md5sum:
+    md5="$(md5sum "$file")" md5="${md5:0:32}"
+    for ((m=0;m<${#md5s[@]};m++)); do [[ $md5 == "${md5s[m]}" ]] && break; done
+    [[ $m -lt ${#md5s[@]} ]] && { rm "$file"; msg2 "${files[m]}"; continue ;}
+    # get file extension:
+    ext=; [[ $file =~ ^(.+)(\..*) ]] && ext="${BASH_REMATCH[2],,}"
+    [[ $ext == .jpeg ]] && ext='.jpg'
+    # move file and write log:
+    printf -v file_out "%0${padding}d%s" "$f" "$ext"
+    mv "$file" "$dir_out/$file_out" || { msg_warn "mv error: $file -> $file_out"; continue ;}
+    msg "$file_out $bold$blue<-$off$white $file"
+    files+=("$file_out") md5s+=("$md5")
+    printf '%-12s %s\n' "$file_out" "$md5" >> "$dir_out/$file_log"
+    ((f++))
+done < <(inotifywait -m -e close_write --format '%f' "$dir_watch" 2>/dev/null)
+
+# vim:ft=bash

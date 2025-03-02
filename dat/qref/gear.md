@@ -88,5 +88,3 @@
 - ID, passport
 - phone, charger
 - watch
-
-..  vim:ft=markdown

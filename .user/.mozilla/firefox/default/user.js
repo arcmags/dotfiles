@@ -3,7 +3,6 @@
 user_pref("browser.aboutConfig.showWarning", false);
 user_pref("browser.compactmode.show", true);
 user_pref("browser.download.autohideButton", false);
-user_pref("browser.download.dir", "/tmp/in");
 user_pref("browser.download.useDownloadDir", true);
 user_pref("browser.search.openintab", true);
 user_pref("browser.toolbars.bookmarks.visibility", "never");

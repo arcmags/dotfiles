@@ -275,7 +275,7 @@ class ArgumentParser(argparse.ArgumentParser):
         - formatter_class is cliutils.HelpFormatter by default
         - set epilog to any text in __doc__ after first ---- line
         - shortened error message
-        - print help with -H, -h, or --help
+        - print help with -H or --help
 
     Added methods:
         - add_arg_append -- add arg that appends option value to list
@@ -296,7 +296,7 @@ class ArgumentParser(argparse.ArgumentParser):
                          epilog=epilog, **kwargs)
         if add_help:
             self.add_help = True
-            self.add_argument('-H', '-h', '--help', default=argparse.SUPPRESS,
+            self.add_argument('-H', '--help', default=argparse.SUPPRESS,
                               action='help', help='print help and exit')
 
     def add_arg_append(self, *args, metavar='<arg>', **kwargs) -> None:

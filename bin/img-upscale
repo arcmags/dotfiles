@@ -32,93 +32,86 @@ exit "${1:-0}" ;}
 ## settings ::
 debug=0 dryrun=0 list=0 nocolor=0 quiet=0 verbose=0
 bin_waifu2x='waifu2x-ncnn-vulkan'
-path_models="/usr/share/$bin_waifu2x"
-model=cunet noise=0 quality=92 scale=2
+dir_models="/usr/share/$bin_waifu2x"
+model=cunet noise=0 quality=92 scale=2 type=
 
 ## internal functions/variables ::
-readonly -a args=("$@")
+readonly -a args=("$@"); args_options=() args_positionals=()
 readonly -a deps=("$bin_waifu2x" identify magick)
 readonly -a opts=( -m: --model: -n: --noise: -o: --output: -q: --quality:
     -s: --scale: -L --list -J --jpg -P --png
     -H -h --help -M --nocolor -Q --quiet -V --verbose)
-readonly script="$(realpath "$BASH_SOURCE")"
-args_options=() args_positionals=()
-dir_model=
-img_out=
-imgs=()
-imgs_err=()
-type=
-imgs_tmp=()
+cmd_cp=() arg_model="$dir_models/models-cunet"
+imgs=() imgs_err=() imgs_tmp=() img_out=
 
 # colors:
-black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m'
-green=$'\e[38;5;10m' grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m'
-orange=$'\e[38;5;3m' red=$'\e[38;5;9m' white=$'\e[38;5;15m'
-yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
 clear_colors() {
-    export NO_COLOR=true; nocolor=1
+    export NO_COLOR=1 nocolor=1
     unset black blue cyan green grey magenta orange red white yellow bold off
 }
 
 # messages:
+bin_printf() { printf "$@" ;}
+[[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
 msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
 msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
-msg_cmd() {
-    local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
-    [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
-    printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
-}
+msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
 
 # utils:
 check_deps() {
-    local deps_err=()
-    for dep in "${deps[@]}"; do is_cmd "$dep" || deps_e+=("$dep"); done
-    [[ ${#deps_err} -gt 0 ]] && msg_error "missing deps: ${deps_err[*]}"
-    return ${#deps_err[@]}
+    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
 }
 is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
 
 parse_args() {
-    local a=0 opt= sflgs= sopts= arg="${args[0]}"
-    local -a lflgs=() lopts=()
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}"
+    local -a _lflgs=() _lopts=()
     args_options=() args_positionals=()
-    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
-    bad_optarg() { msg_error "option requires an argument: $arg" ;}
-    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
-    for opt in "${opts[@]}"; do case "$opt" in
-        -?) sflgs="$sflgs${opt:1}" ;;
-        -?:) sopts="$sopts${opt:1:1}" ;;
-        *:) lopts+=("${opt:0:-1}") ;;
-        *) lflgs+=("$opt") ;;
+    _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
+    _eoptarg() { msg_error "option requires an argument: $_arg" ;}
+    _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
+    for _opt in "${opts[@]}"; do case "$_opt" in
+        -?) _sflgs="$_sflgs${_opt:1}" ;;
+        -?:) _sopts="$_sopts${_opt:1:1}" ;;
+        *:) _lopts+=("${_opt:0:-1}") ;;
+        *) _lflgs+=("$_opt") ;;
     esac; done
-    while [[ -n $arg ]]; do case "$arg" in
-        --) ((a++)); break ;;
-        -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
-            args_options+=("${arg:0:2}") arg="-${arg:2}"; continue ;;
-        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
-            args_options+=("$arg" "${args[((++a))]}") ;;
-        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
-        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
-            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-            args_options+=("${arg%%=*}" "${arg#*=}") ;;
-        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
-                args_options+=("$arg")
-            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
-                args_options+=("$arg" "${args[((++a))]}")
+    while [[ -n $_arg ]]; do case "$_arg" in
+        --) ((_a++)); break ;;
+        -[$_sflgs]) args_options+=("$_arg") ;;
+        -[$_sflgs]*) [[ ! $_sflgs$_sopts =~ ${_arg:2:1} ]] && { _eopt; return 3 ;}
+            args_options+=("${_arg:0:2}") _arg="-${_arg:2}"; continue ;;
+        -[$_sopts]) [[ $((${#args[@]}-_a)) -le 1 ]] && { _eoptarg; return 3 ;}
+            args_options+=("$_arg" "${args[((++_a))]}") ;;
+        -[$_sopts]*) args_options+=("${_arg:0:2}" "${_arg:2}") ;;
+        *=*) [[ " ${_lflgs[*]} " =~ " ${_arg%%=*} " ]] && { _eflg; return 3 ;}
+            [[ " ${_lopts[*]} " =~ " ${_arg%%=*} " ]] || break
+            args_options+=("${_arg%%=*}" "${_arg#*=}") ;;
+        *) if [[ " ${_lflgs[*]} " =~ " $_arg " ]]; then
+                args_options+=("$_arg")
+            elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
+                [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
+                args_options+=("$_arg" "${args[((++_a))]}")
             else break; fi ;;
-    esac; arg="${args[((++a))]}"; done
-    args_positionals=("${args[@]:a}")
+    esac; _arg="${args[((++_a))]}"; done
+    args_positionals=("${args[@]:_a}")
 }
 
 parse_path() {
-    path_basename="$path" path_dir= path_ext=
+    local _path="$path"; [[ -n $1 ]] && _path="$1"
+    path_basename="$_path" path_dir= path_ext=
     [[ ${path_basename: -1} == / ]] && path_basename="${path_basename:0:-1}"
     if [[ $path_basename =~ / ]]; then
         path_dir="${path_basename%/*}/" path_basename="${path_basename##*/}"
@@ -170,9 +163,9 @@ check_deps || exit
 
 # set model directory:
 case "$model" in
-    a|anime) dir_model="$path_models/models-upconv_7_anime_style_art_rgb" ;;
-    c|cunet) dir_model="$path_models/models-cunet" ;;
-    p|photo) dir_model="$path_models/models-upconv_7_photo" ;;
+    a|anime) arg_model="$dir_models/models-upconv_7_anime_style_art_rgb" ;;
+    c|cunet) arg_model="$dir_models/models-cunet" ;;
+    p|photo) arg_model="$dir_models/models-upconv_7_photo" ;;
 esac
 
 # check positional args:
@@ -193,8 +186,7 @@ for img in "${imgs[@]}"; do
     parse_path
     ext="${path_ext,,}"
     [[ -n $type ]] && ext=".${type,,}"
-    [[ -z $ext ]] && ext='.png'
-    [[ $ext == .jpeg ]] && ext='.jpg'
+    [[ -z $ext || $ext == .jpeg ]] && ext='.jpg'
     img_out="${path_dir}${path_name}_u$scale${model:0:1}$noise$ext"
     ((quiet)) || msg "$img $bold$blue->$off$white $img_out"
 
@@ -210,7 +202,7 @@ for img in "${imgs[@]}"; do
     # upscale image:
     img_tmp="$(mktemp --tmpdir XXX.png)"
     imgs_tmp+=("$img_tmp")
-    cmd_waifu2x=("$bin_waifu2x" -m "$dir_model" -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}")
+    cmd_waifu2x=("$bin_waifu2x" -m "$arg_model" -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}")
     if ((verbose)); then
         msg_cmd "${cmd_waifu2x[@]}"
         if [[ $verbose -gt 1 ]]; then
@@ -227,13 +219,10 @@ for img in "${imgs[@]}"; do
         msg_error "waifu2x error: $img"
     else
         # convert/copy upscaled image:
-        if [[ $ext == .png ]]; then
-            ((verbose)) && msg_cmd cp "$img_tmp" "$img_out"
-            cp "$img_tmp" "$img_out"
-        else
-            ((verbose)) && msg_cmd magick "$img_tmp" "$img_out"
-            magick "$img_tmp" "$img_out"
-        fi
+        cmd_cp=(cp "$img_tmp" "$img_out")
+        [[ $ext == .png ]] || cmd_cp=(magick "$img_tmp" "$img_out")
+        ((verbose)) && msg_cmd "${cmd_cp[@]}"
+        "${cmd_cp[@]}"
         ((list)) && printf '%s\n' "$img_out"
     fi
 

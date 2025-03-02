@@ -7,7 +7,6 @@ dir_src="$UDIR"
 files_src=(
     bin/
     dat/bash/
-    dat/bin/
     dat/c/
     dat/cpp/
     dat/css/

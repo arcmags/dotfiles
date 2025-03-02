@@ -1,13 +1,14 @@
 #!/bin/sh
 ## ~/.profile ::
 
-## user setup: UDIR, UHOST, upwd() ::
+## user setup: UDIR, UHOST, ULIB, upwd() ::
 export HOME_REALPATH="$(realpath "$HOME")"
 export UDIR="$HOME/user"
 export UDIR_REALPATH="$(realpath "$UDIR")"
 export UHOST="$HOSTNAME"
-[ -f '/etc/hostname' ] && UHOST="$(cat /etc/hostname)"
-[ -f '/etc/hostname-' ] && UHOST="$(cat /etc/hostname-)"
+[ -f /etc/hostname ] && UHOST="$(cat /etc/hostname)"
+[ -f /etc/hostname- ] && UHOST="$(cat /etc/hostname-)"
+export ULIB="$UDIR/lib"
 
 upwd() {
     case "$PWD" in
@@ -27,29 +28,25 @@ is_bin() (
     return 1
 )
 
-# TODO: take multiple args?
 path_add() {
-    expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
+    while [ $# -gt 0 ]; do
+        expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
+    shift; done
 }
 
 ## path ::
-path_add "$HOME/.local/bin"
-path_add "$UDIR/bin"
-path_add "$UDIR/local/bin"
-path_add "$HOME/bin"
+path_add "$HOME/.local/bin" "$UDIR/bin" "$UDIR/local/bin" "$HOME/bin"
 
 ## environment ::
 command_not_found_handle() { printf '\e[1;38;5;11mC: \e[0;38;5;15m%s\e[0m\n' "$1"; return 127 ;}
-
-#export ENV="$HOME/.profile"
 
 export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 export PS2='\[\e[0m\] '
 [ "$USER" = 'dery' ] && PS1='\[\e[0;38;5;13m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 
-[ -d "$UDIR/lib/python" ] && export PYTHONPATH="$UDIR/lib/python"
-
-[ -d "$UDIR/lib/figfonts" ] && export FIGLET_FONTDIR="$UDIR/lib/figfonts"
+[ -d "$ULIB/bash" ] && export BASHLIB="$ULIB/bash"
+[ -d "$ULIB/figfonts" ] && export FIGLET_FONTDIR="$ULIB/figfonts"
+[ -d "$ULIB/python" ] && export PYTHONPATH="$ULIB/python"
 
 is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
 
@@ -83,7 +80,7 @@ is_bin fzf && [ -f "$HOME/.config/fzf/profile.sh" ] && . "$HOME/.config/fzf/prof
 export HISTSIZE=4096
 export HISTFILESIZE=4096
 export HISTCONTROL='ignoredups:ignorespace:erasedups'
-export HISTIGNORE='cd[dgilmpst./-]:cdtt*:bg:builtin cd*:fg:exit:poweroff:reboot:startx'
+export HISTIGNORE='cd[dgilmpst./-]:bg:builtin cd*:fg:exit:poweroff:reboot:startx'
 export CDHISTSIZE=16
 
 export JQ_COLORS='0;38;5;6:0;38;5;11:0;38;5;11:0;38;5;3:0;38;5;10:0;38;5;13:0;38;5;13:0;38;5;12'
@@ -230,6 +227,11 @@ reload() { . "$HOME/.profile" ;}
 
 pkgbuild() {
     curl -s "https://gitlab.archlinux.org/archlinux/packaging/packages/$1/-/raw/main/PKGBUILD"
+}
+
+pythonpath() {
+    is_bin python || error 'python not found'
+    python -c 'import sys; print(sys.path)'
 }
 
 screenshot() {

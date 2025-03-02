@@ -61,14 +61,14 @@ jump_first g
 jump_last G
 
 # scroll:
-scroll_left h
-scroll_left_page H
-scroll_down j
-scroll_down_page J
-scroll_up k
-scroll_up_page K
-scroll_right l
-scroll_right_page L
+scroll_left h Left
+scroll_left_page H S-Left
+scroll_down j Down
+scroll_down_page J S-Down
+scroll_up k Up
+scroll_up_page K S-Up
+scroll_right l Right
+scroll_right_page L S-Right
 
 # remove from file list:
 remove x
@@ -82,7 +82,8 @@ jump_random m
 # reload:
 reload_image C-l
 
-render Return
+# render:
+render a Return
 
 # resize window to image:
 size_to_image W
@@ -99,9 +100,6 @@ zoom_fit r
 # zoom in/out:
 zoom_in i
 zoom_out o
-
-# toggle
-toggle_aliasing A
 
 # toggle keeping zoom level between images:
 toggle_keep_vp V

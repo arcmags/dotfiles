@@ -2,6 +2,7 @@ vim9script
 ## ~/.vim/colors/utheme.vim  ::
 
 set background=dark
+set notermguicolors
 set t_Co=16
 hi clear
 if exists("syntax_on")

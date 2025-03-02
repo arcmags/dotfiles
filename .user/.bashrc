@@ -15,7 +15,7 @@ fi
 
 set -o vi
 shopt -s dotglob globstar failglob
-complete -cf apropos do ltrace man strace sudo time torsocks watch
+complete -cf apropos do ltrace man strace sudo time torsocks usudo watch
 
 # set terminal window title to last executed command:
 trap 'printf "\033]0;%s\007" "${BASH_COMMAND:0:32}"' DEBUG

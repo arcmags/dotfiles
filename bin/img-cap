@@ -1,0 +1,716 @@
+#!/bin/bash
+## img-cap ::
+
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+print_help() { cat <<'HELPDOC'
+Usage:
+  img-cap [option...] <image>
+
+Add captions to images with imagemagick.
+
+Options:
+  -A, --autowrap            enable auto wrap (default)
+  -F, --fill                size font to fill caption box
+  -J, --jpg                 output to jpg file
+  -K, --keep                keep temp files
+  -L, --nofill              do not resize font to fill caption box (default)
+  -N, --noautowrap          disable auto wrap
+  -P, --png                 output to png file
+  -a, --align <align>       alignment (center/left/right)
+  -b, --bgalpha <alpha>     background alpha (0-100, default: 66)
+  -c, --color <color>       font color (default: DodgerBlue)
+  -f, --font <font>         font (default: ComicBook-Bold)
+  -g, --gravity             caption gravity (n/s/e/w/ne/nw/se/sw/c, default: sw)
+  -h, --height              max height (1-100, default: 100)
+  -q, --quality <level>     jpg quality level (1-100, default: 92)
+  -s, --size <percent>      font size adjustment (1-100, default: 32)
+  -t, --text <text>         caption text
+  -w, --width <percent>     max width (1-100, default: 100)
+  -x, --xoffset <xoffset>   x-offset (-100-100, default: 0)
+  -y, --yoffset <xoffset>   y-offset (-100-100, default: 0)
+  --scolor <color>          stroke color (default: blue4)
+  --swidth <percent>        stroke width adjustment (0-100, default: 48)
+  -M, --nocolor             disable colored output
+  -Q, --quiet               print nothing to stdout
+  -V, --verbose             print more verbose information
+  -H, --help            print help and exit
+
+Environment:
+  NO_COLOR      disable colored output
+  QUIET         run silently
+  VERBOSE       run verbosely
+HELPDOC
+exit "${1:-0}" ;}
+[[ $1 =~ ^(-H|--help)$ ]] && print_help
+
+# TODO: allow some options to be blank to select defaults (i.e. font, etc)
+# TODO: maybe blank options could set to default in general?
+# TODO: boxless option
+# TODO: fill options
+# TODO: justified text possible?
+
+# control:
+args_magick=()
+c=0
+cap_align=
+cap_align_last=west
+cap_box=
+cap_box2=
+cap_file=
+cap_h=
+cap_h_last=0
+cap_h_target=
+cap_pad=
+cap_pos=nw
+cap_w=
+cap_w_t=
+cap_x=
+cap_x_last=0
+cap_y=
+cap_y_last=0
+cmds=()
+dir_tmp=
+flg_parsed=false
+font_size=
+img_h=
+img_out=
+img_w=
+reqs=(identify magick)
+stroke_w=
+fonts=()
+colors=()
+
+# args:
+opt_align=left
+opt_bg=66
+opt_fc='DodgerBlue'
+opt_font='ComicBook-Bold'
+opt_pos=sw
+opt_qual=92
+opt_size=36
+opt_sc='blue4'
+opt_sw=48
+opt_cap=
+opt_type=
+opt_width=40
+opt_x=0
+opt_y=0
+
+
+## settings ::
+debug=0 nocolor=0 quiet=0 verbose=0
+align=left
+autowrap=1
+bgalpha=66
+fcolor='DodgerBlue'
+fill=0
+font='ComicBook-Bold'
+gravity=southwest
+height=100
+keep=0
+quality=92
+scolor='blue4'
+size=32
+swidth=48
+type=
+width=100
+
+## internal functions/variables ::
+readonly -a args=("$@"); args_options=() args_positionals=()
+readonly -a deps=(identify magick)
+readonly -a opts=(-A --autowrap -N --noautowrap -F --fill -J --jpg -K --keep -L --nofill -P --png
+    -a: --align: -b: --bgalapha: -c: --color: -f: --font: -g: --gravity: -h: --height:
+    -q: --quality: -s: --size: -t: --text: -w: --width: -x: --xoffset: -y: -yoffset:
+    --scolor: --swidth:
+    -M --nocolor -Q --quiet -V --verbose -H --help)
+readonly -a vars=(align autowrap bgalpha fcolor fill font gravity height keep
+    quality scolor size swidth type width img img_out)
+
+args_overlay=(-set colorspace sRGB)
+cmds_defaults=()
+dir_tmp=
+
+img_in=
+img_overlay=
+img_out=
+img_w=
+img_h=
+linespacing=
+
+padding=
+text=
+defaults_set=0
+
+# colors:
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+clear_colors() {
+    export NO_COLOR=true; nocolor=1
+    unset black blue cyan green grey magenta orange red white yellow bold off
+}
+
+# messages:
+msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
+msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
+msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
+msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
+msg_cmd() {
+    local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
+    [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
+}
+
+# utils:
+check_deps() {
+    local deps_err=()
+    for dep in "${deps[@]}"; do is_cmd "$dep" || deps_e+=("$dep"); done
+    [[ ${#deps_err} -gt 0 ]] && msg_error "missing deps: ${deps_err[*]}"
+    return ${#deps_err[@]}
+}
+check_internet() { ping -q -c1 -W2 google.com &>/dev/null ;}
+is_cmd() { command -v "$1" &>/dev/null ;}
+is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
+
+parse_args() {
+    local a=0 opt= sflgs= sopts= arg="${args[0]}"
+    local -a lflgs=() lopts=()
+    args_options=() args_positionals=()
+    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
+    bad_optarg() { msg_error "option requires an argument: $arg" ;}
+    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
+    for opt in "${opts[@]}"; do case "$opt" in
+        -?) sflgs="$sflgs${opt:1}" ;;
+        -?:) sopts="$sopts${opt:1:1}" ;;
+        *:) lopts+=("${opt:0:-1}") ;;
+        *) lflgs+=("$opt") ;;
+    esac; done
+    while [[ -n $arg ]]; do case "$arg" in
+        --) ((a++)); break ;;
+        -[$sflgs]) args_options+=("$arg") ;;
+        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
+            args_options+=("${arg:0:2}") arg="-${arg:2}"; continue ;;
+        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
+            args_options+=("$arg" "${args[((++a))]}") ;;
+        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
+        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
+            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
+            args_options+=("${arg%%=*}" "${arg#*=}") ;;
+        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
+                args_options+=("$arg")
+            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
+                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
+                args_options+=("$arg" "${args[((++a))]}")
+            else break; fi ;;
+    esac; arg="${args[((++a))]}"; done
+    args_positionals=("${args[@]:a}")
+}
+
+parse_path() {
+   path_basename="$path" path_dir= path_ext=
+    [[ ${path_basename: -1} == / ]] && path_basename="${path_basename:0:-1}"
+    if [[ $path_basename =~ / ]]; then
+        path_dir="${path_basename%/*}/" path_basename="${path_basename##*/}"
+        [[ ${path_dir:0:2} == ./ ]] && path_dir="${path_dir:2}"
+    fi; path_name="$path_basename"
+    if [[ $path_basename =~ ^(.+)(\..*) ]]; then
+        path_ext="${BASH_REMATCH[2]}" path_name="${BASH_REMATCH[1]}"
+    fi
+}
+
+print_vars() {
+    local _txt= _val= _var= _vars=("${vars[@]}")
+    [[ -n $1 ]] && _vars=("$@")
+    for _var in "${_vars[@]}"; do
+        printf "   $bold$blue$_var$white:$off "
+        declare -n "_val=$_var"
+        _txt="${!_var}"
+        if [[ $(declare -p "$_var" 2>/dev/null) =~ ^declare\ -a ]]; then
+            _txt=' '; ((${#_val[@]})) && _txt="$(bin_printf ' %q' "${_val[@]}")"
+            _txt="(${_txt:1})"
+        elif [[ -z ${_val+x} ]]; then
+            _txt="$grey<null>$off"
+        fi
+        printf "$_txt\n"
+    done
+}
+
+## script functions ::
+parse_color() {
+    [[ " ${colors[*]} " =~ " $color " ]] && return 0
+    [[ ${color,,} =~ ^#?([a-f0-9]{6})$ ]] && { color="#${BASH_REMATCH[1]}"; return 0 ;}
+    error "invalid color: $color"
+}
+
+parse_gravity() {
+    case "${gravity,,}" in
+        n|north) gravity=n ;;
+        e|east) gravity=e ;;
+        s|south) gravity=s ;;
+        w|west) gravity=w ;;
+        c|center) gravity=c ;;
+        ne|northeast) gravity=ne ;;
+        nw|northwest) gravity=nw ;;
+        sw|southwest) gravity=sw ;;
+        se|southeast) gravity=se ;;
+        #a|after) gravit=a ;;
+        #aw|afterwest) gravit=aw ;;
+        #ae|aftereast) gravity=ae ;;
+        *) error "invalid gravity: $gravity" ;;
+    esac
+}
+
+parse_align() {
+    case "${align,,}" in
+        c|center) align=c ;;
+        l|left) align=l ;;
+        r|right) align=r ;;
+        *) error "invalid alignment: $align" ;;
+    esac
+}
+
+set_defaults() {
+    align_default="$align"
+    autowrap_default="$autowrap"
+    bgalpha_default="$bgalpha"
+    fcolor_default="$fcolor"
+    fill_default="$fill"
+    font_default="$font"
+    gravity_default="$gravity"
+    height_default="$height"
+    scolor_default="$scolor"
+    size_default="$size"
+    swidth_default="$swidth"
+    width_default="$width"
+}
+
+load_defaults() {
+    align="$align_default"
+    autowrap="$autowrap_default"
+    bgalpha="$bgalpha_default"
+    fcolor="$fcolor_default"
+    fill="$fill_default"
+    font="$font_default"
+    gravity="$gravity_default"
+    height="$height_default"
+    scolor="$scolor_default"
+    size="$size_default"
+    swidth="$swidth_default"
+    width="$width_default"
+}
+
+# error, exit, trap:
+error() { msg_error "$*"; exit 3 ;}
+trap_exit() { ((debug)) && msg_warn '[exit]'; ((keep)) || rm -rf "$dir_tmp" ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
+
+## main ::
+trap trap_int INT
+trap trap_exit EXIT
+
+# set from env:
+[[ -n $DEBUG ]] && debug=1
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
+[[ -n $QUIET ]] && quiet=1 verbose=0
+[[ -n $VERBOSE ]] && quiet=0 verbose=1
+
+# parse args, check dependencies:
+parse_args || exit
+check_deps || exit
+
+# get valid colors and fonts:
+mapfile -t colors < <(magick -list color | sed -E 's/^([^ ]+).*/\1/')
+mapfile -t fonts < <(magick -list font | grep -Po 'Font: \K.*')
+
+# check script settings:
+parse_align
+[[ $autowrap =~ ^[01]$ ]] || error "invalid autowrap toggle: $autowrap"
+[[ $bgalpha =~ ^(0|[1-9][0-9]?|100)$ ]] || error "invalid bgalpha: $bgalpha"
+color="$fcolor"; parse_color; fcolor="$color"
+[[ $fill =~ ^[01]$ ]] || error "invalid fill toggle: $fill"
+[[ " ${fonts[*]} " =~ " $font " ]] || error "invalid font: $font"
+[[ $height =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid height: $height"
+color="$scolor"; parse_color; scolor="$color"
+[[ $size =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid size: $size"
+[[ $swidth =~ ^(0|[1-9][0-9]?|100)$ ]] || error "invalid stroke width: $swidth"
+[[ $width =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid width: $width"
+[[ -z $gravity ]] && gravity=sw; parse_gravity
+[[ $keep =~ ^[01]$ ]] || error "invalid keep toggle: $keep"
+[[ $quality =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid quality: $quality"
+type="${type,,}"; [[ $type =~ ^(|jpg|png)$ ]] || error "invalid type: $type"
+
+# set defaults:
+set_defaults
+
+# parse args into internal commands:
+set -- "${args_options[@]}"
+cmds_parsed=()
+while [[ -n $1 ]]; do case "$1" in
+    -A|--autowrap) autowrap=1; cmds_parsed+=(autowrap=1); ;;
+    -F|--fill) fill=1; cmds_parsed+=(fill=1); ;;
+    -J|--jpg) type='jpg' ;;
+    -K|--keep) keep=1 ;;
+    -L|--nofill) fill=0; cmds_parsed+=(fill=0); ;;
+    -N|--noautowrap) autowrap=0; cmds_parsed+=(autowrap=0); ;;
+    -P|--png) type='png' ;;
+    -a|--align) shift; align="$1"; parse_align; cmds_parsed+=("align=$align") ;;
+    -b|--bgalpha) shift
+        [[ $1 =~ ^(0|[1-9][0-9]?|100)$ ]] || error "invalid bgalpha: $1"
+        bgalpha="${1,,}"; cmds_parsed+=("bgalpha=$bgalpha") ;;
+    -c|--color) shift; color="$1"; parse_color
+        fcolor="$color" cmds_parsed+=("fcolor=$color") ;;
+    -f|--font) shift
+        [[ " ${fonts[*]} " =~ " $1 " ]] || error "invalid font: $1"
+        cmds_parsed+=("font=$1") ;;
+    -g|--gravity) shift
+        ((defaults_set)) || { set_defaults; defaults_set=1 ;}
+        gravity="$1"; [[ -z $gravity ]] && gravity="$gravity_default"
+        parse_gravity; cmds_parse=("gravity=$gravity") ;;
+    -h|--height) shift
+        [[ $1 =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid height: $1"
+        height="$1"; cmds_parse+=("height=$height") ;;
+    -q|--quality) shift
+        [[ $1 =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid quality: $1"
+        quality="$1" ;;
+    -s|--size) shift
+        [[ $1 =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid size: $1"
+        size="$1"; cmds_parsed+=("size=$size") ;;
+    -t|--text) shift; text="$1"; cmds_parsed+=("text=$text") ;;
+    -w|--width) shift
+        [[ $1 =~ ^(1|[1-9][0-9]?|100)$ ]] || error "invalid width: $1"
+        width="$1"; cmds_parsed+=("width=$width") ;;
+    -x|--xoffset) shift
+        [[ $1 =~ ^-?(0|[1-9][0-9]?|100)$ ]] || error "invalid x-offset: $1"
+        xoffset="$1"; cmds_parsed+=("xoffset=$xoffset") ;;
+    -y|--yoffset) shift
+        [[ $1 =~ ^-?(0|[1-9][0-9]?|100)$ ]] || error "invalid y-offset: $1"
+        yoffset="$1"; cmds_parsed+=("yoffset=$yoffset") ;;
+    --scolor) shift; color="$1"; parse_color
+        scolor="$color" cmds_parsed+=("scolor=$scolor") ;;
+    --swidth) shift
+        [[ $1 =~ ^(0|[1-9][0-9]?|100)$ ]] || error "invalid width: $1"
+        swidth="$1"; cmds_parsed+=("swidth=$swidth") ;;
+    -Q|--quiet) quiet=1 verbose=0 ;;
+    -V|--verbose) quiet=0 verbose=1 ;;
+    -M|--nocolor) clear_colors ;;
+    -H|--help) print_help ;;
+esac; shift; done
+
+if ((debug)); then
+    msg 'vars:'; print_vars
+    msg 'internal commands:'; for cmd in "${cmds_parsed[@]}"; do msg2 "$cmd"; done
+fi
+
+# check and set image:
+[[ ${#args_positionals[@]} -eq 0 ]] && error 'no input image'
+[[ ${#args_positionals[@]} -gt 1 ]] && error 'too many images'
+is_img "${args_positionals[0]}" || error "invalid image: ${args_positionals[0]}"
+img_in="${args_positionals[0]}"
+
+# set output input image type and name:
+path="$img_in"; parse_path
+[[ -z $type ]] && { type=jpg; [[ ${path_ext,,} == '.png' ]] && type=png ;}
+img_out="${path_dir}${path_name}_cap.${type}"
+
+# set image_width, image_height, padding, linespacing:
+img_w="$(identify -format '%w %h' "$img_in")"
+img_h="${img_w#* }" img_w="${img_w% *}"
+
+# set padding, pointsize, linespacing, strokewidth:
+padding=$(((img_w+img_h)/400))
+pointsize=$(((img_h+img_w)*size/3200+8))
+linespacing="-$((pointsize*3/8))"
+stroke_w=$((pointsize*swidth/1400+1))
+[[ $swidth -eq 0 ]] && strock_w=0
+
+if ((debug)); then
+    msg 'vars:'; print_vars img_h img_w pointsize stroke_w padding
+fi
+
+dir_tmp="$(mktemp -d "$TMPDIR/img-caption_XXX")"
+
+make_caption() {
+
+    cap_h=$((img_h*height/100-padding*2))
+    cap_w=$((img_w*width/100-padding*2))
+    arg_gravity=west
+    [[ $align == c ]] && arg_gravity=center
+    [[ $align == r ]] && arg_gravity=east
+
+    # make caption text:
+    cmd_magick=(magick -size "${cap_w}x${cap_h}" -background '#0000'
+        -gravity "$arg_gravity" -font "$font"
+        -fill "$fcolor" -strokewidth "$stroke_w" -stroke "$scolor"
+        -pointsize "$pointsize" -interline-spacing "$linespacing"
+        caption:"$text" -trim "$dir_tmp/text.png"
+    )
+    ((verbose)) && msg_cmd "${cmd_magick[@]}"
+    "${cmd_magick[@]}" || error 'caption creation error'
+
+    # make box:
+    cap_w="$(identify -format '%w %h' "$dir_tmp/text.png")"
+    cap_h="${cap_w#* }" cap_w="${cap_w% *}"
+    cap_r=$((padding*2))
+    cap_w=$((cap_w+cap_r))
+    cap_h=$((cap_h+cap_r))
+    cap_box="roundrectangle 50,50,$((cap_w+50)),$((cap_h+50)),$cap_r,$cap_r"
+    cmd_magick=(magick -size "$((cap_w+100))x$((cap_h+100))" xc:none
+        -fill '#0004' -stroke "$scolor" -strokewidth $((stroke_w*2))
+        -draw "$cap_box" -fill none -stroke "$fcolor" -strokewidth "$stroke_w"
+        -draw "$cap_box" -trim "$dir_tmp/box.png"
+    )
+    ((verbose)) && msg_cmd "${cmd_magick[@]}"
+    "${cmd_magick[@]}" || error 'caption creation error'
+
+    # center text in box:
+    cmd_magick=(magick "$dir_tmp/box.png" -set colorspace sRGB
+        "$dir_tmp/text.png" -gravity center -composite "$dir_tmp/cap.png")
+    ((verbose)) && msg_cmd "${cmd_magick[@]}"
+    "${cmd_magick[@]}" || error 'caption creation error'
+
+
+    # TODO: autowrap, make box, center text in box...
+    # TODO: add final box to array of captions to be added
+}
+
+# internal command loop:
+set -- "${cmds_parsed[@]}"
+for cmd in "${cmds_parsed[@]}"; do case "$cmd" in
+    align=*) align="${cmd#*=}" ;;
+    autowrap=*) autowrap="${cmd#*=}" ;;
+    bgalpha=*) bgalpha="${cmd#*=}" ;;
+    fcolor=*) fcolor="${cmd#*=}" ;;
+    fill=*) fill="${cmd#*=}" ;;
+    gravity=*) gravity="${cmd#*=}" ;;
+    height=*) height="${cmd#*=}" ;;
+    scolor=*) scolor="${cmd#*=}" ;;
+    size=*) size="${cmd#*=}" ;;
+    swidth=*) swidth="${cmd#*=}" ;;
+    width=*) width="${cmd#*=}" ;;
+    xoffset=*) xoffset="${cmd#*=}" ;;
+    yoffset=*) yoffset="${cmd#*=}" ;;
+    #=*) ="${cmd#*=}" ;;
+    gravity=*) load_defaults; gravity="${cmd#*=}" ;;
+
+    text=*) text="${cmd#*=}"; [[ -n $text ]] && make_caption ;;
+
+esac; done
+
+caps_c=()
+caps_e=()
+caps_n=()
+caps_s=()
+caps_w=()
+caps_ne=()
+caps_nw=()
+caps_se=()
+caps_sw=()
+
+
+# width vs cap_width?
+
+# add overlays to image:
+
+exit
+
+# execute commands:
+for cmd in "${cmds[@]}"; do
+    if [[ "$cmd" =~ ^(flg|opt)_.+=.*$ ]]; then
+        declare "$cmd"
+    elif [ "$cmd" = mk_cap ]; then
+        ((c++))
+        cap_file=$(printf '%s/cap_%02d.png' "$dir_tmp" $c)
+        cap_w=$((img_w*opt_width/100-cap_pad*2))
+
+        # set alignment:
+        case "$opt_pos" in
+            e|ne|se) cap_align=east ;;
+            w|nw|sw) cap_align=west ;;
+            n|s|c) cap_align=center ;;
+            *) cap_x="$cap_x_last"; cap_align=$cap_align_last ;;
+        esac
+        case "$opt_align" in
+            c) cap_align=center ;;
+            l) cap_align=west ;;
+            r) cap_align=east ;;
+        esac
+
+        if ((fill)); then
+            cap_w=$((img_w-cap_pad*2))
+            opt_pos=nw
+            font_size=16
+            stroke_w=$(((font_size-12)*100*opt_sw/48/100/32+1))
+            # make initial cap_file:
+            cmd_exec_magick
+            cap_h=$(identify -format '%h' "$cap_file")
+            # full:
+            while [ $cap_h -lt $img_h ]; do
+                font_size=$((font_size+16))
+                stroke_w=$(((font_size-12)*100*opt_sw/48/100/32+1))
+                cmd_exec_magick
+                cap_h=$(identify -format '%h' "$cap_file")
+            done
+            while [ $cap_h -gt $img_h ]; do
+                font_size=$((font_size-1))
+                stroke_w=$(((font_size-12)*100*opt_sw/48/100/32+1))
+                cmd_exec_magick
+                cap_h=$(identify -format '%h' "$cap_file")
+            done
+
+        # opt_size:
+        elif [[ "$opt_size" =~ ^[1-9][0-9]*$ ]]; then
+            # font_size:
+            if [ $img_w -gt $img_h ]; then
+                font_size=$((img_h*opt_size/1100))
+            else
+                font_size=$((img_h*opt_size/1300))
+            fi
+            # stroke_w:
+            #stroke_w=$(((font_size-12)/32+1))
+            stroke_w=$(((font_size-12)*100*opt_sw/48/100/32+1))
+            if [ $opt_sw -eq 0 ]; then
+                stroke_w=0
+            fi
+            # make cap_file:
+            cmd_exec_magick
+            cap_h=$(identify -format '%h' "$cap_file")
+            # auto wrap:
+            if ((autowrap)) && \
+            [[ "$opt_cap" =~ ' ' ]] && \
+            [ $((cap_h-font_size*3/2)) -ge 0 ]; then
+                cap_w_t=$opt_width
+                cap_h_target=$cap_h
+                while [ $((cap_h_target-cap_h+font_size/2)) -ge 0 ] \
+                && [ $cap_w_t -gt 5 ]; do
+                    cap_w_t=$((cap_w_t-5))
+                    cap_w=$((img_w*cap_w_t/100-cap_pad*2))
+                    cmd_exec_magick
+                    cap_h=$(identify -format '%h' "$cap_file")
+                done
+                while [ $((cap_h_target-cap_h+font_size/2)) -lt 0 ]; do
+                    ((cap_w_t++))
+                    cap_w=$((img_w*cap_w_t/100-cap_pad*2))
+                    cmd_exec_magick
+                    cap_h=$(identify -format '%h' "$cap_file")
+                done
+                if [ ${#opt_cap} -le 32 ]; then
+                    if [ ${#opt_cap} -le 16 ]; then
+                        ((cap_w_t++))
+                    fi
+                    if [ ${#opt_cap} -le 24 ]; then
+                        ((cap_w_t++))
+                    fi
+                    if [ ${#opt_cap} -le 32 ]; then
+                        ((cap_w_t++))
+                    fi
+                    cap_w=$((img_w*cap_w_t/100-cap_pad*2))
+                    cmd_exec_magick
+                fi
+            fi
+
+        # auto font size:
+        else
+            # set stroke_w:
+            stroke_w=1
+            cmd_exec_magick_auto
+            stroke_w=$(($(identify -format '%h' "$cap_file")/40+1))
+            # make cap_file:
+            cmd_exec_magick_auto
+        fi
+
+        # set cap width and hight:
+        cap_w="$(identify -format '%w %h' "$cap_file")"
+        cap_h="${cap_w#* }"
+        cap_w="${cap_w% *}"
+
+        # opt_bg:
+        if [ $opt_bg -ne 0 ]; then
+            cap_w=$((cap_w+cap_pad*2))
+            cap_h=$((cap_h+cap_pad*2))
+            cap_box="roundrectangle 0,0,$cap_w,$cap_h,$((cap_pad*2)),$((cap_pad*2))"
+            cap_box2="roundrectangle 50,50,$((cap_w+50)),$((cap_h+50)),$((cap_pad*2)),$((cap_pad*2))"
+
+            cmd_exec magick -size ${cap_w}x${cap_h} xc:black -alpha set \
+                -channel Alpha -evaluate set "$opt_bg%" "$dir_tmp/tmp1.png"
+
+            cmd_exec magick "$dir_tmp/tmp1.png" -set colorspace sRGB "$cap_file" \
+                -geometry +$cap_pad+$cap_pad -composite "$cap_file"
+
+            cmd_exec magick -size ${cap_w}x${cap_h} xc:none -draw "$cap_box" "$dir_tmp/tmp2.png"
+
+            cmd_exec magick "$cap_file" -alpha set  "$dir_tmp/tmp2.png" \
+                -compose DstIn -composite "$cap_file"
+
+            cmd_exec magick -size $((cap_w+100))x$((cap_h+100)) xc:none "$dir_tmp/tmp3.png"
+
+            cmd_exec magick "$dir_tmp/tmp3.png" -set colorspace sRGB \
+                 "$cap_file" -geometry +50+50 -composite "$cap_file"
+
+            cmd_exec magick -size $((cap_w+100))x$((cap_h+100)) \
+                xc:none -fill none -stroke "$opt_sc" \
+                -strokewidth $((stroke_w*2)) -draw "$cap_box2" \
+                -fill none -stroke "$opt_fc" \
+                -strokewidth $((stroke_w*1)) -draw "$cap_box2" \
+                "$dir_tmp/tmp4.png"
+
+            cmd_exec magick "$cap_file" -set colorspace sRGB \
+                 "$dir_tmp/tmp4.png" -composite -trim "$cap_file"
+
+            # set cap width and hight:
+            cap_w="$(identify -format '%w %h' "$cap_file")"
+            cap_h="${cap_w#* }"
+            cap_w="${cap_w% *}"
+        fi
+
+        # calculate and set caption x offset:
+        case "$opt_pos" in
+            e|ne|se) cap_x=$((img_w-cap_w-cap_pad-img_w*opt_x/100)) ;;
+            w|nw|sw) cap_x=$((cap_pad+img_w*opt_x/100)) ;;
+            n|s|c) cap_x=$(((img_w-cap_w)/2)) ;;
+            a) cap_x="$cap_x_last" ;;
+        esac
+
+        # calculate and set caption y offset:
+        case "$opt_pos" in
+            e|w|c) cap_y=$(((img_h-cap_h)/2+img_h*opt_y/100)) ;;
+            n|ne|nw) cap_y=$((cap_pad+img_h*opt_y/100)) ;;
+            s|se|sw) cap_y=$((img_h-cap_h-cap_pad-img_h*opt_y/100)) ;;
+            a) cap_y=$((cap_y_last+cap_h_last+cap_pad+img_h*opt_y/100)) ;;
+            #aw) cap_y=$((cap_y_last+cap_h_last+cap_pad+img_h*opt_y/100)); cap_pos=west ;;
+            #ae) cap_y=$((cap_y_last+cap_h_last+cap_pad+img_h*opt_y/100)); cap_pos=east ;;
+        esac
+
+        # reset opt_pos, opt_x, opt_y:
+        opt_pos=a
+        opt_x=0
+        opt_y=0
+
+        # add cap_file to args_magick:
+        args_magick+=("$cap_file" '-geometry' "+$cap_x+$cap_y" '-composite')
+
+        # save previous caption info:
+        cap_x_last=$cap_x
+        cap_y_last=$cap_y
+        cap_h_last=$cap_h
+        cap_align_last_last=$cap_align
+
+    fi
+done
+
+if [[ -n "${args_magick[0]}" ]]; then
+    if [ -n "$type" ]; then
+        ext="$type"
+    else
+        ext="${img##*.}"
+        ext="${ext,,}"
+        [ -z "$ext" ] || [ "$ext" = 'jpeg' ] && ext='jpg'
+    fi
+    img_out="${img%.*}_cap.${ext}"
+    [ "$ext" = jpg ] && args_magick+=(-quality $opt_qual)
+    cmd_exec magick "$img" -set colorspace sRGB "${args_magick[@]}" "$img_out"
+fi
+
+# vim:ft=bash

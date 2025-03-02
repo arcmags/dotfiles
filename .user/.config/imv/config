@@ -27,14 +27,23 @@ n = next
 g = goto 1
 
 # pan:
-j = pan 0 -40
-k = pan 0 40
 h = pan 40 0
+<Left> = pan 40 0
+j = pan 0 -40
+<Down> = pan 0 -40
+k = pan 0 40
+<Up> = pan 0 40
 l = pan -40 0
-<Shift+J> = pan 0 -200
-<Shift+K> = pan 0 200
+<Right> = pan -40 0
+
 <Shift+H> = pan 200 0
+<Shift+Left> = pan 200 0
+<Shift+J> = pan 0 -200
+<Shift+Down> = pan 0 -200
+<Shift+K> = pan 0 200
+<Shift+Up> = pan 0 200
 <Shift+L> = pan -200 0
+<Shift+Right> = pan -200 0
 
 # scale/zoom:
 0 = scaling none

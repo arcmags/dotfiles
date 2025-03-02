@@ -1,6 +1,7 @@
 #!/bin/bash
-
 ## img-caption ::
+
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
 print_help() { cat <<'HELPDOC'
 NAME
     img-caption - add captions to image

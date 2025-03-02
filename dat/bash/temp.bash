@@ -11,11 +11,11 @@ Bash template script and function library.
 
 Options:
   -l, --list <arg>      append to list
-  -v, --var <arg>       variable
+  -o, --option <arg>    set value
   -M, --nocolor         disable colored output
   -Q, --quiet           print nothing to stdout
   -V, --verbose         print more verbose information
-  -H, -h, --help        print help and exit
+  -H, --help            print help and exit
 
 Format:
   %%    a literal %
@@ -27,58 +27,57 @@ Environment:
   QUIET         run silently
   VERBOSE       run verbosely
 HELPDOC
-exit "${1:-0}" ;}
-[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
+exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
 
 ## settings ::
 debug=0 nocolor=0 quiet=0 verbose=0
 
 ## internal functions/variables ::
 readonly -a args=("$@"); args_options=() args_positionals=()
-readonly -a deps=(curl)
-readonly -a opts=(-l: --list: -v: --var: -M --nocolor -Q --quiet -V --verbose -H -h --help)
+readonly -a deps=(curl identify)
+readonly -a opts=(-l: --list: -o: --option: -M --nocolor -Q --quiet -V --verbose -H --help)
 readonly path_script="$(realpath "$BASH_SOURCE")"
 readonly script="$(basename "$BASH_SOURCE")"
-unset var
 formats=("S:$path_script" "s:$script")
 list=()
+unset option
 
 # colors:
-black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m'
-green=$'\e[38;5;10m' grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m'
-orange=$'\e[38;5;3m' red=$'\e[38;5;9m' white=$'\e[38;5;15m'
-yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
 clear_colors() {
-    export NO_COLOR=true; nocolor=1
+    export NO_COLOR=1 nocolor=1
     unset black blue cyan green grey magenta orange red white yellow bold off
 }
 
 # messages:
+bin_printf() { printf "$@" ;}
+[[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
 msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
 msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
-msg_cmd() {
-    local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
-    [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
-    printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
-}
+msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
 
 # utils:
 check_deps() {
     # Check dependencies, return number missing (O if no error).
     # Input:
-    #   deps -- array of dependencies
+    #   $@ -- list of dependencies
+    #   deps -- array of dependencies (used if $@ is empty)
     # Usage:
     #   deps=(cmd1 cmd2 cmd3)
     #   check_deps || exit
-    local deps_err=()
-    for dep in "${deps[@]}"; do is_cmd "$dep" || deps_e+=("$dep"); done
-    [[ ${#deps_err} -gt 0 ]] && msg_error "missing deps: ${deps_err[*]}"
-    return ${#deps_err[@]}
+    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
 }
+check_internet() { ping -q -c1 -W2 google.com &>/dev/null ;}
 is_cmd() { command -v "$1" &>/dev/null ;}
 is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
 is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
@@ -92,41 +91,41 @@ parse_args() {
     #   args_options -- array of parsed, separated options and option arguments
     #   args_positionals -- array of positional arguments
     # Usage:
-    #   args=("$@"); opts=(-f --for -b: --bar: help)
+    #   args=("$@") opts=(-f --foo -b: --bar: --help)
     #   parse_args || exit
     #   set -- "${args_options[@]}"
     #   while [[ -n $1 ]]; do case "$1" in ... esac; shift; done
-    local a=0 opt= sflgs= sopts= arg="${args[0]}"
-    local -a lflgs=() lopts=()
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}"
+    local -a _lflgs=() _lopts=()
     args_options=() args_positionals=()
-    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
-    bad_optarg() { msg_error "option requires an argument: $arg" ;}
-    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
-    for opt in "${opts[@]}"; do case "$opt" in
-        -?) sflgs="$sflgs${opt:1}" ;;
-        -?:) sopts="$sopts${opt:1:1}" ;;
-        *:) lopts+=("${opt:0:-1}") ;;
-        *) lflgs+=("$opt") ;;
+    _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
+    _eoptarg() { msg_error "option requires an argument: $_arg" ;}
+    _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
+    for _opt in "${opts[@]}"; do case "$_opt" in
+        -?) _sflgs="$_sflgs${_opt:1}" ;;
+        -?:) _sopts="$_sopts${_opt:1:1}" ;;
+        *:) _lopts+=("${_opt:0:-1}") ;;
+        *) _lflgs+=("$_opt") ;;
     esac; done
-    while [[ -n $arg ]]; do case "$arg" in
-        --) ((a++)); break ;;
-        -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
-            args_options+=("${arg:0:2}") arg="-${arg:2}"; continue ;;
-        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
-            args_options+=("$arg" "${args[((++a))]}") ;;
-        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
-        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
-            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-            args_options+=("${arg%%=*}" "${arg#*=}") ;;
-        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
-                args_options+=("$arg")
-            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
-                args_options+=("$arg" "${args[((++a))]}")
+    while [[ -n $_arg ]]; do case "$_arg" in
+        --) ((_a++)); break ;;
+        -[$_sflgs]) args_options+=("$_arg") ;;
+        -[$_sflgs]*) [[ ! $_sflgs$_sopts =~ ${_arg:2:1} ]] && { _eopt; return 3 ;}
+            args_options+=("${_arg:0:2}") _arg="-${_arg:2}"; continue ;;
+        -[$_sopts]) [[ $((${#args[@]}-_a)) -le 1 ]] && { _eoptarg; return 3 ;}
+            args_options+=("$_arg" "${args[((++_a))]}") ;;
+        -[$_sopts]*) args_options+=("${_arg:0:2}" "${_arg:2}") ;;
+        *=*) [[ " ${_lflgs[*]} " =~ " ${_arg%%=*} " ]] && { _eflg; return 3 ;}
+            [[ " ${_lopts[*]} " =~ " ${_arg%%=*} " ]] || break
+            args_options+=("${_arg%%=*}" "${_arg#*=}") ;;
+        *) if [[ " ${_lflgs[*]} " =~ " $_arg " ]]; then
+                args_options+=("$_arg")
+            elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
+                [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
+                args_options+=("$_arg" "${args[((++_a))]}")
             else break; fi ;;
-    esac; arg="${args[((++a))]}"; done
-    args_positionals=("${args[@]:a}")
+    esac; _arg="${args[((++_a))]}"; done
+    args_positionals=("${args[@]:_a}")
 }
 
 parse_arr() {
@@ -139,19 +138,20 @@ parse_arr() {
     # Usage:
     #   arr=(1 2 3 2 4)
     #   parse_arr; printf "${arr_new[*]}"
-    local dup=0
+    local _a= _b= _dup=0
     arr_new=()
-    for a in "${arr[@]}"; do dup=0
-        [[ -z $a && $1 == clear ]] && { arr_new=(); continue ;}
-        for b in "${arr_new[@]}"; do [[ $a == $b ]] && { dup=1; break ;}; done
-        ((dup)) || arr_new+=("$a")
+    for _a in "${arr[@]}"; do _dup=0
+        [[ -z $_a && $1 == clear ]] && { arr_new=(); continue ;}
+        for _b in "${arr_new[@]}"; do [[ $_a == $_b ]] && { _dup=1; break ;}; done
+        ((_dup)) || arr_new+=("$_a")
     done
 }
 
 parse_path() {
     # Parse path into directory, basename, name, extension.
     # Input:
-    #   path -- path string to parse, does not need to exist
+    #   $1 -- path string to parse
+    #   path -- path string to parse (used if $1 is empty)
     # Output:
     #   path_basename -- path_name + path_ext
     #   path_dir -- dir containing path, ends with /, empty if current dir
@@ -160,7 +160,8 @@ parse_path() {
     # Usage:
     #   path='dir1/dir2/file.ext'
     #   parse_path; printf "${path_name} + ${path_ext}\n"
-   path_basename="$path" path_dir= path_ext=
+    local _path="$path"; [[ -n $1 ]] && _path="$1"
+    path_basename="$_path" path_dir= path_ext=
     [[ ${path_basename: -1} == / ]] && path_basename="${path_basename:0:-1}"
     if [[ $path_basename =~ / ]]; then
         path_dir="${path_basename%/*}/" path_basename="${path_basename##*/}"
@@ -183,77 +184,82 @@ parse_yaml() {
     #   printf "value: $yaml_value\n"
     # TODO: multi-level yaml, quoted strings, more documentation
     # TODO: while read loop
-    local key= arr=() line= a=0
-    mapfile -t arr <<<"$yaml"; line="${arr[0]}"
-    while [[ -n $line || $a -lt ${#arr[@]} ]]; do
-        if [[ $line =~ ^([A-Za-z][A-Za-z0-9_]*):\ *(.*) ]]; then
-            key="yaml_${BASH_REMATCH[1]}"; declare -ga "$key"='()'
+    local _a=0 _arr=() _key= _line=
+    mapfile -t _arr <<<"$yaml"; _line="${_arr[0]}"
+    while [[ -n $_line || $_a -lt ${#_arr[@]} ]]; do
+        if [[ $_line =~ ^([A-Za-z][A-Za-z0-9_]*):\ *(.*) ]]; then
+            _key="yaml_${BASH_REMATCH[1]}"; declare -ga "$_key"='()'
             if [[ -n ${BASH_REMATCH[2]} ]]; then
-                line="- ${BASH_REMATCH[2]}"; continue
+                _line="- ${BASH_REMATCH[2]}"; continue
             fi
-        elif [[ $line =~ ^-\ +(.*) && -n $key ]]; then
-            declare -ga "$key"+='("${BASH_REMATCH[1]}")'
-        elif [[ ! $line =~ ^\ *(#|$) ]]; then
-            msg_error "yaml error: $line"; return 3
-        fi; line="${arr[((++a))]}"
+        elif [[ $_line =~ ^-\ +(.*) && -n $_key ]]; then
+            declare -ga "$_key"+='("${BASH_REMATCH[1]}")'
+        elif [[ ! $_line =~ ^\ *(#|$) ]]; then
+            msg_error "yaml error: $_line"; return 3
+        fi; _line="${_arr[((++_a))]}"
     done
 }
 
-print_opts() {
-    # Print options and values defined in opts array.
-    local opt= val= str=
-    for opt in "${opts[@]}"; do
-        [[ ${opt:0:2} == -- ]] || continue
-        [[ $opt == --help ]] && continue
-        opt="${opt:2}"
-        [[ ${opt: -1} == : ]] && opt="${opt:0:-1}"
-        declare -n "val=$opt"
-        if [[ -z ${val+x} ]]; then
-            msg2 "$opt: <null>"
-        elif [[ $(declare -p "$opt") =~ ^declare\ -a ]]; then
-            printf -v str ' %q' "${val[@]}"; str="${str:1}"
-            msg2 "$opt: ($str)"
-        else
-            msg2 "$opt: $val"
+print_vars() {
+    # Print variable values (arrays in parentheses, unset values <null>).
+    # Input:
+    #   $@ -- list of variable names
+    #   vars -- array of variable names (used if $@ is empty)
+    # Usage:
+    #   print_vars xval yval
+    local _txt= _val= _var= _vars=("${vars[@]}")
+    [[ -n $1 ]] && _vars=("$@")
+    for _var in "${_vars[@]}"; do
+        printf "   $bold$blue$_var$white:$off "
+        declare -n "_val=$_var"
+        _txt="${!_var}"
+        if [[ $(declare -p "$_var" 2>/dev/null) =~ ^declare\ -a ]]; then
+            _txt=' '; ((${#_val[@]})) && _txt="$(bin_printf ' %q' "${_val[@]}")"
+            _txt="(${_txt:1})"
+        elif [[ -z ${_val+x} ]]; then
+            _txt="$grey<null>$off"
         fi
+        printf "$_txt\n"
     done
 }
 
 sub_text() {
     # Format text containing %char sequences, return 3 if error.
     # Input:
-    #   text -- format string
+    #   $1 -- format string
+    #   text -- format string (used if $1 is empty)
     #   subs -- array of char:replacement pairs
     # Output:
     #   text_subbed -- formatted text
     # Usage:
-    #   subs=(n:name v:value); text='%n : %v'
+    #   subs=(n:name v:value) text='%n : %v'
     #   sub_text || exit
     #   printf "$text_subbed\n"
     # TODO: printf style padding options?
-    local i=0 found=0 repl= sub=
+    local _found=0 _i=0 _repl= _sub= _text="$text"
+    [[ -n $1 ]] && _text="$1"
     text_subbed=
-    for sub in "${subs[@]}"; do
-        [[ ${sub:1:1} == : ]] || { msg_error "invalid sub: $sub"; return 3 ;}
+    for _sub in "${subs[@]}"; do
+        [[ ${_sub:1:1} == : ]] || { msg_error "invalid sub: $_sub"; return 3 ;}
     done
-    while [[ $i -lt ${#text} ]]; do
-        repl="${text:i:1}"
-        if [[ ${text:i:1} == % ]]; then
-            ((i++))
-            if [[ ${text:i:1} == % ]]; then
-                repl='%'
+    while [[ $_i -lt ${#text} ]]; do
+        _repl="${text:_i:1}"
+        if [[ ${text:_i:1} == % ]]; then
+            ((_i++))
+            if [[ ${text:_i:1} == % ]]; then
+                _repl='%'
             else
-                found=0; for sub in "${subs[@]}"; do
-                    if [[ ${text:i:1} == ${sub:0:1} ]]; then
-                        repl="${sub:2}"; ((found++))
+                _found=0; for _sub in "${subs[@]}"; do
+                    if [[ ${text:_i:1} == ${_sub:0:1} ]]; then
+                        _repl="${_sub:2}"; ((_found++))
                 fi; done
-                if ! ((found)); then
-                    msg_error "invalid format character: ${text:i:1}"
+                if ! ((_found)); then
+                    msg_error "invalid format character: ${text:_i:1}"
                     return 3
                 fi
-                ((found)) || { msg_error "invalid format: ${text:i:1}"; return 3 ;}
+                ((_found)) || { msg_error "invalid format: ${text:_i:1}"; return 3 ;}
         fi; fi
-        text_subbed+="$repl"; ((i++))
+        text_subbed+="$_repl"; ((_i++))
     done
 }
 
@@ -277,52 +283,26 @@ parse_args || exit
 set -- "${args_options[@]}"
 while [[ -n $1 ]]; do case "$1" in
     -l|--list) shift; list+=("$1") ;;
-    -v|--var) shift; var="$1" ;;
+    -o|--option) shift; option="$1" ;;
     -Q|--quiet) quiet=1 verbose=0 ;;
     -V|--verbose) quiet=0 verbose=1 ;;
     -M|--nocolor) clear_colors ;;
     -h|-H|--help) print_help ;;
 esac; shift; done
-((debug)) && print_opts
+((debug)) && print_vars list option quiet
 
 # check for errors:
 check_deps || exit
 
-# parse yaml:
-#file="$HOME/user/dat/conf/simple.yaml"
-#if [[ -f $file ]]; then
-    #yaml="$(<"$file")"
-    #if parse_yaml && ! ((quiet)); then
-        #msg "yaml parsed: $file"
-        #printf -v arr '%s, ' "${yaml_list[@]}"; arr="${a:0:-2}"
-        #msg2 "copy: $yaml_copy"
-        #msg2 "dest: $yaml_dest"
-        #msg2 "list: [$arr]"
-    #fi
-#else
-    #msg_error "file not found: $file"
+# example: check var:
+[[ $(declare -p option 2>/dev/null) =~ ^declare\ -a ]] && msg "option is an array"
+[[ -n $option ]] && msg "option is not empty"
+[[ -n ${option+x} && -z $option ]] && msg "option is set and empty"
+[[ -z ${option+x} ]] && msg "option is not set"
+
+# example: prompt for user input:
+#if [[ -z ${option+x} ]]; then
+    #read -erp "$green$bold> $off${white}option: $off" option
 #fi
-
-# variable checks:
-[[ -n $var ]] && msg "var is not empty"
-[[ -n ${var+x} && -z $var ]] && msg "var is set and empty"
-[[ -z ${var+x} ]] && msg "var is not set"
-
-# prompt for user input:
-if [[ -z ${var+x} ]]; then
-    read -erp "$green$bold> $off${white}var: $off" var
-fi
-
-# print args:
-#if ! ((quiet)); then
-    #msg2 "list: (${list[*]})"
-    #msg2 "pargs: (${args_positionals[*]})"
-    #msg2 "var: $var"
-#fi
-
-#subs+=(a:action d:dir p:path)
-#text='01_%d-%a_%%_%p'
-#sub_text || exit
-#msg "$text -> $text_subbed"
 
 # vim:ft=bash

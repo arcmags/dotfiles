@@ -57,6 +57,7 @@ set splitbelow splitright
 
 # colors:
 set background=dark
+set notermguicolors
 syntax enable
 colorscheme utheme
 
@@ -314,6 +315,9 @@ nnoremap <leader>/u /https\?:[^ ]*<cr>
 ## mappings: text ::
 nnoremap Q gwip
 vnoremap Q gw
+
+# join lines removing spaces between lines:
+nnoremap gJ :keepp sil s/$\n\s*//g<cr>
 
 # convert to ascii:
 nnoremap <leader>fa <scriptcmd>TextToAscii()<cr>

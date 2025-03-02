@@ -41,8 +41,7 @@ xrdbcolors=0
 blockn=
 
 # constants:
-block=$'\u2588'
-block6="$block$block$block$block$block$block"
+block=$'\u2588' block6="$block$block$block$block$block$block"
 fstring='\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm%s\e[0m %s \e[38;2;%d;%d:%dm%s\e[0m\n'
 regex_hex='#?([A-Fa-f0-9]{6})'
 regex_rgb='\(?([0-9]+),([0-9]+),([0-9]+)\)?'
@@ -51,16 +50,9 @@ sed_xrdb=(sed -Ee '/^\*\.color[0-9]/!d' -e 's/^\*\.color([0-9]+).*:\t#(.*)/\1 \2
 readonly block block6 fstring regex_hex regex_rgb sed_magick sed_xrdb
 
 # colors:
-blue=$'\e[38;5;12m'
-bold=$'\e[1m'
-cyan=$'\e[38;5;14m'
-green=$'\e[38;5;10m'
-grey=$'\e[38;5;8m'
-magenta=$'\e[38;5;13m'
-off=$'\e[0m'
-red=$'\e[38;5;9m'
-white=$'\e[38;5;15m'
-yellow=$'\e[38;5;11m'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
 readonly blue bold cyan green grey magenta off red white yellow
 
 # messages:

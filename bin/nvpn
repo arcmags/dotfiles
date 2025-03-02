@@ -1,16 +1,50 @@
 #!/bin/bash
 ## nvpn ::
-# Establish tcp vpn connection with a random top-ranked nordvpn server.
 
-# settings:
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+print_help() { cat <<'HELPDOC'
+Usage:
+  nvpn [option...]
+
+Connect to NordVPN with using openvpn.
+
+Options:
+  -M, --nocolor         disable colored output
+  -Q, --quiet           print nothing to stdout
+  -V, --verbose         print more verbose information
+  -H, -h, --help        print help and exit
+
+Environment:
+  NO_COLOR      disable colored output
+  QUIET         run silently
+  VERBOSE       run verbosely
+HELPDOC
+exit "${1:-0}" ;}
+[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
+
+# TODO: options:
+# - country
+# - udp/tcp
+# - background/daemon?
+# - user/group?
+# - auth file?
+# TODO: remove sudo dep
+
+## settings ::
+debug=0
+nocolor=0
+quiet=0
+verbose=0
+
 auth="/etc/openvpn/client/auth.txt"
 
-# internal control:
+## internal control ::
 config=
 ip=
 server=
 url_api='https://api.nordvpn.com/v1'
 url_configs='https://downloads.nordcdn.com/configs'
+
 
 ## functions ::
 msg() {
@@ -24,6 +58,7 @@ msg_error() {
 msg2() {
     printf "\e[1;38;5;12m > \e[0;38;5;15m$1\e[0m\n" "${@:2}"
 }
+
 
 ## main ::
 if [ "$(id -u)" -ne 0 ] && ! command -v sudo &>/dev/null; then

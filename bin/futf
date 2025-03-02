@@ -19,105 +19,101 @@ Convert files or stdin to utf-8 encoded unix text:
 Files are backuped up and overwritten if any changes are made.
 
 Options:
-  -b, --bak <str>   backup filename suffix (default: _bak)
-  -t, --tab <num>   spaces per tab (default: 4)
-  -A, --ascii       convert to pure ascii
-  -B, --keepblanks  keep leading and trailing blank lines
-  -N, --nobackup    don't backup original file
-  -S, --keepspaces  keep trailing whitespaces
-  -T, --keeptabs    keep tabs
-  -M, --nocolor     disable colored output
-  -Q, --quiet       print nothing to stdout
-  -V, --verbose     print more verbose information
-  -H, -h, --help    print help and exit
+  -s, --suffix <str>  backup filename suffix (default: _bak)
+  -t, --tab <num>     spaces per tab (default: 4)
+  -A, --ascii         convert to pure ascii
+  -B, --keepblanks    keep leading and trailing blank lines
+  -N, --nobackup      don't backup original file
+  -S, --keepspaces    keep trailing whitespaces
+  -T, --keeptabs      keep tabs
+  -M, --nocolor       disable colored output
+  -Q, --quiet         print nothing to stdout
+  -V, --verbose       print more verbose information
+  -H, --help          print help and exit
 
 Environment:
   NO_COLOR      disable colored output
   QUIET         run silently
   VERBOSE       run verbosely
 HELPDOC
-exit "${1:-0}" ;}
-[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
+exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
 
 ## settings ::
 debug=0 nocolor=0 quiet=0 verbose=0
-ascii=0 keepblanks=0 keepspaces=0 keeptabs=0 nobackup=0
-overwrite=0 tab=4
-bak='_bak'
+ascii=0 keepblanks=0 keepspaces=0 keeptabs=0 nobackup=0 overwrite=0
+suffix='_bak' tab=4
 
 ## internal functions/variables ::
 readonly -a args=("$@"); args_options=() args_positionals=()
 readonly -a deps=(cmp dos2unix expand iconv uchardet)
-readonly -a opts=(-b: --bak: -t: --tab: -A --ascii -B --keepblanks
+readonly -a opts=(-s: --suffix: -t: --tab: -A --ascii -B --keepblanks
     -N --nobackup -S --keepspaces -T --keeptabs
-    -M --nocolor -Q --quiet -V --verbose -H -h --help)
+    -M --nocolor -Q --quiet -V --verbose -H --help)
 files=() files_err=() files_tmp=() file= file_tmp= file_tmp1=
 enc= ext= name= stdin=0
 
 # colors:
-black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m'
-green=$'\e[38;5;10m' grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m'
-orange=$'\e[38;5;3m' red=$'\e[38;5;9m' white=$'\e[38;5;15m'
-yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
 clear_colors() {
-    export NO_COLOR=true; nocolor=1
+    export NO_COLOR=1 nocolor=1
     unset black blue cyan green grey magenta orange red white yellow bold off
 }
 
 # messages:
+bin_printf() { printf "$@" ;}
+[[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
 msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
 msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
-msg_cmd() {
-    local _printf='printf'; [[ -f /usr/bin/printf ]] && _printf='/usr/bin/printf'
-    [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
-    printf "$off$white"; "$_printf" ' %q' "$@"; printf "$off\n"
-}
+msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
 
 # utils:
 check_deps() {
-    local deps_err=()
-    for dep in "${deps[@]}"; do is_cmd "$dep" || deps_e+=("$dep"); done
-    [[ ${#deps_err} -gt 0 ]] && msg_error "missing deps: ${deps_err[*]}"
-    return ${#deps_err[@]}
+    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
 }
 is_cmd() { command -v "$1" &>/dev/null ;}
 
 parse_args() {
-    local a=0 opt= sflgs= sopts= arg="${args[0]}"
-    local -a lflgs=() lopts=()
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}"
+    local -a _lflgs=() _lopts=()
     args_options=() args_positionals=()
-    bad_opt() { msg_error "unrecognized option: -${arg:2:1}" ;}
-    bad_optarg() { msg_error "option requires an argument: $arg" ;}
-    bad_flg() { msg_error "option does not take argument: ${arg%%=*}" ;}
-    for opt in "${opts[@]}"; do case "$opt" in
-        -?) sflgs="$sflgs${opt:1}" ;;
-        -?:) sopts="$sopts${opt:1:1}" ;;
-        *:) lopts+=("${opt:0:-1}") ;;
-        *) lflgs+=("$opt") ;;
+    _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
+    _eoptarg() { msg_error "option requires an argument: $_arg" ;}
+    _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
+    for _opt in "${opts[@]}"; do case "$_opt" in
+        -?) _sflgs="$_sflgs${_opt:1}" ;;
+        -?:) _sopts="$_sopts${_opt:1:1}" ;;
+        *:) _lopts+=("${_opt:0:-1}") ;;
+        *) _lflgs+=("$_opt") ;;
     esac; done
-    while [[ -n $arg ]]; do case "$arg" in
-        --) ((a++)); break ;;
-        -[$sflgs]) args_options+=("$arg") ;;
-        -[$sflgs]*) [[ ! $sflgs$sopts =~ ${arg:2:1} ]] && { bad_opt; return 3 ;}
-            args_options+=("${arg:0:2}") arg="-${arg:2}"; continue ;;
-        -[$sopts]) [[ $((${#args[@]}-a)) -le 1 ]] && { bad_optarg; return 3 ;}
-            args_options+=("$arg" "${args[((++a))]}") ;;
-        -[$sopts]*) args_options+=("${arg:0:2}" "${arg:2}") ;;
-        *=*) [[ " ${lflgs[*]} " =~ " ${arg%%=*} " ]] && { bad_flg; return 3 ;}
-            [[ " ${lopts[*]} " =~ " ${arg%%=*} " ]] || break
-            args_options+=("${arg%%=*}" "${arg#*=}") ;;
-        *) if [[ " ${lflgs[*]} " =~ " $arg " ]]; then
-                args_options+=("$arg")
-            elif [[ " ${lopts[*]} " =~ " $arg " ]]; then
-                [[ ${#args[@]} -le $((a+1)) ]] && { bad_optarg; return 3 ;}
-                args_options+=("$arg" "${args[((++a))]}")
+    while [[ -n $_arg ]]; do case "$_arg" in
+        --) ((_a++)); break ;;
+        -[$_sflgs]) args_options+=("$_arg") ;;
+        -[$_sflgs]*) [[ ! $_sflgs$_sopts =~ ${_arg:2:1} ]] && { _eopt; return 3 ;}
+            args_options+=("${_arg:0:2}") _arg="-${_arg:2}"; continue ;;
+        -[$_sopts]) [[ $((${#args[@]}-_a)) -le 1 ]] && { _eoptarg; return 3 ;}
+            args_options+=("$_arg" "${args[((++_a))]}") ;;
+        -[$_sopts]*) args_options+=("${_arg:0:2}" "${_arg:2}") ;;
+        *=*) [[ " ${_lflgs[*]} " =~ " ${_arg%%=*} " ]] && { _eflg; return 3 ;}
+            [[ " ${_lopts[*]} " =~ " ${_arg%%=*} " ]] || break
+            args_options+=("${_arg%%=*}" "${_arg#*=}") ;;
+        *) if [[ " ${_lflgs[*]} " =~ " $_arg " ]]; then
+                args_options+=("$_arg")
+            elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
+                [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
+                args_options+=("$_arg" "${args[((++_a))]}")
             else break; fi ;;
-    esac; arg="${args[((++a))]}"; done
-    args_positionals=("${args[@]:a}")
+    esac; _arg="${args[((++_a))]}"; done
+    args_positionals=("${args[@]:_a}")
 }
 
 # error, exit, trap:
@@ -139,7 +135,7 @@ trap trap_exit EXIT
 parse_args || exit
 set -- "${args_options[@]}"
 while [[ -n $1 ]]; do case "$1" in
-    -b|--bak) shift; bak="$1" ;;
+    -s|--suffix) shift; suffix="$1" ;;
     -t|--tab) shift; tab="$1" ;;
     -A|--ascii) ascii=1 ;;
     -B|--keepblanks) keepblanks=1 ;;
@@ -149,12 +145,12 @@ while [[ -n $1 ]]; do case "$1" in
     -Q|--quiet) quiet=1 verbose=0 ;;
     -V|--verbose) quiet=0 verbose=1 ;;
     -M|--nocolor) clear_colors ;;
-    -h|-H|--help) print_help ;;
+    -H|--help) print_help ;;
 esac; shift; done
 
 # check for errors:
 check_deps || exit
-[[ -z $bak ]] && error 'backup suffix empty'
+[[ -z $suffix ]] && error 'backup suffix empty'
 [[ $tab =~ ^[1-9][0-9]*$ ]] || error "invalid tab width: $tab"
 
 # use stdin if no files given:
@@ -242,7 +238,7 @@ for file in "${files[@]}"; do
         if ! ((nobackup)); then
             name="$file" ext=
             [[ $file =~ ^(.+)(\..*) ]] && ext="${BASH_REMATCH[2]}" name="${BASH_REMATCH[1]}"
-            cp "$file" "$name$bak$ext"
+            cp "$file" "$name$suffix$ext"
         fi
         ((verbose)) && msg_cmd cp "$file_tmp" "$file"
         cp "$file_tmp" "$file"
