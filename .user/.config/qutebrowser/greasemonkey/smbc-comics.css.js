@@ -7,7 +7,7 @@
 
 GM_addStyle(`
     body {
-        background: var(--color-bg) !important;
+        background: var(--user-color-bg) !important;
     }
 
     #mainwrap {

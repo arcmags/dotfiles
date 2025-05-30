@@ -7,8 +7,8 @@
 
 GM_addStyle(`
     body {
-        background: var(--color-bg) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-fg) !important;
         max-width: 750px !important;
     }
 
@@ -17,14 +17,14 @@ GM_addStyle(`
     }
 
     a {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         text-decoration: none !important;
     }
     a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
     a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 
     .hr-line {

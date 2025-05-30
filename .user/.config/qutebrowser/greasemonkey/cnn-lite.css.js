@@ -7,21 +7,21 @@
 
 GM_addStyle(`
     body {
-        color: var(--color-fg) !important;
-        background: var(--color-bg) !important;
+        color: var(--user-color-fg) !important;
+        background: var(--user-color-bg) !important;
     }
 
     a, footer a:visited, header a:visited {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         text-decoration: none !important;
     }
 
     a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
 
     a:hover, footer a:hover, header a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 
     ul {

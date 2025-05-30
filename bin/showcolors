@@ -45,7 +45,8 @@ block=$'\u2588' block6="$block$block$block$block$block$block"
 fstring='\e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm%s\e[0m %s \e[38;2;%d;%d:%dm%s\e[0m\n'
 regex_hex='#?([A-Fa-f0-9]{6})'
 regex_rgb='\(?([0-9]+),([0-9]+),([0-9]+)\)?'
-sed_magick=(sed -Ee '/X11/!d' -e 's/^([^ ]+) +srgb\(([^)]+)\).*/\1 \2/')
+sed_magick=(sed -Ee '/(X11|SVG)/!d' -e '/^(transparent|opaque|none|matte|freeze)/d'
+    -e 's/^([^ ]+) +srgb\(([^)]+)\).*/\1 \2/')
 sed_xrdb=(sed -Ee '/^\*\.color[0-9]/!d' -e 's/^\*\.color([0-9]+).*:\t#(.*)/\1 \2/')
 readonly block block6 fstring regex_hex regex_rgb sed_magick sed_xrdb
 
@@ -103,7 +104,7 @@ parse_args() {
 # print color block, hex code, and name:
 print_color() {
     local -a rgb=("0x${1:0:2}" "0x${1:2:2}" "0x${1:4:2}")
-    printf "$fstring" "${rgb[@]}" "${rgb[@]}" "block6" "$1" "${rgb[@]}" "${2:-$1}"
+    printf "$fstring" "${rgb[@]}" "${rgb[@]}" "$block6" "$1" "${rgb[@]}" "${2:-$1}"
 }
 
 ## main ::
@@ -174,7 +175,7 @@ fi
 # no args: exit:
 [[ ${#args_operands[@]} -eq 0 ]] && ! ((allcolors)) && exit
 
-# get color names and rgb values from imagemagick:
+# get color names and rgb values from imagemagick, remove extra blacks:
 if is_cmd magick; then
     mapfile -t namergb_magick < <(magick -list color | "${sed_magick[@]}" | sort -Vfk1,1)
 fi

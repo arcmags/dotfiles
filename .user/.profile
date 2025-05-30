@@ -29,13 +29,14 @@ is_bin() (
 )
 
 path_add() {
-    while [ $# -gt 0 ]; do
-        expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
-    shift; done
+    expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
 }
 
 ## path ::
-path_add "$HOME/.local/bin" "$UDIR/bin" "$UDIR/local/bin" "$HOME/bin"
+path_add "$HOME/.local/bin"
+path_add "$UDIR/bin"
+path_add "$UDIR/local/bin"
+path_add "$HOME/bin"
 
 ## environment ::
 command_not_found_handle() { printf '\e[1;38;5;11mC: \e[0;38;5;15m%s\e[0m\n' "$1"; return 127 ;}
@@ -47,8 +48,9 @@ export PS2='\[\e[0m\] '
 [ -d "$ULIB/bash" ] && export BASHLIB="$ULIB/bash"
 [ -d "$ULIB/figfonts" ] && export FIGLET_FONTDIR="$ULIB/figfonts"
 [ -d "$ULIB/python" ] && export PYTHONPATH="$ULIB/python"
+export PYTHONSTARTUP="$HOME/.pythonrc"
 
-is_bin gpg && gpg --list-secret-keys '4742C8240A64DA01' >/dev/null 2>&1 && export GPGKEY='4742C8240A64DA01'
+export GPGKEY='4742C8240A64DA01'
 
 export SUDO_PROMPT="$(printf '\e[1;38;5;9m:> \e[0;38;5;15mpassword: \e[0m')"
 su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@" ;}
@@ -62,10 +64,10 @@ export COLORFGBG='7;0'
 export TMPDIR='/tmp'
 
 export EDITOR='vim'
-export VISUAL="$EDITOR"
 export FCEDIT="$EDITOR"
 export SUDO_EDITOR="$EDITOR"
 export SYSTEMD_EDITOR="$EDITOR"
+export VISUAL="$EDITOR"
 
 export DICTIONARY='en_US'
 
@@ -191,7 +193,7 @@ is_bin zathura && zathura() { command zathura --fork "$@" ;}
 ## functions: commands ::
 # TODO: make these all scripts?
 ascii() {
-    is_bin iconv || error 'missing dep: iconv'
+    is_bin iconv || { msg_error 'missing dep: iconv'; return 3 ;}
     cat "${1:-/dev/stdin}" | iconv -f utf-8 -t ascii//TRANSLIT
 }
 
@@ -205,21 +207,21 @@ bak() (
 )
 
 calc() {
-    is_bin bc || error 'missing dep: bc'
+    is_bin bc || { msg_error 'missing dep: bc'; return 3 ;}
     printf 'scale=3;%s\n' "$*" | bc -l
 }
 
 cdtt() {
-    dir_tmp="$(mktemp -d "$TMPDIR/tmp.XXX.d")"
+    dir_tmp="$(mktemp -d "$TMPDIR/tmp_XXX")"
     [ -n "$1" ] && cp -r "$@" "$dir_tmp"
     cd "$dir_tmp"
     unset dir_tmp
 }
 
-error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2; return 2 ;}
+msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
 
 gpgreset() {
-    is_bin gpgconf || error 'missing dep: gpgconf'
+    is_bin gpgconf || { msg_error 'missing dep: gpgconf'; return 3 ;}
     gpgconf --kill gpg-agent
 }
 
@@ -230,30 +232,40 @@ pkgbuild() {
 }
 
 pythonpath() {
-    is_bin python || error 'python not found'
+    is_bin python || { msg_error 'python not found'; return 3 ;}
     python -c 'import sys; print(sys.path)'
 }
 
+rwords() {
+    _i=0 _j=0 _len="${1:-72}" _rand= _text=
+    expr "$_len" : '[1-9][0-9]*' >/dev/null 2>&1 || { msg_error "invalid length: $_len"; return 3 ;}
+    _rand="$(tr -cd 'a-z' </dev/random | head -c "$_len")"
+    [ $_len -lt 9 ] && { printf '%s\n' "$_rand"; return ;}
+    while [ $_i -lt $_len ]; do _j=$(($RANDOM%7+2)) _text+="${_rand:_i:_j} " _i=$((_i+_j)); done
+    printf '%s\n' "${_text:0:_len}"
+    unset _i _j _len _rand _text
+}
+
 screenshot() {
-    png_screen="/tmp/screen_$(date +'%F_%H-%M-%S').png"
+    _png="/tmp/screen_$(date +'%F_%H-%M-%S').png"
     if [ -n "$DISPLAY" ]; then
-        is_bin import || error 'missing dep: import'
-        import -window root "$png_screen" && printf '%s\n' "$png_screen"
+        is_bin import || { msg_error 'missing dep: import'; return 3 ;}
+        import -window root "$_png" && printf '%s\n' "$_png"
     else
-        is_bin fbgrab || error 'missing dep: fbgrab'
-        groups | grep -qw 'video' || error 'not in group: video'
-        fbgrab "$png_screen" >/dev/null 2>&1 && printf '%s\n' "$png_screen"
+        is_bin fbgrab || { msg_error 'missing dep: fbgrab'; return 3 ;}
+        groups | grep -qw 'video' || { msg_error 'not in group: video'; return 3 ;}
+        fbgrab "$_png" >/dev/null 2>&1 && printf '%s\n' "$_png"
     fi
-    unset png_screen
+    unset _png
 }
 
 tb() {
-    is_bin nc || error 'missing dep: nc'
-    url_tb="$(cat "${1:-/dev/stdin}" | nc termbin.com 9999 | tr -d '\0')"
-    [ -z "$url_tb" ] && error 'connection error'
-    printf '%s\n' "$url_tb"
-    [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$url_tb" | xclip
-    unset url_tb
+    is_bin nc || { msg_error 'missing dep: nc'; return 3 ;}
+    _url="$(cat "${1:-/dev/stdin}" | nc termbin.com 9999 | tr -d '\0')"
+    [ -z "$_url" ] && { msg_error 'connection error'; return 3 ;}
+    printf '%s\n' "$_url"
+    [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$_url" | xclip
+    unset _url
 }
 
 tempcp() {
@@ -273,10 +285,18 @@ termset() {
     fi
 }
 
+thesaurus() {
+    _dict="$ULIB/dict/mthesaur.txt"
+    [ -f "$_dict" ] || { msg_error "thesaurus not found: $_dict" && return 3 ;}
+    (($#)) || { unset _dict; return ;}
+    grep "^$1," "$_dict" | sed 's/,/\n/g' | column
+    unset _dict
+}
+
 titleset() { [ -n "$1" ] && printf '\033]0;%s\007' "$*" ;}
 
 uvim() {
-    is_bin vim || error 'missing dep: vim'
+    is_bin vim || { msg_error 'missing dep: vim'; return 3 ;}
     if [ -f "$UDIR/.user/.vim/.uvim" ]; then
         vim -c "source $UDIR/.user/.vim/.uvim" "$@"
     else
@@ -284,18 +304,21 @@ uvim() {
     fi
 }
 
-usudo() { is_bin sudo || error 'missing dep: sudo'; command sudo -E env "PATH=$PATH" "$@" ;}
+usudo() {
+    is_bin sudo || { msg_error 'missing dep: sudo'; return 3 ;}
+    command sudo -E env "PATH=$PATH" "$@"
+}
 
 xclip() {
-    is_bin xclip || error 'missing dep: xclip'
-    [ -z "$DISPLAY" ] && error 'no display'
+    is_bin xclip || { msg_error 'missing dep: xclip'; return 3 ;}
+    [ -z "$DISPLAY" ] && { msg_error 'no display'; return 3 ;}
     command xclip -sel clipboard "$@"
 }
 xput() { xclip -o ;}
 xyank() { xclip ;}
 
 xreload() {
-    [ -z "$DISPLAY" ] && error 'no display'
+    [ -z "$DISPLAY" ] && { msg_error 'no display'; return 3 ;}
     [ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
 }
 

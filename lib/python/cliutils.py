@@ -114,7 +114,7 @@ def run_cmd(cmd: list) -> str:
         Message().error(f'command failed: {cmd}')
     except FileNotFoundError:
         Message().error(f'command not found: {cmd[0]}')
-    except:  # pylint: disable=W0702
+    except: # pylint: disable=W0702
         Message().error(f'command error: {cmd}')
     return None
 

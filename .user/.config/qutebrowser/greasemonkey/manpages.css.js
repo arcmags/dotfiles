@@ -8,36 +8,36 @@
 
 GM_addStyle(`
     * {
-        background: var(--color-bg) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-fg) !important;
         font-family: Hack, Hack-Regular, monospace !important;
-        font-size: var(--font-size) !important;
+        font-size: var(--user-font-size) !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         padding: 0 !important;
         margin-top: 2ch !important;
         margin-bottom: 0 !important;
     }
 
     a {
-        color: var(--color-link) !important ;
-        background: var(--color-bg) !important;
+        color: var(--user-color-link) !important ;
+        background: var(--user-color-bg) !important;
         text-decoration: none !important;
     }
     a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
         text-decoration: none !important;
     }
 
     b {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         font-weight: normal !important;
     }
 
     i {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
         font-style: normal !important;
     }
 
@@ -45,15 +45,15 @@ GM_addStyle(`
         border: none !important;
         clear: both !important;
         border-bottom: solid !important;
-        border-image: var(--box2-comment) !important;
+        border-image: var(--user-box2-comment) !important;
         border-width: 2ch !important;
-        color: var(--color-comment) !important;
-        border-color: var(--color-comment) !important;
+        color: var(--user-color-comment) !important;
+        border-color: var(--user-color-comment) !important;
         margin-bottom: 0 !important;
     }
 
     input, button, select {
-        border-color: var(--color-comment) !important;
+        border-color: var(--user-color-comment) !important;
         border-style: solid !important;
     }
 

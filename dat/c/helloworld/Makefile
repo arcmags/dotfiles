@@ -1,10 +1,9 @@
-#!makefile
+program = helloworld
 
-helloworld: helloworld.c
-	gcc helloworld.c -o helloworld
+$(program): $(program).c
+	gcc -Wall -o $(program) $(program).c
+	#gcc -Wall -lcurses -o $(program) $(program).c
 
+.PHONY: clean
 clean:
-	rm -f *.o main
-run : $(EXE)
-	./$(EXE)
-new: clean $(EXE)
+	rm -f $(program)

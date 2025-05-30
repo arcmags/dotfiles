@@ -6,12 +6,12 @@ print_help() { cat <<'HELPDOC'
 Usage:
   img-upscale [option...] <image...>
 
-Upscale and/or sharpen images with waifu2x.
+Upscale and/or sharpen image.
 
 Options:
   -m, --model <model>   upscale model (a/anime/c/cunet/p/photo, default: cunet)
   -n, --noise <level>   denoise level (-1/0/1/2/3, default=0)
-  -q, --quality <level> jpg quality level (0-100, default=92)
+  -q, --quality <level> jpg quality level (0-100, default=90)
   -s, --scale <level>   upscale level (1/2/4/8/16/32, default=2)
   -J, --jpg             output to jpg file
   -L, --list            print machine readable list of upscaled images to stdout
@@ -19,7 +19,7 @@ Options:
   -M, --nocolor         disable colored output
   -Q, --quiet           print nothing to stdout
   -V, --verbose         print more verbose information
-  -H, -h, --help        print help and exit
+  -H, --help            print help and exit
 
 Environment:
   NO_COLOR      disable colored output
@@ -27,22 +27,22 @@ Environment:
   VERBOSE       run verbosely
 HELPDOC
 exit "${1:-0}" ;}
-[[ $1 =~ ^(-H|-h|--help)$ ]] && print_help
+[[ $1 =~ ^(-H|--help)$ ]] && print_help
 
 ## settings ::
 debug=0 dryrun=0 list=0 nocolor=0 quiet=0 verbose=0
 bin_waifu2x='waifu2x-ncnn-vulkan'
 dir_models="/usr/share/$bin_waifu2x"
-model=cunet noise=0 quality=92 scale=2 type=
+model=cunet noise=0 quality=90 scale=2 type=
 
 ## internal functions/variables ::
 readonly -a args=("$@"); args_options=() args_positionals=()
-readonly -a deps=("$bin_waifu2x" identify magick)
+readonly -a deps=("$bin_waifu2x" exiftool identify magick)
 readonly -a opts=( -m: --model: -n: --noise: -o: --output: -q: --quality:
     -s: --scale: -L --list -J --jpg -P --png
-    -H -h --help -M --nocolor -Q --quiet -V --verbose)
-cmd_cp=() arg_model="$dir_models/models-cunet"
-imgs=() imgs_err=() imgs_tmp=() img_out=
+    -H --help -M --nocolor -Q --quiet -V --verbose)
+cmd=() imgs=() imgs_err=() imgs_tmp=()
+arg_model="$dir_models/models-cunet" img_out=
 
 # colors:
 black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
@@ -67,7 +67,7 @@ msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
 
 # utils:
 check_deps() {
-    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    local _dep= _deps=("${deps[@]}") _errs=(); [[ -n $1 ]] && _deps=("$@")
     for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
     ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
     return ${#_errs[@]}
@@ -151,7 +151,7 @@ while [[ -n $1 ]]; do case "$1" in
     -Q|--quiet) quiet=1 verbose=0 ;;
     -V|--verbose) quiet=0; ((verbose++)) ;;
     -M|--nocolor) clear_colors ;;
-    -h|-H|--help) print_help ;;
+    -H|--help) print_help ;;
 esac; shift; done
 
 # check for errors:
@@ -187,7 +187,7 @@ for img in "${imgs[@]}"; do
     ext="${path_ext,,}"
     [[ -n $type ]] && ext=".${type,,}"
     [[ -z $ext || $ext == .jpeg ]] && ext='.jpg'
-    img_out="${path_dir}${path_name}_u$scale${model:0:1}$noise$ext"
+    img_out="${path_dir}${path_name}_u$scale${model:0:1}${noise}$ext"
     ((quiet)) || msg "$img $bold$blue->$off$white $img_out"
 
     # convert input image to png if it's not a jpg, png, or webp:
@@ -202,16 +202,16 @@ for img in "${imgs[@]}"; do
     # upscale image:
     img_tmp="$(mktemp --tmpdir XXX.png)"
     imgs_tmp+=("$img_tmp")
-    cmd_waifu2x=("$bin_waifu2x" -m "$arg_model" -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}")
+    cmd=("$bin_waifu2x" -m "$arg_model" -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}")
     if ((verbose)); then
-        msg_cmd "${cmd_waifu2x[@]}"
+        msg_cmd "${cmd[@]}"
         if [[ $verbose -gt 1 ]]; then
-            "${cmd_waifu2x[@]}"
+            "${cmd[@]}"
         else
-            "${cmd_waifu2x[@]}" &>/dev/null
+            "${cmd[@]}" &>/dev/null
         fi
     else
-        "${cmd_waifu2x[@]}" &>/dev/null
+        "${cmd[@]}" &>/dev/null
     fi
 
     if (($?)); then
@@ -219,10 +219,14 @@ for img in "${imgs[@]}"; do
         msg_error "waifu2x error: $img"
     else
         # convert/copy upscaled image:
-        cmd_cp=(cp "$img_tmp" "$img_out")
-        [[ $ext == .png ]] || cmd_cp=(magick "$img_tmp" "$img_out")
-        ((verbose)) && msg_cmd "${cmd_cp[@]}"
-        "${cmd_cp[@]}"
+        cmd=(cp "$img_tmp" "$img_out")
+        [[ $ext == .png ]] || cmd=(magick "$img_tmp" -quality "$quality" "$img_out")
+        ((verbose)) && msg_cmd "${cmd[@]}"
+        "${cmd[@]}"
+        # clear metadata:
+        cmd=(exiftool -quiet -overwrite_original -all= "$img_out")
+        ((verbose)) && msg_cmd "${cmd[@]}"
+        "${cmd[@]}"
         ((list)) && printf '%s\n' "$img_out"
     fi
 

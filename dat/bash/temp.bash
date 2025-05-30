@@ -42,7 +42,8 @@ formats=("S:$path_script" "s:$script")
 list=()
 unset option
 
-# colors:
+# colors, control sequences:
+readonly clear_line=$'\e[2K'
 black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
 grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
 white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
@@ -56,6 +57,7 @@ bin_printf() { printf "$@" ;}
 [[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
 msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
 msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg2_warn() { printf "$bold${yellow} > $off$white%s$off\n" "$*" >&2 ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
 msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
@@ -72,7 +74,7 @@ check_deps() {
     # Usage:
     #   deps=(cmd1 cmd2 cmd3)
     #   check_deps || exit
-    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    local _dep= _deps=("${deps[@]}") _errs=(); (($#)) && _deps=("$@")
     for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
     ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
     return ${#_errs[@]}
@@ -85,6 +87,7 @@ is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
 parse_args() {
     # Parse command line options, separate options, return 3 if error.
     # Input:
+    #   $1 -- if set to nobreak, keep unrecognized args as is in args_options
     #   args -- array of command line arguments
     #   opts -- array of valid options; options with colon require arguments
     # Output:
@@ -95,9 +98,10 @@ parse_args() {
     #   parse_args || exit
     #   set -- "${args_options[@]}"
     #   while [[ -n $1 ]]; do case "$1" in ... esac; shift; done
-    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}"
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}" _nobreak=0
     local -a _lflgs=() _lopts=()
     args_options=() args_positionals=()
+    [[ $1 == nobreak ]] && _nobreak=1
     _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
     _eoptarg() { msg_error "option requires an argument: $_arg" ;}
     _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
@@ -123,9 +127,10 @@ parse_args() {
             elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
                 [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
                 args_options+=("$_arg" "${args[((++_a))]}")
+            elif ((_nobreak)); then args_options+=("$_arg")
             else break; fi ;;
     esac; _arg="${args[((++_a))]}"; done
-    args_positionals=("${args[@]:_a}")
+    args_positionals+=("${args[@]:_a}")
 }
 
 parse_arr() {
@@ -160,7 +165,7 @@ parse_path() {
     # Usage:
     #   path='dir1/dir2/file.ext'
     #   parse_path; printf "${path_name} + ${path_ext}\n"
-    local _path="$path"; [[ -n $1 ]] && _path="$1"
+    local _path="${1:$path}"
     path_basename="$_path" path_dir= path_ext=
     [[ ${path_basename: -1} == / ]] && path_basename="${path_basename:0:-1}"
     if [[ $path_basename =~ / ]]; then
@@ -207,8 +212,7 @@ print_vars() {
     #   vars -- array of variable names (used if $@ is empty)
     # Usage:
     #   print_vars xval yval
-    local _txt= _val= _var= _vars=("${vars[@]}")
-    [[ -n $1 ]] && _vars=("$@")
+    local _txt= _val= _var= _vars=("${vars[@]}"); [[ -n $1 ]] && _vars=("$@")
     for _var in "${_vars[@]}"; do
         printf "   $bold$blue$_var$white:$off "
         declare -n "_val=$_var"
@@ -236,8 +240,7 @@ sub_text() {
     #   sub_text || exit
     #   printf "$text_subbed\n"
     # TODO: printf style padding options?
-    local _found=0 _i=0 _repl= _sub= _text="$text"
-    [[ -n $1 ]] && _text="$1"
+    local _found=0 _i=0 _repl= _sub= _text="${1:$text}"
     text_subbed=
     for _sub in "${subs[@]}"; do
         [[ ${_sub:1:1} == : ]] || { msg_error "invalid sub: $_sub"; return 3 ;}
@@ -253,7 +256,7 @@ sub_text() {
                     if [[ ${text:_i:1} == ${_sub:0:1} ]]; then
                         _repl="${_sub:2}"; ((_found++))
                 fi; done
-                if ! ((_found)); then
+                if ((!_found)); then
                     msg_error "invalid format character: ${text:_i:1}"
                     return 3
                 fi
@@ -304,5 +307,8 @@ check_deps || exit
 #if [[ -z ${option+x} ]]; then
     #read -erp "$green$bold> $off${white}option: $off" option
 #fi
+
+parse_path 'asdf/ddd/tuhj.png'
+print_vars path_basename path_dir path_ext path_name
 
 # vim:ft=bash

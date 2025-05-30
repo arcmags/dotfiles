@@ -75,7 +75,7 @@ msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
 
 # utils:
 check_deps() {
-    local _dep= _errs=() _deps=("${deps[@]}"); [[ -n $1 ]] && _deps=("$@")
+    local _dep= _deps=("${deps[@]}") _errs=(); [[ -n $1 ]] && _deps=("$@")
     for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
     ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
     return ${#_errs[@]}

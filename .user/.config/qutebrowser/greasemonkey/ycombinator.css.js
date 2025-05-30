@@ -6,9 +6,9 @@
 /* ~/.config/qutebrowser/greasemonkey/ycominator.css.js :: */
 
 var style = getComputedStyle(document.body)
-var colorBg = style.getPropertyValue('--color-bg')
-var colorBg1 = style.getPropertyValue('--color-bg1')
-var colorBar = style.getPropertyValue('--color-bar')
+var colorBg = style.getPropertyValue('--user-color-bg')
+var colorBg1 = style.getPropertyValue('--user-color-bg1')
+var colorBar = style.getPropertyValue('--user-color-bar')
 
 var hnmain = document.getElementById('hnmain');
 hnmain.style.background = colorBg1;
@@ -37,38 +37,38 @@ GM_addStyle(`
     }
 
     body, input, textarea {
-        background: var(--color-bg) !important;
+        background: var(--user-color-bg) !important;
     }
     body {
-        color: var(--color-fg) !important;
+        color: var(--user-color-fg) !important;
     }
     input, textarea {
-        color: var(--color-bar) !important;
-        border-color: var(--color-bar) !important;
+        color: var(--user-color-bar) !important;
+        border-color: var(--user-color-bar) !important;
         border-style: solid !important;
     }
 
     input[type='submit'] {
-        background: var(--color-bar) !important;
-        border-color: var(--color-bg) !important;
-        color: var(--color-heading) !important;
+        background: var(--user-color-bar) !important;
+        border-color: var(--user-color-bg) !important;
+        color: var(--user-color-heading) !important;
     }
     input[type='submit']:hover {
-        background: var(--color-bg1) !important;
-        border-color: var(--color-bar) !important;
+        background: var(--user-color-bg1) !important;
+        border-color: var(--user-color-bar) !important;
         border-style: solid !important;
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 
     a, .pagetop a:visited, .yclinks a:visited,
     a[href='https://www.ycombinator.com/apply/']:visited {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
     }
     a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
     a:hover, .pagetop a:hover, .yclinks a:hover,
     a[href='https://www.ycombinator.com/apply/']:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 `);

@@ -1,28 +1,40 @@
 ## ~/.config/text-gen.yml ::
 
-src: <you rule>.
+src: [<src-1>, <src-2>]
 
 ## sentences ::
-you rule: [<you are> <the shit>, <you are> <killing it>, <you kick ass>]
+src-1: <this program> <quickly> <creates> <random> <phrases>.
+src-2: <it's> <certainly> not <any form of> <AI>.
 
 ## phrases ::
-the shit: [awesome, <totally> awesome, the shit]
-killing it: [killing it, <absolutely> killing it]
-you kick ass: [<you are> kicking <ass>, you kick <ass>]
+AI: [[AI, artificial intelligence, thinking machine], [2,1,1]]
+any form of: [an actual, any <form of>]
+form of: [form of, type of, sort of]
+this program: [text-gen, this <program>]
 
 ## conjunctions ::
-wanna: [[wanna, want to], [3,1]]
-want to: [[wanna, want to], [1,3]]
-you're: [[you're, you are], [3,1]]
-you are: [[you're, you are], [1,3]]
+it's: [[it's, it is], [3,1]]
+it is: [[it's, it is], [1,3]]
 
 ## nouns ::
-ass: [[ass, butt], [3,1]]
+program: [program, software]
+phrases: [phrases, sentences]
 
 ## adjectives ::
-totally: [[absolutely, totally], [1,5]]
-absolutely: [[absolutely, totally, utterly], [4,1,2]]
+definately: [[absolutely, certainly, definately], [1,1,2]]
+random: [[arbitrary, random], [1,2]]
 
 ## verbs ::
+creates: [creates, generates, makes]
 
 ## adverbs ::
+quickly: [[instantly, quickly, swiftly], [2,3,1]]
+
+# TODO: deal with these incorrect values:
+#src: string
+#src: [[double, deep, list]]
+#src: [[double, list], [one, two]]
+#src: [[count, mismatch], [1,1,1]]
+#src: [totally, [fucked], [1,1,1]]
+#src: [1,2,4]
+#src: [[1,2,4], [6,3,1]]

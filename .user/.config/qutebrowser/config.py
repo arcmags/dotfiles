@@ -34,7 +34,6 @@ subprocess.run(['mkdir', '-p', dir_dl])
 config.load_autoconfig(False)
 
 ## fonts ::
-# I like Hack, but for some reason bold doesn't work in qutebrowser. May have to use something else.
 c.fonts.default_family = [ 'Hack', 'monospace' ]
 c.fonts.default_size = '14px'
 c.fonts.hints = 'bold 12px default_family'
@@ -189,7 +188,7 @@ c.colors.webpage.darkmode.threshold.foreground = 128
 c.colors.webpage.preferred_color_scheme = 'dark'
 
 # darkmode exceptions:
-for domain in ['mossberg.com', 'smith-wesson.com']:
+for domain in ['cz-usa.com', 'mossberg.com', 'ruger.com', 'smith-wesson.com']:
     with config.pattern('*://*.' + domain + '/*') as d:
         d.colors.webpage.darkmode.enabled = False
 
@@ -367,7 +366,7 @@ c.tabs.undo_stack_size = 24
 
 ## url ::
 c.url.auto_search = 'naive'
-c.url.default_page = 'file:///home/mags/user/www/links/index.html'
+c.url.default_page = 'file:///home/mags/user/www/mags.zone/links/index.html'
 c.url.open_base_url = True
 c.url.searchengines = {
     'DEFAULT': 'https://google.com/search?q={}',

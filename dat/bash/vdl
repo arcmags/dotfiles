@@ -1,0 +1,105 @@
+#!/bin/bash
+## vdl ::
+
+[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+print_help() { cat <<'HELPDOC'
+Usage:
+  vdl [url...]
+
+yt-dlp wrapper script.
+HELPDOC
+exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
+
+## settings ::
+debug=0 nocolor=0
+dir_vdl="$ADIR/vid/vdl"
+vdl_err="$dir_vdl/vdl.err" vdl_log="$dir_vdl/vdl.log" vdl_txt="$dir_vdl/vdl.txt"
+
+## internal functions/variables ::
+readonly -a deps=(yt-dlp)
+args=("$@") urls=() urls_log=()
+
+# colors, control sequences:
+readonly clear_line=$'\e[2K'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
+grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+clear_colors() {
+    export NO_COLOR=1 nocolor=1
+    unset black blue cyan green grey magenta orange red white yellow bold off
+}
+
+# messages:
+bin_printf() { printf "$@" ;}
+[[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
+msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
+msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg2_warn() { printf "$bold${yellow} > $off$white%s$off\n" "$*" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
+msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
+msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
+msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
+
+# utils:
+check_deps() {
+    local _dep= _deps=("${deps[@]}") _errs=(); (($#)) && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
+}
+check_internet() { ping -q -c1 -W2 google.com &>/dev/null ;}
+is_cmd() { command -v "$1" &>/dev/null ;}
+is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
+
+# error, exit, trap:
+error() { msg_error "$*"; exit 3 ;}
+trap_exit() { ((debug)) && msg_warn '[exit]' ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
+
+## main ::
+trap trap_int INT
+trap trap_exit EXIT
+
+# set from env:
+[[ -n $DEBUG ]] && debug=1
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
+
+# check for errors:
+check_deps || exit
+check_internet || error 'no internet connection'
+[[ -z $ADIR ]] && error 'ADIR unset'
+[[ ! -d $ADIR ]] && error "not directory: $ADIR"
+
+# source vdl_log and vdl_txt:
+[[ -f $vdl_log ]] && urls_log=($(<"$vdl_log"))
+[[ -f $vdl_txt ]] && args=("$@" $(sed -E '/^\s*(#|$)/d' "$vdl_txt"))
+
+# parse args:
+for arg in "${args[@]}"; do
+    found=0
+    for url in "${urls[@]}"; do [[ $arg == "$url" ]] && { found=1; break ;}; done
+    ((found)) && continue
+    found=0
+    for url in "${urls_log[@]}"; do [[ $arg == "$url" ]] && { found=1; break ;}; done
+    ((found)) && { msg_good "$arg $green[done]"; continue ;}
+    urls+=("$arg")
+done
+
+# process urls:
+mkdir -p "$dir_vdl"
+cd "$dir_vdl"
+for url in "${urls[@]}"; do
+    msg "$url $blue[starting]"
+    if yt-dlp "$url"; then
+        printf '%s\n' "$url" >> "$vdl_log"
+        msg_good "$url $green[done]"
+    else
+        printf '%s\n' "$url" >> "$vdl_err"
+        msg_error "$url $red[errors]"
+    fi
+done
+
+# vim:ft=bash

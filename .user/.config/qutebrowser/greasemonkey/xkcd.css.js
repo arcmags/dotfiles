@@ -10,8 +10,8 @@ content.innerHTML = content.innerHTML.split('<br>')[0] + '<div>\n';
 
 GM_addStyle(`
     body, #middleContainer {
-        background: var(--color-bg) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-fg) !important;
     }
 
     #bottom,
@@ -20,7 +20,7 @@ GM_addStyle(`
     }
 
     ul.comicNav li a {
-        background: var(--color-bar) !important;
+        background: var(--user-color-bar) !important;
         border: none !important;
         box-shadow: none !important;
         -mox-box-shadow: none !important;
@@ -36,9 +36,9 @@ GM_addStyle(`
         transition: none !important;
     }
     a, a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
     a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 `);

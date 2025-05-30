@@ -2,7 +2,7 @@
 
 int main() {
     int i;
-    for(i=0; i < 10; i++) {
+    for(i=0; i < 3; i++) {
         printf("H");
         printf("e");
         printf("l");
@@ -10,4 +10,5 @@ int main() {
         printf("o ");
         printf("World!\n");
     }
+    return(0);
 }

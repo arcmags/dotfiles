@@ -9,12 +9,12 @@
 
 GM_addStyle(`
     body {
-        background: var(--color-bg) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-fg) !important;
     }
     #logo, #menu {
-        background: var(--color-bg1) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg1) !important;
+        color: var(--user-color-fg) !important;
         border: none !important;
     }
 
@@ -23,8 +23,8 @@ GM_addStyle(`
     }
 
     #content {
-        font-family: var(--font-family) !important;
-        font-size: var(--font-size) !important;
+        font-family: var(--user-font-family) !important;
+        font-size: var(--user-font-size) !important;
     }
 
     h1 {
@@ -32,29 +32,29 @@ GM_addStyle(`
     }
 
     h1, h2, h3, h4, h5, h6 {
-        font-size: var(--font-size) !important;
-        color: var(--color-heading) !important;
+        font-size: var(--user-font-size) !important;
+        color: var(--user-color-heading) !important;
         padding: 0 !important;
         margin-top: 2ch !important;
         margin-bottom: 0 !important;
     }
 
     b {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
     }
 
     input {
-        background: var(--color-bg) !important;
-        color: var(--color-code) !important;
-        border-color: 2px solid var(--color-bar) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-code) !important;
+        border-color: 2px solid var(--user-color-bar) !important;
     }
 
     a {
-        color: var(--color-link) !important ;
+        color: var(--user-color-link) !important ;
         text-decoration: none !important;
     }
     a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
         text-decoration: none !important;
     }
     #logo a, #menu a {

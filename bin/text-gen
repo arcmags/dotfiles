@@ -38,6 +38,9 @@ OPTIONS
         Print help.
 """
 
+# TODO: redo the entire thing lol
+# TODO: inline tags?
+
 import argparse
 import os
 import random
@@ -55,12 +58,44 @@ class PhraseDict:
             self.pdict = {
                 'src': ['random <phrase> <generator>'],
                 'phrase': ['phrase', 'sentence'],
-                'generator': [['<builder>', 'generator'], (10, 20)],
-                'builder': [['builder', 'maker'], (20, 10)]
+                'generator': [['<builder>', 'generator'], [10, 20]],
+                'builder': [['builder', 'maker'], [20, 10]]
             }
 
     def add_pdict(self, ndict: dict = None) -> None:
-        self.pdict.update(ndict)
+        # attempt to check/correct bad dictionary values:
+        for key, value in ndict.items():
+            if value is None:
+                msg_warn(f'empty value: {key}')
+                value = [[''], [1]]
+            elif isinstance(value, str):
+                if value == '':
+                    msg_warn(f'empty value: {key}')
+                value = [[value], [1]]
+            elif isinstance(value, list):
+                if len(value) == 0:
+                    msg_warn(f'empty value: {key}')
+                    value = [[''], [1]]
+                elif isinstance(value[0], str):
+                    value = [value, [1] * len(value)]
+                elif isinstance(value[0], list):
+                    if len(value[0]) == 0:
+                        msg_warn(f'empty value: {key}')
+                        value = [[''], [1]]
+                    elif len(value[0]) == 1:
+                        value = [value[0], [1] * len(value[0])]
+                    elif isinstance(value[1], list):
+                        if len(value[0]) != len(value[1]):
+                            msg_warn(f'weights mismatch: {key}')
+                            value = [value[0], [1] * len(value[0])]
+            if len(value) != 2:
+                msg_warn(f'invalid value: {key}')
+            elif not isinstance(value[0], list) or not isinstance(value[1], list):
+                msg_warn(f'invalid value: {key}')
+            elif any(not isinstance(val, str) for val in value[0]):
+                msg_warn(f'invalid value: {key}')
+            else:
+                self.pdict[key] = value
 
     def clear_pdict(self) -> None:
         self.pdict = {}
@@ -140,7 +175,10 @@ def capitalize(text) -> str:
     r = re.split(r'([.!?] *)', text)
     if len(r) > 1:
         text = re.sub(r' +([.!?])', r'\1', ''.join([i[:1].upper() + i[1:] for i in r]))
+    # TODO: options for these...
+    text = re.sub(r'  +', r' ', text)
     text = re.sub(r' +,', r',', text)
+    text = re.sub(r'a ([aeiouAEIOU])', r'an \g<1>', text)
     return text
 
 def error(msg='') -> None:

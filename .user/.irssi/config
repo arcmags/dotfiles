@@ -36,15 +36,15 @@ servers = (
     tls_verify = "no";
     tls_cert = "~/.irssi/certs/libera.pem";
     autoconnect = "no";
-  },
-  {
-    address = "localhost";
-    chatnet = "Discord";
-    port = "6667";
-    use_tls = "no";
-    tls_verify = "no";
-    autoconnect = "yes";
   }
+  #{
+    #address = "localhost";
+    #chatnet = "Discord";
+    #port = "6667";
+    #use_tls = "no";
+    #tls_verify = "no";
+    #autoconnect = "yes";
+  #}
 );
 
 chatnets = {

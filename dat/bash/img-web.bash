@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ## img-web.bash ::
 # Generate thumbnails and web-sized images from input arguments.
 
@@ -45,29 +44,29 @@ for img in "$@"; do
         cp "$img" "$img_web"
     else
         if [ "$img_w" -ge "$img_h" ]; then
-            convert "$img" -resize "${web_s_max}x" -quality $web_q_max "$img_web"
+            magick "$img" -resize "${web_s_max}x" -quality $web_q_max "$img_web"
         else
-            convert "$img" -resize "x${web_s_max}" -quality $web_q_max "$img_web"
+            magick "$img" -resize "x${web_s_max}" -quality $web_q_max "$img_web"
         fi
     fi
-    convert "$img" -resize "${thumb_w}x" -quality 75 "$img_thumb"
+    magick "$img" -resize "${thumb_w}x" -quality 75 "$img_thumb"
     thumb_w_tmp="$(identify -format '%w %h' "$img_thumb")"
     thumb_h_tmp="${thumb_w_tmp#* }"
     thumb_w_tmp="${thumb_w_tmp% *}"
     if [ $thumb_h_tmp -lt $thumb_h ]; then
-        convert "$img" -resize "x${thumb_h}" -quality 75 "$img_thumb"
+        magick "$img" -resize "x${thumb_h}" -quality 75 "$img_thumb"
         thumb_w_tmp="$(identify -format '%w %h' "$img_thumb")"
         thumb_h_tmp="${thumb_w_tmp#* }"
         thumb_w_tmp="${thumb_w_tmp% *}"
-        convert "$img" -resize "x${thumb_h}" \
+        magick "$img" -resize "x${thumb_h}" \
             -crop "${thumb_w}x${thumb_h}+$(((thumb_w_tmp - thumb_w)/2))+0" \
             -quality 75 "$img_thumb"
     elif [ $thumb_h_tmp -gt $thumb_h ]; then
-        convert "$img" -resize "${thumb_w}x" -quality 75 "$img_thumb"
+        magick "$img" -resize "${thumb_w}x" -quality 75 "$img_thumb"
         thumb_w_tmp="$(identify -format '%w %h' "$img_thumb")"
         thumb_h_tmp="${thumb_w_tmp#* }"
         thumb_w_tmp="${thumb_w_tmp% *}"
-        convert "$img" -resize "${thumb_w}x" \
+        magick "$img" -resize "${thumb_w}x" \
             -crop "${thumb_w}x${thumb_h}+0+$(((thumb_h_tmp - thumb_h)/3))" \
             -quality 75 "$img_thumb"
     fi

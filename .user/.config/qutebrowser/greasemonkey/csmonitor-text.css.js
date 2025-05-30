@@ -7,12 +7,12 @@
 
 GM_addStyle(`
     body, footer {
-        background: var(--color-bg) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-fg) !important;
     }
 
     div[data-field='summary'] {
-        color: var(--color-fg) !important;
+        color: var(--user-color-fg) !important;
     }
 
     u {
@@ -26,14 +26,14 @@ GM_addStyle(`
     }
 
     a, footer a:visited, .top-navigation a:visited, a:visited.navbar-brand {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         text-decoration: none !important;
     }
     a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
     a:hover, footer a:hover, .top-navigation a:hover, a:hover.navbar-brand {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 
     span[data-view='kicker'], h2 + small, .underlined,

@@ -14,8 +14,8 @@ for (let i = 0; i < hrs.length; i++) {
 
 GM_addStyle(`
     body {
-        background: var(--color-bg) !important;
-        color: var(--color-fg) !important;
+        background: var(--user-color-bg) !important;
+        color: var(--user-color-fg) !important;
     }
 
     ul, li, table {
@@ -24,23 +24,23 @@ GM_addStyle(`
     }
 
     hr {
-        border-top: 2px solid var(--color-bar) !important;
-        color: var(--color-bar) !important;
+        border-top: 2px solid var(--user-color-bar) !important;
+        color: var(--user-color-bar) !important;
     }
 
     a {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         text-decoration: none !important;
     }
     a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
     a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
-        color: var(--color-code) !important;
+        color: var(--user-color-code) !important;
         background: unset !important;
     }
 

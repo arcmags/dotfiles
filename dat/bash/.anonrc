@@ -35,11 +35,23 @@ export PS1='\[\e[1;38;5;13m\]$(apwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 ## aliases ::
 cda() { cd "$ADIR"; }
 
-is_bin text-gen && [ -f "$ADIR/.config/text-gen.yml" ] &&
-    text-gen() { command text-gen -f "$ADIR/.config/text-gen.yml" "$@"; }
+text-gen() {
+    if [[ -f "$ADIR/.config/text-gen.yml" ]]; then
+        command text-gen -f "$ADIR/.config/text-gen.yml" "$@"
+    else
+        command text-gen "$@"
+    fi
+}
 
 ## commands ::
 anon-reload() { source "$ADIR/.anonrc"; }
-anon-update() { cp "$UDIR/dat/bash/.anonrc" "$ADIR" && source "$ADIR/.anonrc"; }
+anon-update() {
+    cd "$ADIR"
+    mkdir -p "$ADIR/bin" "$ADIR/img" "$ADIR/.config"
+    cp "$UDIR/dat/bash/.anonrc" "$ADIR"
+    cp "$UDIR/dat/bash/gdl" "$UDIR/dat/bash/vdl" "$ADIR/bin"
+    [[ -f "$ADIR/.config/text-gen.yml" ]] || cp "$UDIR/.user/.config/text-gen.yml" "$ADIR/.config"
+    source "$ADIR/.anonrc"
+}
 
 # vim:ft=bash

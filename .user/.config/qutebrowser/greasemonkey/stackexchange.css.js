@@ -13,29 +13,29 @@
 
 GM_addStyle(`
     html,  body, .s-sidebarwidget {
-        background: var(--color-bg) !important;
+        background: var(--user-color-bg) !important;
     }
     #content, header {
-        background: var(--color-bg1) !important;
-        border: 2px solid var(--color-bar) !important;
+        background: var(--user-color-bg1) !important;
+        border: 2px solid var(--user-color-bar) !important;
     }
-    .s-sidebarwidget--header {
-        background: var(--color-bg1) !important;
+    .s-sidebarwidget--user-header {
+        background: var(--user-color-bg1) !important;
     }
     .s-btn {
         background: none !important;
     }
 
     a {
-        color: var(--color-heading) !important;
+        color: var(--user-color-heading) !important;
         text-decoration: none !important;
         transition: none !important;
     }
     a:visited {
-        color: var(--color-link) !important;
+        color: var(--user-color-link) !important;
     }
     a:hover {
-        color: var(--color-active) !important;
+        color: var(--user-color-active) !important;
     }
 
     .js-overflowai-cta {
