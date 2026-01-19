@@ -49,65 +49,65 @@
 
 " highlight group ctermfg=foreground_color ctermbg=background_color cterm=attrs
 
-highlight clear
+hi clear
 
-highlight Win ctermfg=7 ctermbg=0 cterm=none
+hi Win ctermfg=7 ctermbg=0 cterm=none
 
-highlight Border ctermfg=15 ctermbg=4 cterm=none
-highlight TopLine ctermfg=7 ctermbg=4 cterm=none
-highlight TopLineSel ctermfg=10 ctermbg=4 cterm=bold
-highlight StatusLine ctermfg=7 ctermbg=5 cterm=none
-highlight WildMenu ctermfg=10 ctermbg=4 cterm=none
+hi Border ctermfg=15 ctermbg=4 cterm=none
+hi TopLine ctermfg=7 ctermbg=4 cterm=none
+hi TopLineSel ctermfg=10 ctermbg=4 cterm=bold
+hi StatusLine ctermfg=7 ctermbg=5 cterm=none
+hi WildMenu ctermfg=10 ctermbg=4 cterm=none
 
-highlight TabLine ctermfg=7 ctermbg=4 cterm=none
-highlight TabLineSel ctermfg=10 ctermbg=4 cterm=bold
+hi TabLine ctermfg=7 ctermbg=4 cterm=none
+hi TabLineSel ctermfg=10 ctermbg=4 cterm=bold
 
-highlight LineNr ctermfg=5 ctermbg=default
+hi LineNr ctermfg=5 ctermbg=default
 
-highlight CurrLine ctermfg=default ctermbg=5 cterm=combine
+hi CurrLine ctermfg=default ctermbg=5 cterm=combine
 
-highlight CmdLine ctermfg=7 ctermbg=0 cterm=none
+hi CmdLine ctermfg=7 ctermbg=0 cterm=none
 
-highlight Directory ctermfg=12 ctermbg=default cterm=bold
+hi Directory ctermfg=12 ctermbg=default cterm=bold
 
-highlight Link ctermfg=14 ctermbg=default cterm=none
+hi Link ctermfg=14 ctermbg=default cterm=none
 
-highlight BrokenLink ctermfg=9 ctermbg=default cterm=none
+hi BrokenLink ctermfg=9 ctermbg=default cterm=none
 
-highlight HardLink ctermfg=14 ctermbg=default cterm=none
+hi HardLink ctermfg=14 ctermbg=default cterm=none
 
-highlight Socket ctermfg=13 ctermbg=default cterm=bold
+hi Socket ctermfg=13 ctermbg=default cterm=bold
 
-highlight Device ctermfg=3 ctermbg=default cterm=none
+hi Device ctermfg=3 ctermbg=default cterm=none
 
-highlight Fifo ctermfg=13 ctermbg=default cterm=bold
+hi Fifo ctermfg=13 ctermbg=default cterm=bold
 
-highlight Executable ctermfg=10 ctermbg=default cterm=none
+hi Executable ctermfg=10 ctermbg=default cterm=none
 
-highlight Selected ctermfg=11 ctermbg=default cterm=bold
+hi Selected ctermfg=11 ctermbg=default cterm=bold
 
-highlight ErrorMsg ctermfg=9 ctermbg=4 cterm=bold
+hi ErrorMsg ctermfg=9 ctermbg=4 cterm=bold
 
-highlight OtherLine ctermfg=default ctermbg=default
-highlight JobLine cterm=bold,reverse ctermfg=black ctermbg=white
-highlight SuggestBox ctermfg=default ctermbg=default cterm=bold
-highlight CmpMismatch ctermfg=white ctermbg=red cterm=bold
-highlight CmpUnmatched ctermfg=white ctermbg=green cterm=bold
-highlight CmpBlank ctermfg=default ctermbg=default
-highlight AuxWin ctermfg=default ctermbg=default
+hi OtherLine ctermfg=default ctermbg=default
+hi JobLine cterm=bold,reverse ctermfg=black ctermbg=white
+hi SuggestBox ctermfg=default ctermbg=default cterm=bold
+hi CmpMismatch ctermfg=white ctermbg=red cterm=bold
+hi CmpUnmatched ctermfg=white ctermbg=green cterm=bold
+hi CmpBlank ctermfg=default ctermbg=default
+hi AuxWin ctermfg=default ctermbg=default
 
 " statusline:
-highlight User1 ctermfg=10 ctermbg=4 cterm=bold
-highlight User2 ctermfg=12 ctermbg=4 cterm=none
-highlight User3 ctermfg=13 ctermbg=4 cterm=none
-highlight User4 ctermfg=11 ctermbg=4 cterm=none
-highlight User5 ctermfg=3 ctermbg=4 cterm=none
-highlight User6 ctermfg=8 ctermbg=4 cterm=bold
+hi User1 ctermfg=10 ctermbg=4 cterm=bold
+hi User2 ctermfg=12 ctermbg=4 cterm=none
+hi User3 ctermfg=13 ctermbg=4 cterm=none
+hi User4 ctermfg=11 ctermbg=4 cterm=none
+hi User5 ctermfg=3 ctermbg=4 cterm=none
+hi User6 ctermfg=8 ctermbg=4 cterm=bold
 
-highlight User7 ctermfg=default ctermbg=default
-highlight User8 ctermfg=default ctermbg=default
-highlight User9 ctermfg=default ctermbg=default
-highlight OtherWin ctermfg=default ctermbg=default
-highlight OddLine ctermfg=default ctermbg=default
+hi User7 ctermfg=default ctermbg=default
+hi User8 ctermfg=default ctermbg=default
+hi User9 ctermfg=default ctermbg=default
+hi OtherWin ctermfg=default ctermbg=default
+hi OddLine ctermfg=default ctermbg=default
 
 " vim:ft=vim

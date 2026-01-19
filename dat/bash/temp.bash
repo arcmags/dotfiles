@@ -15,41 +15,61 @@ Options:
   -M, --nocolor         disable colored output
   -Q, --quiet           print nothing to stdout
   -V, --verbose         print more verbose information
-  -H, --help            print help and exit
+  -v, --version         print version
+  -H, --help            print help
 
 Format:
   %%    a literal %
   %S    script full path
   %s    script basename
 
+Files:
+  $XDG_CONFIG_HOME/temp.yaml, ~/.config/temp.yaml
+    Config file.
+
 Environment:
-  NO_COLOR      disable colored output
-  QUIET         run silently
-  VERBOSE       run verbosely
+  NO_COLOR          disable colored output
+  QUIET             run silently
+  VERBOSE           run verbosely
+  XDG_CONFIG_HOME   config file location
+
+Internal:
+  args              raw unparsed argument array (readonly)
+  args_options
+  args_positionals
 HELPDOC
 exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
 
+# TODO: Internal variable and function descriptions in help file
+
 ## settings ::
 debug=0 nocolor=0 quiet=0 verbose=0
+file_config="${XDG_CONFIG_HOME:-$HOME/.config}/temp.yaml"
 
 ## internal functions/variables ::
 readonly -a args=("$@"); args_options=() args_positionals=()
 readonly -a deps=(curl identify)
-readonly -a opts=(-l: --list: -o: --option: -M --nocolor -Q --quiet -V --verbose -H --help)
+readonly -a opts=(-M --nocolor -Q --quiet -V --verbose -v --version -H --help
+    -l: --list: -o: --option:)
 readonly path_script="$(realpath "$BASH_SOURCE")"
 readonly script="$(basename "$BASH_SOURCE")"
+readonly version=2.0
+tmp_files=()
 formats=("S:$path_script" "s:$script")
 list=()
 unset option
 
 # colors, control sequences:
 readonly clear_line=$'\e[2K'
-black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
-grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
-white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' blue2=$'\e[38;5;4m' cyan=$'\e[38;5;14m'
+cyan2=$'\e[38;5;6m' green=$'\e[38;5;10m' green2=$'\e[38;5;2m' grey=$'\e[38;5;8m'
+magenta=$'\e[38;5;13m' magenta2=$'\e[38;5;5m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+red2=$'\e[38;5;1m' white=$'\e[38;5;15m' white2=$'\e[38;5;7m' yellow=$'\e[38;5;11m'
+bold=$'\e[1m' off=$'\e[0m'
 clear_colors() {
     export NO_COLOR=1 nocolor=1
-    unset black blue cyan green grey magenta orange red white yellow bold off
+    unset black blue blue2 cyan cyan2 green green2 grey magenta magenta2
+    unset orange red red2 white white2 yellow bold off
 }
 
 # messages:
@@ -60,17 +80,33 @@ msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
 msg2_warn() { printf "$bold${yellow} > $off$white%s$off\n" "$*" >&2 ;}
 msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
 msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
-msg_plain() { printf "$off$white  %s$off\n" "$*" ;}
+msg_plain() { printf "$off$white   %s$off\n" "$*" ;}
 msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
-msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
-    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
+msg_cmd() { local _p="$bold$blue:$"; [[ $EUID -eq 0 ]] && _p="$bold$red:#"
+    printf "$_p$off$white $(print_cmd "$@")$off\n" ;}
+msg_debug() { printf "$bold$yellow-- $off$white%s$off\n" "$*" >&2 ;}
+msg_input() { local _txt=''; [[ -n $1 ]] && _txt="$1 "
+    read -erp "$bold$green:$off$white $_txt$off" "${2:-reply}" ;}
+print_cmd() { printf "$1$([[ -n $2 ]] && bin_printf ' %q' "${@:2}")" ;}
 
 # utils:
+cmd() {
+    [[ -z $1 ]] && return
+    ((verbose)) && msg_cmd "$@"
+    "$@"
+}
+
+cmd_null() {
+    [[ -z $1 ]] && return
+    ((verbose)) && msg_cmd "$@"
+    "$@" &>/dev/null
+}
+
 check_deps() {
     # Check dependencies, return number missing (O if no error).
     # Input:
     #   $@ -- list of dependencies
-    #   deps -- array of dependencies (used if $@ is empty)
+    #   $deps -- array of dependencies (used if $@ is empty)
     # Usage:
     #   deps=(cmd1 cmd2 cmd3)
     #   check_deps || exit
@@ -88,11 +124,11 @@ parse_args() {
     # Parse command line options, separate options, return 3 if error.
     # Input:
     #   $1 -- if set to nobreak, keep unrecognized args as is in args_options
-    #   args -- array of command line arguments
-    #   opts -- array of valid options; options with colon require arguments
+    #   $args -- array of command line arguments
+    #   $opts -- array of valid options; options with colon require arguments
     # Output:
-    #   args_options -- array of parsed, separated options and option arguments
-    #   args_positionals -- array of positional arguments
+    #   $args_options -- array of parsed, separated options and option arguments
+    #   $args_positionals -- array of positional arguments
     # Usage:
     #   args=("$@") opts=(-f --foo -b: --bar: --help)
     #   parse_args || exit
@@ -137,9 +173,9 @@ parse_arr() {
     # Parse array, remove dupes, optionally clear array at empty entries.
     # Input:
     #   $1 -- if set to clear, clear array at empty entires
-    #   arr -- array
+    #   $arr -- array
     # Output:
-    #   arr_new -- parsed array
+    #   $arr_new -- parsed array
     # Usage:
     #   arr=(1 2 3 2 4)
     #   parse_arr; printf "${arr_new[*]}"
@@ -156,12 +192,12 @@ parse_path() {
     # Parse path into directory, basename, name, extension.
     # Input:
     #   $1 -- path string to parse
-    #   path -- path string to parse (used if $1 is empty)
+    #   $path -- path string to parse (used if $1 is empty)
     # Output:
-    #   path_basename -- path_name + path_ext
-    #   path_dir -- dir containing path, ends with /, empty if current dir
-    #   path_ext -- path extension
-    #   path_name -- path without directory and/or extension
+    #   $path_basename -- path_name + path_ext
+    #   $path_dir -- dir containing path, ends with /, empty if current dir
+    #   $path_ext -- path extension
+    #   $path_name -- path without directory and/or extension
     # Usage:
     #   path='dir1/dir2/file.ext'
     #   parse_path; printf "${path_name} + ${path_ext}\n"
@@ -180,9 +216,9 @@ parse_path() {
 parse_yaml() {
     # Parse basic single level yaml text, return 3 if error.
     # Input:
-    #   yaml -- yaml text
+    #   $yaml -- yaml text
     # Output:
-    #   yaml_* -- [array variable created for every valid yaml key]
+    #   $yaml_* -- [array variable created for every valid yaml key]
     # Usage:
     #   yaml="$(<conf.yml)"
     #   parse_yaml || exit
@@ -209,7 +245,7 @@ print_vars() {
     # Print variable values (arrays in parentheses, unset values <null>).
     # Input:
     #   $@ -- list of variable names
-    #   vars -- array of variable names (used if $@ is empty)
+    #   $vars -- array of variable names (used if $@ is empty)
     # Usage:
     #   print_vars xval yval
     local _txt= _val= _var= _vars=("${vars[@]}"); [[ -n $1 ]] && _vars=("$@")
@@ -231,10 +267,10 @@ sub_text() {
     # Format text containing %char sequences, return 3 if error.
     # Input:
     #   $1 -- format string
-    #   text -- format string (used if $1 is empty)
-    #   subs -- array of char:replacement pairs
+    #   $text -- format string (used if $1 is empty)
+    #   $subs -- array of char:replacement pairs
     # Output:
-    #   text_subbed -- formatted text
+    #   $text_subbed -- formatted text
     # Usage:
     #   subs=(n:name v:value) text='%n : %v'
     #   sub_text || exit
@@ -266,7 +302,8 @@ sub_text() {
     done
 }
 
-# error, exit, trap:
+# cleanup, error, exit, trap:
+cleanup() { for t in "${tmp_files[@]}"; do [[ -f $t ]] && rm "$t"; done ;}
 error() { msg_error "$*"; exit 3 ;}
 trap_exit() { ((debug)) && msg_warn '[exit]' ;}
 trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
@@ -276,10 +313,10 @@ trap trap_int INT
 trap trap_exit EXIT
 
 # set from env:
-[[ -n $DEBUG ]] && debug=1
 [[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
 [[ -n $QUIET ]] && quiet=1 verbose=0
 [[ -n $VERBOSE ]] && quiet=0 verbose=1
+[[ -n $DEBUG ]] && debug=1 quiet=0 verbose=1
 
 # parse args:
 parse_args || exit
@@ -287,15 +324,27 @@ set -- "${args_options[@]}"
 while [[ -n $1 ]]; do case "$1" in
     -l|--list) shift; list+=("$1") ;;
     -o|--option) shift; option="$1" ;;
+    -M|--nocolor) clear_colors ;;
     -Q|--quiet) quiet=1 verbose=0 ;;
     -V|--verbose) quiet=0 verbose=1 ;;
-    -M|--nocolor) clear_colors ;;
-    -h|-H|--help) print_help ;;
+    -v|--version) printf '%s\n' "$version"; exit 0 ;;
+    -H|--help) print_help ;;
 esac; shift; done
 ((debug)) && print_vars list option quiet
 
-# check for errors:
+# errors:
 check_deps || exit
+[[ -z $file_config ]] && error "config file error"
+[[ -f $file_config ]] || error "$file_config: no such file (config)"
+[[ -r $file_config ]] || error "$file_config: permission denied"
+
+# warnings:
+if ! ((quiet)); then
+    file_config_stat="$(stat -Lc%A "$file_config")"
+    if [[ ! $file_config_stat =~ ^-r[w-]-+$ ]]; then
+        msg_warn "$file_config: improper permissions $file_config_stat "
+    fi
+fi
 
 # example: check var:
 [[ $(declare -p option 2>/dev/null) =~ ^declare\ -a ]] && msg "option is an array"
@@ -308,7 +357,7 @@ check_deps || exit
     #read -erp "$green$bold> $off${white}option: $off" option
 #fi
 
-parse_path 'asdf/ddd/tuhj.png'
-print_vars path_basename path_dir path_ext path_name
+#parse_path 'asdf/ddd/tuhj.png'
+#print_vars path_basename path_dir path_ext path_name
 
 # vim:ft=bash

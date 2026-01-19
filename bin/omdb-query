@@ -1,0 +1,228 @@
+#!/bin/bash
+## omdb-query ::
+
+[[ $0 != ${BASH_SOURCE[0]} ]] && return 0
+print_help() { cat <<'HELPDOC'
+Usage:
+  omdb-query [option...] <query text...>
+
+Query the Open Movie Database API for movie/show metadata.
+
+Options:
+  -J, --json            print raw json
+  -M, --nocolor         disable colored output
+  -V, --verbose         print more verbose information
+  -H, --help            print help and exit
+
+Files:
+  $XDG_CONFIG_HOME/omdb/apikey.txt, ~/.config/omdb/apikey.txt
+    OMDb API key.
+
+Environment:
+  NO_COLOR          disable colored output
+  VERBOSE           run verbosely
+  XDG_CONFIG_HOME   config file location
+HELPDOC
+exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
+
+# TODO: check that all vars are declared at top
+# TODO: redo year input: may don't do if last word in single arg?
+# TODO: api search
+# TODO: every api feature
+# TODO: output format/type options
+# TODO: interactive mode
+# TODO: python version?
+# TODO: download poster option?
+# TODO: save to text/json file option?
+
+## settings ::
+debug=0 nocolor=0 quiet=0 verbose=0
+file_omdbkey="${XDG_CONFIG_HOME:-$HOME/.config}/omdb/apikey.txt"
+url_omdbapi="https://www.omdbapi.com"
+
+## internal functions/variables ::
+readonly -a args=("$@"); args_options=() args_positionals=()
+readonly -a deps=(curl jq yq)
+readonly -a opts=(-J --json -M --nocolor -V --verbose -H --help)
+readonly -a omdb_keys=(Title Year Plot Runtime Rated Genre Director Writer Actors imdbID)
+jq_arr=
+json=
+key_omdb=
+output=
+text=1
+
+# colors, control sequences:
+readonly clear_line=$'\e[2K'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' blue2=$'\e[38;5;4m' cyan=$'\e[38;5;14m'
+cyan2=$'\e[38;5;6m' green=$'\e[38;5;10m' green2=$'\e[38;5;2m' grey=$'\e[38;5;8m'
+magenta=$'\e[38;5;13m' magenta2=$'\e[38;5;5m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+red2=$'\e[38;5;1m' white=$'\e[38;5;15m' white2=$'\e[38;5;7m' yellow=$'\e[38;5;11m'
+bold=$'\e[1m' off=$'\e[0m'
+clear_colors() {
+    export NO_COLOR=1 nocolor=1
+    unset black blue blue2 cyan cyan2 green green2 grey magenta magenta2
+    unset orange red red2 white white2 yellow bold off
+}
+
+# messages:
+bin_printf() { printf "$@" ;}
+[[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
+msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
+msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg2_warn() { printf "$bold${yellow} > $off$white%s$off\n" "$*" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
+msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
+msg_plain() { printf "$off$white   %s$off\n" "$*" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
+msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
+read_reply() { local _txt=''; [[ -n $1 ]] && _txt="$1 "
+    read -erp "$bold$green:$off$white $_txt$off" "${2:-reply}" ;}
+
+# utils:
+check_deps() {
+    local _dep= _deps=("${deps[@]}") _errs=(); (($#)) && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
+}
+check_internet() { ping -q -c1 -W2 google.com &>/dev/null ;}
+is_cmd() { command -v "$1" &>/dev/null ;}
+is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
+
+parse_args() {
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}" _nobreak=0
+    local -a _lflgs=() _lopts=()
+    args_options=() args_positionals=()
+    [[ $1 == nobreak ]] && _nobreak=1
+    _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
+    _eoptarg() { msg_error "option requires an argument: $_arg" ;}
+    _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
+    for _opt in "${opts[@]}"; do case "$_opt" in
+        -?) _sflgs="$_sflgs${_opt:1}" ;;
+        -?:) _sopts="$_sopts${_opt:1:1}" ;;
+        *:) _lopts+=("${_opt:0:-1}") ;;
+        *) _lflgs+=("$_opt") ;;
+    esac; done
+    while [[ -n $_arg ]]; do case "$_arg" in
+        --) ((_a++)); break ;;
+        -[$_sflgs]) args_options+=("$_arg") ;;
+        -[$_sflgs]*) [[ ! $_sflgs$_sopts =~ ${_arg:2:1} ]] && { _eopt; return 3 ;}
+            args_options+=("${_arg:0:2}") _arg="-${_arg:2}"; continue ;;
+        -[$_sopts]) [[ $((${#args[@]}-_a)) -le 1 ]] && { _eoptarg; return 3 ;}
+            args_options+=("$_arg" "${args[((++_a))]}") ;;
+        -[$_sopts]*) args_options+=("${_arg:0:2}" "${_arg:2}") ;;
+        *=*) [[ " ${_lflgs[*]} " =~ " ${_arg%%=*} " ]] && { _eflg; return 3 ;}
+            [[ " ${_lopts[*]} " =~ " ${_arg%%=*} " ]] || break
+            args_options+=("${_arg%%=*}" "${_arg#*=}") ;;
+        *) if [[ " ${_lflgs[*]} " =~ " $_arg " ]]; then
+                args_options+=("$_arg")
+            elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
+                [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
+                args_options+=("$_arg" "${args[((++_a))]}")
+            elif ((_nobreak)); then args_options+=("$_arg")
+            else break; fi ;;
+    esac; _arg="${args[((++_a))]}"; done
+    args_positionals+=("${args[@]:_a}")
+}
+
+# cleanup, error, exit, trap:
+cleanup() { for t in "${tmp_files[@]}"; do [[ -f $t ]] && rm "$t"; done ;}
+error() { msg_error "$*"; exit 3 ;}
+trap_exit() { ((debug)) && msg_warn '[exit]' ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
+
+## main ::
+trap trap_int INT
+trap trap_exit EXIT
+
+# set from env:
+[[ -n $DEBUG ]] && debug=1
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
+[[ -n $VERBOSE ]] && quiet=0 verbose=1
+
+# parse args:
+parse_args || exit
+set -- "${args_options[@]}"
+while [[ -n $1 ]]; do case "$1" in
+    #-o|--option) shift; option="$1" ;;
+    -J|--json) text=0 ;;
+    -V|--verbose) quiet=0 verbose=1 ;;
+    -M|--nocolor) clear_colors ;;
+    -H|--help) print_help ;;
+esac; shift; done
+
+# errors:
+check_deps || exit
+check_internet || error 'no internet access'
+[[ -z $file_omdbkey ]] && error "omdb api key file error"
+[[ -f $file_omdbkey ]] || error "$file_omdbkey: no such file (omdb api key)"
+[[ -r $file_omdbkey ]] || error "$file_omdbkey: permission denied"
+
+# warnings:
+file_omdbkey_stat="$(stat -c %A "$file_omdbkey")"
+if [[ ! $file_omdbkey_stat =~ ^-r[w-]-+$ ]]; then
+    msg_warn "$file_omdbkey $file_omdbkey_stat: improper permissions"
+fi
+
+# exit:
+[[ -z "${args_positionals[0]}" ]] && exit 0
+[[ -z ${omdb_keys[0]} ]] && exit 0
+
+# set vars:
+readonly dash=" $bold$grey-$off "
+readonly comma="$bold$grey,$off "
+for key in "${omdb_keys[@]}"; do jq_arr+="\n\(.$key)"; done
+readonly jq_arr="\"${jq_arr:2}\""
+
+# read omdb api key from $file_omdbkey:
+key_omdb="$(sed -E '/^(\s*#.*|\s*)$/d' "$file_omdbkey" | head -n1)"
+
+# set api query parameters:
+parms_omdbapi=
+# number only: query by imdbid:
+if [[ ${args_positionals[*]} =~ ^[0-9]+$ ]]; then
+    parms_omdbapi="i=tt${args_positionals[*]}"
+# number with tt prefix: query by imdbid:
+elif [[ ${args_positionals[*]} =~ ^tt[0-9]+$ ]]; then
+    parms_omdbapi="i=${args_positionals[*]}"
+# string with trailing (yyyy): query by title and year:
+elif [[ ${args_positionals[*]} =~ ^(.*)\ +\(?([12][0-9][0-9][0-9])\)?$ ]]; then
+    parms_omdbapi="t=${BASH_REMATCH[1]// /+}&y=${BASH_REMATCH[2]}"
+# query by title:
+else
+    parms_omdbapi="t=${args_positionals[*]}" parms_omdbapi="${parms_omdbapi// /+}"
+fi
+
+# query omdb api:
+url_curl="$url_omdbapi/?apikey=$key_omdb&$parms_omdbapi"
+((verbose)) && msg_cmd curl "$url_curl"
+json="$(curl -s "$url_curl")"
+
+# print omdb response:
+if [[ -n $json ]]; then
+    if ((text)); then
+        if ! jq &>/dev/null <<<"$json"; then
+            msg_warn 'json error, printing raw api response'
+            printf "$white%s$off\n" "$json"
+        elif [[ $(jq -r '.Response' <<<"$json") == False ]]; then
+            error 'movie not found'
+        else
+            mapfile -t info < <(jq -r "$jq_arr" <<<"$json")
+            output="$bold$green${info[0]} $blue(${info[1]})"
+            output+=" $grey[$off$grey${info[9]}$bold]$off$white\n"
+            output+="$(fold -s -w $((COLUMNS-4)) <<<"${info[2]}")\n"
+            output+="$orange${info[3]}$dash$red${info[4]}$dash$yellow"
+            output+="${info[5]//, /$comma$yellow}\n"
+            output+="$cyan${info[6]//, /$comma$cyan}$dash"
+            output+="$cyan2${info[7]//, /$comma$cyan2}\n"
+            output+="$blue${info[8]//, /$comma$blue}"
+            printf -- "$output$off\n"
+        fi
+    else
+        printf '%s\n' "$json"
+    fi
+fi
+
+# vim:ft=bash

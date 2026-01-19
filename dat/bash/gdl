@@ -12,14 +12,14 @@ exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
 
 ## settings ::
 debug=0 nocolor=0
-dir_in="$ADIR/img"
-dir_gdl="$dir_in/gdl"
+dir_in="$ADIR/img" dir_gdl="$dir_in/gdl"
 gdl_err="$dir_gdl/gdl.err" gdl_log="$dir_gdl/gdl.log" gdl_txt="$dir_gdl/gdl.txt"
 
 ## internal functions/variables ::
 readonly -a deps=(curl gallery-dl wget)
 args=("$@") urls=() urls_log=()
 regex='^(.*\.vzntrsnc.pbz/)(tnyyrel|cvpgherf)(/[0-9]+)'
+regex_1='^(.*)(puna|jjj)(\.fnaxnxhpbzcyrk\.pbz.*)'
 
 # colors, control sequences:
 readonly clear_line=$'\e[2K'
@@ -81,9 +81,12 @@ check_internet || error 'no internet connection'
 
 # parse args:
 regex="$(tr 'a-z' 'n-za-m' <<<"$regex")"
+regex_1="$(tr 'a-z' 'n-za-m' <<<"$regex_1")"
 for arg in "${args[@]}"; do
     if [[ $arg =~ $regex ]]; then
         arg="${BASH_REMATCH[1]}gallery${BASH_REMATCH[3]}"
+    elif [[ $arg =~ $regex_1 ]]; then
+        arg="${BASH_REMATCH[1]}www${BASH_REMATCH[3]}"
     fi
     found=0
     for url in "${urls[@]}"; do [[ $arg == "$url" ]] && { found=1; break ;}; done
@@ -95,11 +98,12 @@ for arg in "${args[@]}"; do
 done
 
 # process urls:
-mkdir -p "$dir_in"
+mkdir -p "$dir_in" "$dir_gdl"
 cd "$dir_in"
 for url in "${urls[@]}"; do
     msg "$url $blue[starting]"
-    if gallery-dl "$url"; then
+    args=()
+    if gallery-dl "${args[@]}" "$url"; then
         printf '%s\n' "$url" >> "$gdl_log"
         msg_good "$url $green[done]"
     else

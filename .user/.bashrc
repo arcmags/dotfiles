@@ -14,11 +14,12 @@ if is_bin fzf; then
 fi
 
 ## bash ::
-complete -cf apropos 'do' ltrace man strace sudo time torsocks usudo watch
+complete -cf apropos 'do' ltrace man run0 strace sudo time torsocks usudo watch
 set -o vi
 shopt -s dotglob globstar failglob
+
 # set terminal window title to last executed command:
-trap 'printf "\033]0;%s\007" "${BASH_COMMAND:0:32}"' DEBUG
+trap 'printf "\033]0;%s\007" "${BASH_COMMAND%% *}"' DEBUG
 
 ## xclip ::
 if [[ -n $DISPLAY ]] && is_bin xclip; then
@@ -27,8 +28,10 @@ if [[ -n $DISPLAY ]] && is_bin xclip; then
 fi
 
 ## functions: aliases ::
+..() { cd .. ;}
+-() { cd - >/dev/null || return 1 ;}
 cd-() { cd - >/dev/null || return 1 ;}
-[[ -d "$UDIR/.user" ]] && cd.() { cd "$UDIR/.user" ;}
+cd.() { cd "$UDIR/.user" ;}
 cd..() { cd .. ;}
 cd/() { cd / || return 1 ;}
 is_bin ffmpeg && ffmpeg-mp3() { for a in "$@"; do ffmpeg -i "$a" "${a%.*}.mp3"; done ;}

@@ -13,6 +13,20 @@ Environment:
 import sys
 import cliutils
 
+import tty
+import termios
+
+def get_key() -> str:
+    fd = sys.stdin.fileno()
+    settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        key = sys.stdin.read(1)
+    except:
+        cliutils.Message().error('keypress error')
+    termios.tcsetattr(fd, termios.TCSADRAIN, settings)
+    return key
+
 def main() -> int:
     # set from env:
     debug = cliutils.get_env_bool('DEBUG')
@@ -40,52 +54,10 @@ def main() -> int:
     # initialize message printer:
     msg = cliutils.Message(nocolor=nocolor)
 
-    # run external command:
-    cmd = ['date', '-I']
-    if (stdout := cliutils.run_cmd(cmd)) is None:
-        msg.warn('command error caught')
+    key = get_key()
 
-    # check file:
-    file, stat = '/etc/fstab', []
-    if cliutils.is_file(file):
-        stat += ['file']
-    if cliutils.is_dir(file):
-        stat += ['directory']
-    if cliutils.is_path(file):
-        stat += ['exists']
-    if cliutils.is_readable(file):
-        stat += ['readable']
-    if cliutils.is_writable(file):
-        stat += ['writable']
-    msg(f'{file}: {', '.join(stat)}')
-
-    # read file:
-    file = '/etc/fstab'
-    if (text := cliutils.read_file(file)) is None:
-        msg.warn('read error caught')
-
-    # write file:
-    file = '/tmp/newfile.txt'
-    text = 'Hello World\n'
-    if not (success := cliutils.write_file(file, text)):
-        msg.warn('write error caught')
-
-    # parse yaml:
-    file = '/home/mags/user/dat/python/temp.yaml'
-    if (text := cliutils.read_file(file)) is None:
-        msg.warn('read error caught')
-    elif (data := cliutils.parse_yaml(text)) is None:
-        msg.warn('yaml error caught')
-
-    # prompt for user input:
-    if args.var is None:
-        args.var = msg.input('var:')
-
-    # print args:
-    if not quiet:
-        msg.msg2(f'list: {cliutils.to_str(args.list)}')
-        msg.msg2(f'pargs: {cliutils.to_str(args.pargs)}')
-        msg.msg2(f'var: {args.var}')
+    print(type(key))
+    print(key)
 
     return 0
 

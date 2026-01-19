@@ -1,7 +1,7 @@
 #!/bin/bash
 ## img-upscale ::
 
-[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+[[ $0 != ${BASH_SOURCE[0]} ]] && return 0
 print_help() { cat <<'HELPDOC'
 Usage:
   img-upscale [option...] <image...>
@@ -10,11 +10,15 @@ Upscale and/or sharpen image.
 
 Options:
   -m, --model <model>   upscale model (a/anime/c/cunet/p/photo, default: cunet)
-  -n, --noise <level>   denoise level (-1/0/1/2/3, default=0)
-  -q, --quality <level> jpg quality level (0-100, default=90)
-  -s, --scale <level>   upscale level (1/2/4/8/16/32, default=2)
+  -n, --noise <level>   denoise level (-1/0/1/2/3, default: 0)
+  -o, --out <filename>  output filename
+  -q, --quality <level> jpg quality level (1-100, default: 92)
+  -s, --sharpen <level> sharpen level before upscaling (0.0-20.0, default: 0.0)
+  -u, --upscale <level> upscale level (1/2/4/8/16/32, default: 2)
+  --suffix <suffix>     output filename suffix (default: _u)
+  -I, --info            add upscale options used to output filename
   -J, --jpg             output to jpg file
-  -L, --list            print machine readable list of upscaled images to stdout
+  -K, --keep            keep temporary image directory
   -P, --png             output to png file
   -M, --nocolor         disable colored output
   -Q, --quiet           print nothing to stdout
@@ -29,28 +33,55 @@ HELPDOC
 exit "${1:-0}" ;}
 [[ $1 =~ ^(-H|--help)$ ]] && print_help
 
+# TODO: output name/template
+# TODO: post sharpen level
+# TODO: post sharpen option
+# TODO: despeckle and more?
+# TODO: gif support?
+
 ## settings ::
-debug=0 dryrun=0 list=0 nocolor=0 quiet=0 verbose=0
+debug=0 dryrun=0 nocolor=0 quiet=0 verbose=0
 bin_waifu2x='waifu2x-ncnn-vulkan'
 dir_models="/usr/share/$bin_waifu2x"
-model=cunet noise=0 quality=90 scale=2 type=
+info=0
+model=cunet
+noise=0
+quality=92
+sharpen=0
+suffix='_u'
+upscale=2
 
 ## internal functions/variables ::
 readonly -a args=("$@"); args_options=() args_positionals=()
 readonly -a deps=("$bin_waifu2x" exiftool identify magick)
-readonly -a opts=( -m: --model: -n: --noise: -o: --output: -q: --quality:
-    -s: --scale: -L --list -J --jpg -P --png
+readonly -a opts=(-m: --model: -n: --noise: -o: --out: -q: --quality:
+    -s: --sharpen: --suffix: -u: --upscale: -J --jpg -P --png -K --keep -I --info
     -H --help -M --nocolor -Q --quiet -V --verbose)
-cmd=() imgs=() imgs_err=() imgs_tmp=()
-arg_model="$dir_models/models-cunet" img_out=
+imgs=()
+imgs_err=()
+imgs_tmp=()
+arg_model="$dir_models/models-cunet"
+arg_out=
+dir_tmp=
+ext_out=
+img_out=
+keep=0
+cnt=0
+errs=0
+type=
+msg=
 
-# colors:
-black=$'\e[38;5;0m' blue=$'\e[38;5;12m' cyan=$'\e[38;5;14m' green=$'\e[38;5;10m'
-grey=$'\e[38;5;8m' magenta=$'\e[38;5;13m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
-white=$'\e[38;5;15m' yellow=$'\e[38;5;11m' bold=$'\e[1m' off=$'\e[0m'
+# colors, control sequences:
+readonly clear_line=$'\e[2K'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' blue2=$'\e[38;5;4m' cyan=$'\e[38;5;14m'
+cyan2=$'\e[38;5;6m' green=$'\e[38;5;10m' green2=$'\e[38;5;2m' grey=$'\e[38;5;8m'
+magenta=$'\e[38;5;13m' magenta2=$'\e[38;5;5m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+red2=$'\e[38;5;1m' white=$'\e[38;5;15m' white2=$'\e[38;5;7m' yellow=$'\e[38;5;11m'
+bold=$'\e[1m' off=$'\e[0m'
 clear_colors() {
     export NO_COLOR=1 nocolor=1
-    unset black blue cyan green grey magenta orange red white yellow bold off
+    unset black blue blue2 cyan cyan2 green green2 grey magenta magenta2
+    unset orange red red2 white white2 yellow bold off
 }
 
 # messages:
@@ -66,6 +97,19 @@ msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
     printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
 
 # utils:
+# TODO: cmd_null always unless verbose?
+cmd() {
+    [[ -z $1 ]] && return
+    ((verbose)) && msg_cmd "$@"
+    "$@"
+}
+
+cmd_null() {
+    [[ -z $1 ]] && return
+    ((verbose)) && msg_cmd "$@"
+    "$@" &>/dev/null
+}
+
 check_deps() {
     local _dep= _deps=("${deps[@]}") _errs=(); [[ -n $1 ]] && _deps=("$@")
     for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
@@ -124,7 +168,8 @@ parse_path() {
 
 # error, exit, trap:
 error() { msg_error "$*"; exit 3 ;}
-trap_exit() { rm -f "${imgs_tmp[@]}" ;}
+#trap_exit() { rm -f "${imgs_tmp[@]}" ;}
+trap_exit() { ((keep)) || { [[ -d "$dir_tmp" ]] && rm -r "$dir_tmp" ;} ;}
 trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
 
 ## main ::
@@ -144,28 +189,35 @@ while [[ -n $1 ]]; do case "$1" in
     -m|--model) shift; model="${1,,}" ;;
     -n|--noise) shift; noise="$1" ;;
     -q|--quality) shift; quality="$1" ;;
-    -s|--scale) shift; scale="$1" ;;
+    -s|--sharpen) shift; sharpen="$1" ;;
+    --suffix) shift; suffix="$1" ;;
+    -u|--upscale) shift; upscale="$1" ;;
+    -o|--out|--output) shift; arg_out="$1" ;;
     -J|--jpg) type='jpg' ;;
-    -L|--list) list=1 quiet=1 verbose=0 ;;
     -P|--png) type='png' ;;
+    -K|--keep) keep=1 ;;
+    -I|--info) info=1 ;;
     -Q|--quiet) quiet=1 verbose=0 ;;
-    -V|--verbose) quiet=0; ((verbose++)) ;;
+    -V|--verbose) quiet=0; verbose=1 ;;
     -M|--nocolor) clear_colors ;;
     -H|--help) print_help ;;
 esac; shift; done
 
 # check for errors:
 check_deps || exit
-[[ $model =~ ^(a|anime|c|cunet|p|photo)$ ]] || error "invalid model: $model"
-[[ $noise =~ ^(-1|0|1|2|3)$ ]] || error "invalid denoise level: $noise"
-[[ $quality =~ ^([1-9]|[1-9][0-9]|100)$ ]] || error "invalid jpg quality: $quality"
-[[ $scale =~ ^(1|2|4|16|32)$ ]] || error "invalid upscale level: $scale"
+[[ $model =~ ^(a|anime|c|cunet|p|photo)$ ]] || error "$model: invalid model"
+[[ $noise =~ ^(-1|0|1|2|3)$ ]] || error "$noise: invalid denoise level"
+[[ $quality =~ ^([1-9]|[1-9][0-9]|100)$ ]] || error "$quality: invalid jpg quality"
+[[ $sharpen =~ ^([0-9]*\.?|[0-9]*\.?[0-9]+)$ ]] || error "$sharpen: invalid sharpen level"
+[[ -z $suffix ]] && error 'suffix cannot be blank'
+[[ $upscale =~ ^(1|2|4|16|32)$ ]] || error "$upscale: invalid upscale level"
+[[ -n $arg_out && ${#args_positionals[@]} -gt 1 ]] && error "$arg_out: multiple input files"
 
 # set model directory:
 case "$model" in
-    a|anime) arg_model="$dir_models/models-upconv_7_anime_style_art_rgb" ;;
-    c|cunet) arg_model="$dir_models/models-cunet" ;;
-    p|photo) arg_model="$dir_models/models-upconv_7_photo" ;;
+    a|anime) model='anime'; arg_model="$dir_models/models-upconv_7_anime_style_art_rgb" ;;
+    c|cunet) model='cunet'; arg_model="$dir_models/models-cunet" ;;
+    p|photo) model='photo'; arg_model="$dir_models/models-upconv_7_photo" ;;
 esac
 
 # check positional args:
@@ -177,61 +229,122 @@ for arg in "${args_positionals[@]}"; do
 done
 [[ -n $imgs_err ]] && msg_warn "image error: ${imgs_err[*]}"
 
+# cleanup sharpen level:
+# TODO: remove trailing zeros in float?
+[[ $sharpen =~ ^0+(.+)$ ]] && sharpen="${BASH_REMATCH[1]}"
+[[ ${sharpen:0:1} == . ]] && sharpen="0$sharpen"
+
+# set output filename suffix:
+((info)) && suffix+="-m${model:0:1}-n${noise}-s${sharpen}-u${upscale}"
+
 # upscale images:
 for img in "${imgs[@]}"; do
+    trap_exit
+    ((cnt++))
+    dir_tmp="$(mktemp --tmpdir -d img-upscale_XXX)"
     imgs_tmp=()
 
-    # parse output image name/type:
-    path="$img"
-    parse_path
-    ext="${path_ext,,}"
-    [[ -n $type ]] && ext=".${type,,}"
-    [[ -z $ext || $ext == .jpeg ]] && ext='.jpg'
-    img_out="${path_dir}${path_name}_u$scale${model:0:1}${noise}$ext"
-    ((quiet)) || msg "$img $bold$blue->$off$white $img_out"
+    # set output image name:
+    if [[ -n $arg_out ]]; then
+        parse_path "$arg_out"
+        ext_out="${path_ext,,}"
+        img_out="$arg_out"
+    else
+        parse_path "$img"
+        ext_out="${path_ext,,}"
+        [[ -n $type ]] && ext_out=".${type,,}"
+        [[ -z $ext_out || $ext_out == .jpeg ]] && ext_out='.jpg'
+        img_out="${path_dir}${path_name}${suffix}${ext_out}"
+    fi
+
+    # print status message:
+    msg=
+    if [[ ${#imgs[@]} -gt 1 ]]; then
+        msg+="$grey("
+        [[ $errors -gt 0 || $cnt -ne ${#imgs[@]} ]] && msg+="$orange" || msg+="$green"
+        msg+="$cnt$grey/"
+        ((errors)) && msg+="$yellow" || msg+="$green"
+        msg+="${#imgs[@]}$grey)$white "
+    fi
+    msg+="$img $bold$blue->$off$white $img_out"
+    ((keep)) && msg+=" $bold$grey:: $off$grey$dir_tmp"
+    ((quiet)) || msg "$msg"
+
+    # copy input image:
+    imgs_tmp+=("$dir_tmp/${#imgs_tmp[@]}_original.${img##*.}")
+    cmd cp "$img" "${imgs_tmp[-1]}"
+    if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+        msg_error "$img: skipped, cp error"
+        ((errs++))
+        continue
+    fi
 
     # convert input image to png if it's not a jpg, png, or webp:
-    if [[ ! $(file -ib "$img") =~ image/(jpeg|png|webp) ]]; then
-        img_tmp="$(mktemp --tmpdir XXX.png)"
-        imgs_tmp+=("$img_tmp")
-        ((verbose)) && msg_cmd magick "$img" "$img_tmp"
-        magick "$img" "$img_tmp"
-        img="$img_tmp"
+    if [[ ! $(file -ib "${imgs_tmp[-1]}") =~ image/(jpeg|png|webp) ]]; then
+        imgs_tmp+=("$dir_tmp/${#imgs_tmp[@]}_png.png")
+        cmd magick "${imgs_tmp[-2]}" "${imgs_tmp[-1]}"
+        if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+            msg_error "$img: skipped, magick error"
+            ((errs++))
+            continue
+        fi
+    fi
+
+    # sharpen image:
+    if [[ ! $sharpen =~ ^(0*\.?|0*\.?0+)$ ]]; then
+        imgs_tmp+=("$dir_tmp/${#imgs_tmp[@]}_sharpen-$sharpen.png")
+        cmd magick "${imgs_tmp[-2]}" -sharpen "0x$sharpen" "${imgs_tmp[-1]}"
+        if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+            msg_error "$img: skipped, magick error"
+            ((errs++))
+            continue
+        fi
     fi
 
     # upscale image:
-    img_tmp="$(mktemp --tmpdir XXX.png)"
-    imgs_tmp+=("$img_tmp")
-    cmd=("$bin_waifu2x" -m "$arg_model" -s "$scale" -n "$noise" -i "$img" -o "${img_tmp}")
-    if ((verbose)); then
-        msg_cmd "${cmd[@]}"
-        if [[ $verbose -gt 1 ]]; then
-            "${cmd[@]}"
-        else
-            "${cmd[@]}" &>/dev/null
+    imgs_tmp+=("$dir_tmp/${#imgs_tmp[@]}_upscale-$upscale-$noise-$model.png")
+    cmd_null "$bin_waifu2x" -m "$arg_model" -s "$upscale" -n "$noise" \
+      -i "${imgs_tmp[-2]}" -o "${imgs_tmp[-1]}"
+    if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+        msg_error "$img: skipped, $bin_waifu2x error"
+        ((errs++))
+        continue
+    fi
+
+    # convert/copy upscaled image:
+    imgs_tmp+=("$dir_tmp/${#imgs_tmp[@]}_out$ext_out")
+    if [[ ${ext_out,,} == .png ]]; then
+        cmd cp "${imgs_tmp[-2]}" "${imgs_tmp[-1]}"
+        if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+            msg_error "$img: skipped, cp error"
+            ((errs++))
+            continue
         fi
     else
-        "${cmd[@]}" &>/dev/null
+        cmd magick "${imgs_tmp[-2]}" -quality "$quality" "${imgs_tmp[-1]}"
+        if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+            msg_error "$img: skipped, magick error"
+            ((errs++))
+            continue
+        fi
     fi
 
-    if (($?)); then
-        # upscale error:
-        msg_error "waifu2x error: $img"
-    else
-        # convert/copy upscaled image:
-        cmd=(cp "$img_tmp" "$img_out")
-        [[ $ext == .png ]] || cmd=(magick "$img_tmp" -quality "$quality" "$img_out")
-        ((verbose)) && msg_cmd "${cmd[@]}"
-        "${cmd[@]}"
-        # clear metadata:
-        cmd=(exiftool -quiet -overwrite_original -all= "$img_out")
-        ((verbose)) && msg_cmd "${cmd[@]}"
-        "${cmd[@]}"
-        ((list)) && printf '%s\n' "$img_out"
+    # clear metadata:
+    cmd exiftool -quiet -overwrite_original -all= "${imgs_tmp[-1]}"
+    if [[ $? -ne 0 || ! -f ${imgs_tmp[-1]} ]]; then
+        msg_error "$img: skipped, exiftool error"
+        ((errs++))
+        continue
     fi
 
-    rm -f "${imgs_tmp[@]}"
+    # copy output file:
+    cmd cp "${imgs_tmp[-1]}" "$img_out"
+    if [[ $? -ne 0 || ! -f $img_out ]]; then
+        msg_error "$img: skipped, cp error"
+        ((errs++))
+        continue
+    fi
+
 done
-
 
 # vim:ft=bash

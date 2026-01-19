@@ -7,6 +7,13 @@
     "imagefap": {
       "filename": "{num:>03}.{extension}",
       "directory": ["{category}", "{title} {gallery_id}"]
+    },
+    "deviantart": {
+      "sleep": [2, 4],
+      "sleep-request": [4, 8],
+      "filename": "{title}_{index}.{extension}",
+      "client-id": "57113",
+      "client-secret": "1dfc40249a03247fa4049d98ab8f934c"
     }
   }
 }

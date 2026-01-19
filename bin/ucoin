@@ -1,59 +1,253 @@
 #!/usr/bin/env python3
+
 ## ucoin ::
+# Print market prices and total balance. Controlled via config file and
+# command line args.
 
-"""Print cryptocurrency prices.
-
-----
-Config:
-  More help text.
-"""
-
-
-import os
+import json
+import re
 import sys
-import yaml
+from collections import OrderedDict
+from operator import getitem
+from pathlib import Path
+from requests import Request, Session
+from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 
-from cliutils import ArgumentParser, Message
+## config ::
+default_coins = {
+    'BTC': {},
+    'ETH': {},
+    'XMR': {}
+}
+default_configs = [
+    '~/.config/ucoin/ucoin.json',
+    '~/.config/ucoin.json',
+    '~/.ucoin.json'
+]
 
+## internal ::
+cmc_api_key = ""
+cmc_url = 'https://pro-api.coinmarketcap.com'
+coins = {}
+config = {}
+flag_json = False
+flag_norc = False
+flag_rank= False
+opt_cmc_api_key = ""
+opt_coins = []
+opt_configs = []
 
-def main() -> int:
-    # set env:
-    debug = os.environ.get('DEBUG', '0').lower() in ['1', 'true', 'yes']
-    nocolor = os.environ.get('NOCOLOR', '0').lower() in ['1', 'true', 'yes']
-    quiet = os.environ.get('QUIET', '0').lower() in ['1', 'true', 'yes']
-    verbose = os.environ.get('VERBOSE', '0').lower() in ['1', 'true', 'yes']
+# colors:
+blue = '\033[0;38;5;12m'
+blue_b = '\033[1;38;5;12m'
+cyan = '\033[0;38;5;14m'
+cyan_b = '\033[1;38;5;14m'
+green = '\033[0;38;5;10m'
+red = '\033[0;38;5;9m'
+yellow = '\033[0;38;5;11m'
+white = '\033[0;38;5;15m'
+white_b = '\033[1;38;5;15m'
+gray = '\033[0;38;5;7m'
 
-    # set and parse args:
-    p = ArgumentParser(nocolor=nocolor, description=__doc__)
-    p.add_argument('-a', '--arg', dest='args', action='append', metavar='<arg>',
-                   default=[], help='append to args')
-    p.add_argument('-M', '--nocolor', action='store_true', help='disable colored output')
-    p.add_argument('-Q', '--quiet', action='store_true', help='output nothing to stdout')
-    p.add_argument('pargs', metavar='<parg>', nargs='...', help='positional arguments')
-    args = p.parse_args()
+## main ::
+args = []
+for arg in sys.argv[1:]:
+    args += [str(arg)]
+i = 0
+while i < len(args):
+    # --coin, -c:
+    if args[i] in ['--coin', '-c']:
+        i += 1
+        if i < len(args):
+            opt_coins += args[i].split(',')
+    elif args[i][0:2] == '-c':
+        opt_coins += [args[i][2:]]
+    # --config:
+    elif args[i] == "--config":
+        i += 1
+        if i < len(args):
+            opt_configs += [args[i]]
+    # --json, -J:
+    elif args[i] in ['--json', '-J']:
+        flag_json = True
+    # --key, -k:
+    elif args[i] in ['--key', '-k']:
+        flag_json = True
+        i += 1
+        if i < len(args):
+            opt_cmc_api_key = args[i]
+    elif args[i][0:2] == '-k':
+        opt_cmc_api_key = [args[i][2:]]
+    # --norc, -N:
+    elif args[i] in ['--norc', '-N']:
+        coins = []
+        flag_norc = True
+    # --rank, -R:
+    elif args[i] in ['--rank', '-R']:
+        flag_rank= True
+    elif args[i][0:2] in ['-J', '-N', '-R']:
+        args = args[0:i] + [args[i][0:2]] + ['-'+args[i][2:]] + args[i+1:]
+        i -= 1
+    i += 1
 
-    # set env from args:
-    if args.nocolor: nocolor = True
-    if args.quiet: quiet = True
+if not flag_norc:
+    # parse coins from first valid config file:
+    for opt_file in default_configs + opt_configs:
+        if opt_file[0] == '~':
+            opt_file = str(Path.home()) + opt_file[1:]
+        if Path(opt_file).is_file():
+            try:
+                config = json.loads(open(opt_file).read())
+                coins = config["coins"]
+                break
+            except:
+                coins = default_coins
+        else:
+            coins = default_coins
+else:
+    coins = default_coins
 
-    # initialize msg:
-    msg = Message(nocolor=nocolor)
+# parse coins from command line options:
+for coin in opt_coins:
+    balance = 0
+    re_match = re.match(r'^([A-Z]+)', coin)
+    if re_match is not None:
+        symbol = re_match.group(1)
+        if symbol not in coins:
+            coins[symbol] = {}
+        re_match = re.match(r'^.*?=([0-9]*\.?[0-9]*)', coin)
+        if re_match is not None:
+            balance = float(re_match.group(1))
+            coins[symbol]['balance'] = balance
+        re_match = re.match(r'^.*?@([0-9]*\.?[0-9]*)', coin)
+        if re_match is not None:
+            price = float(re_match.group(1))
+            coins[symbol]['price'] = float(re_match.group(1))
 
-    ## main ::
-    if len(args.args) > 0:
-        msg('args:')
-        for arg in args.args:
-            msg.msg2(arg)
-    if len(args.pargs) > 0:
-        msg('pargs:')
-        for arg in args.pargs:
-            msg.msg2(arg)
+if opt_cmc_api_key != "":
+    cmc_api_key = opt_cmc_api_key
+elif config.__contains__("cmc_api_key"):
+    cmc_api_key = config["cmc_api_key"]
+else:
+    print("E: must have cmc api key")
+    sys.exit(1)
 
-    if debug:
-        msg.warn('DEBUG MODE')
+# exit: no coins:
+if not bool(coins):
+    sys.exit(0)
 
-    return 0
+# get data from coinmarketcap:
+headers = {
+    'Accepts': 'application/json',
+    'X-CMC_PRO_API_KEY': cmc_api_key,
+    'sort': 'cmc_rank'
+}
+parameters = {
+    'symbol': ','.join(coins),
+}
+url = cmc_url + '/v1/cryptocurrency/quotes/latest'
+session = Session()
+session.headers.update(headers)
+try:
+    response = session.get(url, params=parameters)
+    data = json.loads(response.text)['data']
+except (ConnectionError, Timeout, TooManyRedirects) as e:
+    print(e)
+    sys.exit(5)
 
+# parse data from coinmarketcap:
+usd_total = 0.0
+len_coin = 4
+len_price = 6
+len_1h = 5
+len_24h = 5
+len_7d = 5
+len_usd = 4
+len_balance = 7
+len_rank = 4
+for coin, value in coins.items():
+    if 'balance' not in value:
+        value['balance'] = 0
+    if 'price' in value:
+        value['change_1h'] = (value['price'] * (1 +
+            (data[coin]['quote']['USD']['percent_change_1h'] / 100)) /
+            data[coin]['quote']['USD']['price'] - 1 ) * 100
+        value['change_24h'] = (value['price'] * (1 +
+            (data[coin]['quote']['USD']['percent_change_24h'] / 100)) /
+            data[coin]['quote']['USD']['price'] - 1 ) * 100
+        value['change_7d'] = (value['price'] * (1 +
+            (data[coin]['quote']['USD']['percent_change_7d'] / 100)) /
+            data[coin]['quote']['USD']['price'] - 1 ) * 100
+    else:
+        value['price'] = data[coin]['quote']['USD']['price'] or 0
+        value['change_1h'] = data[coin]['quote']['USD']['percent_change_1h'] or 0
+        value['change_24h'] = data[coin]['quote']['USD']['percent_change_24h'] or 0
+        value['change_7d'] = data[coin]['quote']['USD']['percent_change_7d'] or 0
+        value['updated'] = data[coin]['quote']['USD']['last_updated'] or 0
+    value['rank'] = data[coin]['cmc_rank']
+    value['USD'] = value['price'] * value['balance']
+    usd_total += value['USD']
+    len_coin = max(len_coin, len(coin))
+    len_price = max(len_price, len(str(int(value['price']))) + 5)
+    len_1h  = max(len_1h, len(str(int(value['change_1h']))) + 3)
+    len_24h  = max(len_24h, len(str(int(value['change_24h']))) + 3)
+    len_7d  = max(len_7d, len(str(int(value['change_7d']))) + 3)
+    len_balance = max(len_balance, len(str(int(value['balance']))) + 3)
+    len_rank = max(len_rank, len(str(value['rank'])))
 
-if __name__ == '__main__':
-    sys.exit(main())
+def rank(x):
+    r = getitem(x[1], 'rank')
+    if r is None:
+        return 9999
+    else:
+        return r
+
+coins = dict(OrderedDict(sorted(coins.items(), key = rank)))
+len_usd = max(len_usd, len(str(usd_total).split('.')[0]) + 3)
+
+# print data:
+if flag_json:
+    print(json.dumps(coins, indent=2))
+
+else:
+    string = white_b + f"{'coin':{len_coin}}"
+    if flag_rank:
+        string += f"  {'rank':>{len_rank}}"
+    string += f"  {'price':>{len_price}}"
+    string += f"  {'%1h':>{len_1h}}"
+    string += f"  {'%24h':>{len_24h}}"
+    string += f"  {'%7d':>{len_7d}}"
+    string += f"  {'balance':>{len_balance}}"
+    string += f"  {'usd':>{len_usd}}"
+    print(string)
+    for coin, value in coins.items():
+        string = blue_b + f"{coin:{len_coin}}"
+        if flag_rank:
+            string += white + f"  {value['rank']:{len_rank}}"
+        string += cyan + f"  {value['price']:{len_price}.4f}"
+        if value['change_1h'] >= 0:
+            string += green
+        else:
+            string += red
+        string += f"  {value['change_1h']:{len_1h}.2f}"
+        if value['change_24h'] >= 0:
+            string += green
+        else:
+            string += red
+        string += f"  {value['change_24h']:{len_24h}.2f}"
+        if value['change_7d'] >= 0:
+            string += green
+        else:
+            string += red
+        string += f"  {value['change_7d']:{len_7d}.2f}"
+        if value['balance'] > 0:
+            string += blue + f"  {value['balance']:{len_balance}.2f}"
+            string += cyan + f"  {value['USD']:{len_usd}.2f}"
+        print(string)
+    if usd_total > 0:
+        string = cyan_b + ' ' * (len_coin + len_price + len_1h +
+            len_24h + len_7d + len_balance + 12)
+        if flag_rank:
+            string += ' ' * (len_rank + 2)
+        string += f"{usd_total:.2f}"
+        print(string)

@@ -14,48 +14,61 @@ Install using a plugin manager, or use vim's builtin package support:
 
 ## Usage
 
-Strip trailing whitespaces, remove leading and trailing blank lines, merge
-repeated blank lines, fix timecode syntax errors, add missing spaces after
-leading dashes, combine musical notes and pound symbols and add missing spaces
-around them, remove blank subtitles, renumber all subtitles. Optionally convert
-file to unix, change encoding to utf-8, replace tabs with spaces, and remove
-font colors:
+`:SRTClean`
+: Strip trailing whitespaces, remove leading and trailing blank lines, merge
+repeated blank lines, fix timecode syntax, add missing spaces after leading
+dashes, combine musical notes and pound symbols and add missing spaces around
+them, remove blank subtitles, renumber all subtitles. Optionally convert file
+to unix, change encoding to utf-8, replace tabs with spaces, and remove various
+formatting tags.
 
-    :SRTClean
+`:SRTNumber`
+: Renumber subtiles.
 
-Renumber subtiles:
+`:SRTShift <ms>`
+: Shift all subtitle timescodes (positive or negative milliseconds).
 
-    :SRTNumber
+`:SRTSkew <timecode> <ms> <timecode> <ms>`
+: Skew all subtitle timecodes, calculated from two timecodes and offsets.
 
-Skew all subtitle timecodes, calculated from two timecodes and offsets:
-
-    :SRTSkew <timecode> <ms> <timecode> <ms>
-
-Shift all subtitle timescodes (positive or negative milliseconds):
-
-    :SRTShift <ms>
-
-Convert text to ASCII with transliteration (requires `iconv`):
-
-    :[RANGE]SRTTOAscii
+`:[range]TextToAscii`
+: Convert text to ASCII with transliteration.  Requires iconv.
 
 ## Mappings
 
-`<localleader>m` - `:SRTClean`
+`<localleader>m`
+: `:SRTClean`
 
-`<localleader>n` - `:SRTNumber`
+`<localleader>n`
+: `:SRTNumber`
 
 ## Customization
 
-`g:srt_colors` - Remove font colors with `:SRTClean`. (default: true)
+`g:srt_create_maps`
+: Create default mappings. (default: true)
 
-`g:srt_maps` - Create default mappings. (default: true)
+### SRTClean
 
-`g:srt_tabs` - Keep tabs with `:SRTClean`. (default: false)
+`g:srt_clear_alignment`
+: Remove `{\an8}` tags. (default: true)
 
-`g:srt_unix` - Convert file to unix with `:SRTClean`. (default: true)
+`g:srt_clear_bold`
+: Remove `<b>` tags. (default: true)
 
-`g:srt_utf8` - Set encoding to utf-8 with `:SRTClean`. (default: true)
+`g:srt_clear_font`
+: Remove `<font>` tags. (default: true)
+
+`g:srt_clear_italic`
+: Remove `<i>` tags. (default: false)
+
+`g:srt_clear_tabs`
+: Convert tabs to spaces. (default: true)
+
+`g:srt_to_unix`
+: Convert file to unix. (default: true)
+
+`g:srt_to_utf8`
+: Set encoding to utf-8. (default: true)
 
 <!--metadata:
 author: Chris Magyar <c.magyar.ec@gmail.com>

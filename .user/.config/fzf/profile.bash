@@ -90,3 +90,5 @@ if (( BASH_VERSINFO[0] < 4 )); then
     bind -m vi-command '"\C-t": "\C-z\C-t\C-z"'
     bind -m vi-insert '"\C-t": "\C-z\C-t\C-z"'
 fi
+
+# vim: ft=bash

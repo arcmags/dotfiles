@@ -1,35 +1,28 @@
-[Default Applications]
+[MIME Cache]
 application/atom+xml=xterm.vim.desktop;
 application/json=xterm.vim.desktop;
 application/octet-stream=xterm.vim.desktop;
-application/pdf=org.pmwt.zathura-pdf-mupdf.desktop;
 application/x-httpd-php3=xterm.vim.desktop;
 application/x-httpd-php4=xterm.vim.desktop;
 application/x-httpd-php5=xterm.vim.desktop;
 application/x-php=xterm.vim.desktop;
 application/x-shellscript=xterm.vim.desktop;
-application/x-zerosize=xterm.vim.desktop
-application/xhtml+xml=org.qutebrowser.qutebrowser.desktop;
-image/gif=userapp-mpv --loop=inf-VO6AF3.desktop
-image/heif=feh.desktop;imv-dir.desktop;
-image/jpeg=feh.desktop;imv-dir.desktop;
-image/png=feh.desktop;imv-dir.desktop;
-image/svg+xml=gimp.desktop;
-image/webp=feh.desktop;imv-dir.desktop;
+application/x-zerosize=xterm.vim.desktop;
+application/xml=xterm.vim.desktop;
 text/css=xterm.vim.desktop;
 text/english=xterm.vim.desktop;
-text/html=org.qutebrowser.qutebrowser.desktop;
 text/html=xterm.vim.desktop;
 text/plain=xterm.vim.desktop;
+text/x-c=xterm.vim.desktop;
 text/x-c++=xterm.vim.desktop;
 text/x-c++hdr=xterm.vim.desktop;
 text/x-c++src=xterm.vim.desktop;
-text/x-c=xterm.vim.desktop;
 text/x-chdr=xterm.vim.desktop;
 text/x-csrc=xterm.vim.desktop;
 text/x-diff=xterm.vim.desktop;
 text/x-dsrc=xterm.vim.desktop;
 text/x-java=xterm.vim.desktop;
+text/x-log=xterm.vim.desktop;
 text/x-makefile=xterm.vim.desktop;
 text/x-matlab=xterm.vim.desktop;
 text/x-moc=xterm.vim.desktop;
@@ -41,10 +34,3 @@ text/x-sql=xterm.vim.desktop;
 text/x-tcl=xterm.vim.desktop;
 text/x-tex=xterm.vim.desktop;
 text/xml=xterm.vim.desktop;
-x-scheme-handler/http=org.qutebrowser.qutebrowser.desktop;
-x-scheme-handler/https=org.qutebrowser.qutebrowser.desktop;
-
-[Added Associations]
-image/gif=org.xfce.ristretto.desktop;mpv.desktop;imv.desktop;sxiv.desktop;org.qutebrowser.qutebrowser.desktop;userapp-mpv --loop=inf-VO6AF3.desktop;
-video/webm=mpv.desktop;
-image/avif=imv.desktop;

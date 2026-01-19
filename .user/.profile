@@ -11,14 +11,12 @@ export UHOST="$HOSTNAME"
 export ULIB="$UDIR/lib"
 
 upwd() {
-    case "$PWD" in
-        "$UDIR_REALPATH"*) printf '%s' "-${PWD#$UDIR_REALPATH}" ;;
-        "$HOME_REALPATH"*) printf '%s' "~${PWD#$HOME_REALPATH}" ;;
-        *)  PWD_REALPATH="$(realpath "$PWD")"; case "$PWD_REALPATH" in
-            "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#$UDIR_REALPATH}" ;;
-            "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#$HOME_REALPATH}" ;;
-            *) printf '%s' "$PWD" ;;
-    esac; esac
+    PWD_REALPATH="$(realpath "$PWD")"
+    case "$PWD_REALPATH" in
+        "$UDIR_REALPATH"*) printf '%s' "-${PWD_REALPATH#"$UDIR_REALPATH"}" ;;
+        "$HOME_REALPATH"*) printf '%s' "~${PWD_REALPATH#"$HOME_REALPATH"}" ;;
+        *) printf '%s' "$PWD" ;;
+    esac
 }
 
 ## utils ::
@@ -28,22 +26,26 @@ is_bin() (
     return 1
 )
 
+msg() { printf '\e[1;38;5;12m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
+msg_good() { printf '\e[1;38;5;10m=> \e[0;38;5;15m%s\e[0m\n' "$*" ;}
+msg_warn() { printf '\e[1;38;5;11mW: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
+
 path_add() {
-    expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
+    while [ -n "$1" ]; do
+        expr ":$PATH:" : '.*:'"$1"':.*' >/dev/null 2>&1 || export PATH="$1${PATH:+:$PATH}"
+        shift
+    done
 }
 
 ## path ::
-path_add "$HOME/.local/bin"
-path_add "$UDIR/bin"
-path_add "$UDIR/local/bin"
-path_add "$HOME/bin"
+path_add "$HOME/.local/bin" "$UDIR/bin" "$UDIR/local/bin" "$HOME/bin"
 
 ## environment ::
-command_not_found_handle() { printf '\e[1;38;5;11mC: \e[0;38;5;15m%s\e[0m\n' "$1"; return 127 ;}
+command_not_found_handle() { msg_error "$1: command not found"; return 127 ;}
 
 export PS1='\[\e[0;38;5;6m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 export PS2='\[\e[0m\] '
-[ "$USER" = 'dery' ] && PS1='\[\e[0;38;5;13m\]$UHOST\[\e[1;38;5;10m\]:\[\e[38;5;12m\]$(upwd)\[\e[38;5;10m\]\$\[\e[0m\] '
 
 [ -d "$ULIB/bash" ] && export BASHLIB="$ULIB/bash"
 [ -d "$ULIB/figfonts" ] && export FIGLET_FONTDIR="$ULIB/figfonts"
@@ -58,6 +60,7 @@ su() { printf '\e[1;38;5;9m:> \e[0;38;5;15m'; command su "$@" ;}
 [ "$TERM" = 'linux' ] && export TERM='linux-16color'
 
 is_bin w3m && export BROWSER='w3m'
+[ -n "$DISPLAY" ] && is_bin qutebrowser && export BROWSER='qutebrowser'
 
 export COLORFGBG='7;0'
 
@@ -120,19 +123,25 @@ export ZSTD_CLEVEL=19
 ## functions: aliases ::
 is_bin ash && [ -f "$HOME/.ashrc" ] && ash() { ENV="$HOME/.ashrc" command ash ;}
 
+cd() {
+    [ "$1" = '-' ] && { builtin cd -; return $? ;}
+    [ -d "${1:-$HOME}" ] && { builtin cd "${1:-$HOME}"; return $? ;}
+    msg_error "${1:-$HOME}: no such directory"; return 1
+}
 cdb() { cd "$UDIR/bin" ;}
 cdd() { cd "$UDIR/dat" ;}
 cdg() { cd "$UDIR/git" ;}
-[ -d "$UDIR/usync/images" ] && cdi() { cd "$UDIR/usync/images" ;}
+cdi() { cd "$UDIR/usync/images" ;}
 cdl() { cd "$UDIR/local" ;}
 cdm() { cd /mnt ;}
-[ -d /mnt/nas ] && cdn() { cd /mnt/nas ;}
-[ -d "$UDIR/urepo" ] && cdr() { cd "$UDIR/urepo" ;}
-[ -d "$UDIR/usync" ] && cds() { cd "$UDIR/usync" ;}
+cdn() { cd /mnt/nas ;}
+cdp() { cd "$UDIR/dat/python" ;}
+cdr() { cd "$UDIR/urepo" ;}
+cds() { cd "$UDIR/usync" ;}
 cdt() { cd "$TMPDIR" ;}
 cdu() { cd "$UDIR" ;}
-[ -d /mnt/nas/share/videos ] && cdv() { cd /mnt/nas/share/videos ;}
-[ -d "$UDIR/www" ] && cdw() { cd "$UDIR/www" ;}
+cdv() { cd /mnt/nas/share/videos ;}
+cdw() { cd "$UDIR/www" ;}
 
 is_bin diff && diff() { command diff --color=auto "$@" ;}
 
@@ -148,11 +157,11 @@ grep() { command grep --color=auto "$@" ;}
 
 ip() { command ip -color=auto "$@" ;}
 
-lls() { ls --color=always | less -R ;}
-ls1() { ls -1 "$@" ;}
 ls() { LANG=C command ls -ALh --color=auto --group-directories-first "$@" ;}
+ls1() { ls -1 "$@" ;}
 lsl() { ls -l "$@" ;}
 lss() { ls -s "$@" ;}
+lls() { ls --color=always | less -R ;}
 
 lsblk() { command lsblk -i "$@" ;}
 lsb() { lsblk -o NAME,FSTYPE,SIZE,FSUSED,MOUNTPOINTS,UUID "$@" ;}
@@ -164,8 +173,11 @@ is_bin mpv && ! is_bin mvp && mvp() { command mpv "$@" ;}
 is_bin pactree && pactree() { command pactree -a "$@" ;}
 
 is_bin ranger && ranger() {
-    command ranger --choosedir="$TMPDIR/rangerdir.txt" "$@"
-    cd "$(cat $TMPDIR/rangerdir.txt)"
+    command ranger --choosedir="$TMPDIR/dir.txt" "$@" && cd "$(cat $TMPDIR/dir.txt)"
+}
+
+is_bin vifm && vifm() {
+    command vifm --choose-dir="$TMPDIR/dir.txt" "$@" && cd "$(cat $TMPDIR/dir.txt)"
 }
 
 reset() { tput reset ;}
@@ -193,7 +205,7 @@ is_bin zathura && zathura() { command zathura --fork "$@" ;}
 ## functions: commands ::
 # TODO: make these all scripts?
 ascii() {
-    is_bin iconv || { msg_error 'missing dep: iconv'; return 3 ;}
+    is_bin iconv || { command_not_found_handle iconv; return $? ;}
     cat "${1:-/dev/stdin}" | iconv -f utf-8 -t ascii//TRANSLIT
 }
 
@@ -206,47 +218,47 @@ bak() (
     done
 )
 
-calc() {
-    is_bin bc || { msg_error 'missing dep: bc'; return 3 ;}
-    printf 'scale=3;%s\n' "$*" | bc -l
-}
+calc() { printf 'scale=3;%s\n' "$*" | bc -l ;}
 
 cdtt() {
-    dir_tmp="$(mktemp -d "$TMPDIR/tmp_XXX")"
-    [ -n "$1" ] && cp -r "$@" "$dir_tmp"
-    cd "$dir_tmp"
-    unset dir_tmp
+    _d=01; _dir_tmp="$TMPDIR/tmp_$_d.d"
+    while [ -d "$_dir_tmp" ]; do
+        _d=$((_d + 1))
+        [ "$_d" -lt 10 ] && _d="0$_d"
+        _dir_tmp="$TMPDIR/tmp_$_d.d"
+    done
+    mkdir "$_dir_tmp"
+    [ -n "$1" ] && cp -r "$@" "$_dir_tmp"
+    cd "$_dir_tmp"
+    unset _d _dir_tmp
 }
 
-msg_error() { printf '\e[1;38;5;9mE: \e[0;38;5;15m%s\e[0m\n' "$*" >&2 ;}
-
-gpgreset() {
-    is_bin gpgconf || { msg_error 'missing dep: gpgconf'; return 3 ;}
-    gpgconf --kill gpg-agent
+exifclear() {
+    is_bin exiftool || { msg_error 'missing dep: exiftool'; return 3 ;}
+    exiftool -m -overwrite_original -all= "$@"
 }
+
+gpgreset() { gpgconf --kill gpg-agent ;}
 
 reload() { . "$HOME/.profile" ;}
 
+# TODO: check for legitimate package:
 pkgbuild() {
     curl -s "https://gitlab.archlinux.org/archlinux/packaging/packages/$1/-/raw/main/PKGBUILD"
 }
 
-pythonpath() {
-    is_bin python || { msg_error 'python not found'; return 3 ;}
-    python -c 'import sys; print(sys.path)'
-}
+pythonpath() { python -c 'import sys; print(sys.path)' ;}
 
-rwords() {
+rwords() (
     _i=0 _j=0 _len="${1:-72}" _rand= _text=
     expr "$_len" : '[1-9][0-9]*' >/dev/null 2>&1 || { msg_error "invalid length: $_len"; return 3 ;}
     _rand="$(tr -cd 'a-z' </dev/random | head -c "$_len")"
     [ $_len -lt 9 ] && { printf '%s\n' "$_rand"; return ;}
     while [ $_i -lt $_len ]; do _j=$(($RANDOM%7+2)) _text+="${_rand:_i:_j} " _i=$((_i+_j)); done
     printf '%s\n' "${_text:0:_len}"
-    unset _i _j _len _rand _text
-}
+)
 
-screenshot() {
+screenshot() (
     _png="/tmp/screen_$(date +'%F_%H-%M-%S').png"
     if [ -n "$DISPLAY" ]; then
         is_bin import || { msg_error 'missing dep: import'; return 3 ;}
@@ -256,17 +268,15 @@ screenshot() {
         groups | grep -qw 'video' || { msg_error 'not in group: video'; return 3 ;}
         fbgrab "$_png" >/dev/null 2>&1 && printf '%s\n' "$_png"
     fi
-    unset _png
-}
+)
 
-tb() {
-    is_bin nc || { msg_error 'missing dep: nc'; return 3 ;}
+tb() (
+    is_bin nc || { command_not_found_handle nc; return $? ;}
     _url="$(cat "${1:-/dev/stdin}" | nc termbin.com 9999 | tr -d '\0')"
     [ -z "$_url" ] && { msg_error 'connection error'; return 3 ;}
     printf '%s\n' "$_url"
     [ -n "$DISPLAY" ] && is_bin xclip && printf '%s' "$_url" | xclip
-    unset _url
-}
+)
 
 tempcp() {
     mkdir -p "$TMPDIR/temp"
@@ -285,18 +295,16 @@ termset() {
     fi
 }
 
-thesaurus() {
+thesaurus() (
     _dict="$ULIB/dict/mthesaur.txt"
-    [ -f "$_dict" ] || { msg_error "thesaurus not found: $_dict" && return 3 ;}
-    (($#)) || { unset _dict; return ;}
+    [ -f "$_dict" ] || { msg_error "$_dict: no such file" && return 3 ;}
+    (($#)) || return
     grep "^$1," "$_dict" | sed 's/,/\n/g' | column
-    unset _dict
-}
+)
 
 titleset() { [ -n "$1" ] && printf '\033]0;%s\007' "$*" ;}
 
 uvim() {
-    is_bin vim || { msg_error 'missing dep: vim'; return 3 ;}
     if [ -f "$UDIR/.user/.vim/.uvim" ]; then
         vim -c "source $UDIR/.user/.vim/.uvim" "$@"
     else
@@ -304,13 +312,9 @@ uvim() {
     fi
 }
 
-usudo() {
-    is_bin sudo || { msg_error 'missing dep: sudo'; return 3 ;}
-    command sudo -E env "PATH=$PATH" "$@"
-}
+usudo() { command sudo -E env "PATH=$PATH" "$@" ;}
 
 xclip() {
-    is_bin xclip || { msg_error 'missing dep: xclip'; return 3 ;}
     [ -z "$DISPLAY" ] && { msg_error 'no display'; return 3 ;}
     command xclip -sel clipboard "$@"
 }

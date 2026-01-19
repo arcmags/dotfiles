@@ -25,7 +25,7 @@ set_from_resource $ui0 i3wm.color12
 set_from_resource $ui1 i3wm.color10
 
 ## setting ::
-$exec command -v >/dev/null 2>&1 && picom -b
+$exec command -v picom >/dev/null 2>&1 && picom -b
 $exec_always [ -f "$HOME/.config/i3/wallpaper.bash" ] && "$HOME/.config/i3/wallpaper.bash"
 
 # bar:
@@ -55,6 +55,7 @@ client.focused          $bg1    $bg1    $ui1    $ui0    $ui0
 client.focused_inactive $bg1    $bg1    $ui1    $bg1    $bg1
 client.unfocused        $bg1    $bg1    $fg0    $bg1    $bg1
 client.urgent           $bg1    $ui0    $ui1    $ui0    $ui0
+client.placeholder      $bg1    $bg0    $fg0    $fg0    $fg0
 
 # font:
 font pango:$font $size
@@ -66,7 +67,7 @@ focus_follows_mouse no
 # windows:
 for_window [class="(?i)^(cropgtk.py|cropgui)$"] floating enable
 for_window [class="(?i)^file-roller$"] floating enable
-for_window [class=".*mpv$"] floating enable, move position center
+for_window [class="(.*mpv|ffplay)$"] floating enable, move position center
 for_window [class="^(feh|imv|Sxiv|Eog).*"] floating enable, resize set 96 ppt 96 ppt, move position center
 for_window [class="^Pinentry$"] floating enable, move position center
 for_window [class="^Thunar$" title="^New Empty File...$"] floating enable
@@ -84,6 +85,7 @@ for_window [title="^xterm_float_sm$"] floating enable, resize set 960 96, move p
 bindsym $mod+semicolon $exec $xterm
 bindsym $mod+apostrophe $exec $xterm_float_sm
 bindsym $mod+shift+apostrophe $exec $xterm_float
+bindsym $mod+shift+semicolon $exec $xterm_float
 bindsym $mod+backslash split h; append_layout ~/.config/i3/json/term_1.json; \
     $exec $xterm; $exec $xterm; \
     $exec $xterm; $exec $xterm
@@ -133,14 +135,19 @@ bindsym $mod+shift+b $exec \
         i3-msg border none; \
     fi"
 
-# toggle window float:
-bindsym $mod+o floating toggle
+# toggle floating/tiled window focus:
+bindsym $mod+o focus mode_toggle
 
-# float next window:
-bindsym $mod+shift+o append_layout ~/.config/i3/json/float.json; [con_mark="float"] focus; move position center; unmark
+# toggle window float:
+bindsym $mod+Shift+o floating toggle
+
+# create placeholder window:
+#bindsym $mod+u append_layout ~/.config/i3/json/placeholder.json; [con_mark="placeholder"] focus; move position center; floating toggle; unmark
+# create floating placeholder window:
+bindsym $mod+Shift+u append_layout ~/.config/i3/json/placeholder.json; [con_mark="placeholder"] focus; move position center; unmark
 
 # open blank window:
-bindsym $mod+shift+p open
+bindsym $mod+Shift+BackSpace open
 
 # toggle window fullscreen:
 bindsym $mod+f fullscreen toggle
@@ -149,9 +156,6 @@ bindsym $mod+f fullscreen toggle
 bindsym $mod+s split v
 bindsym $mod+v split h
 bindsym $mod+t layout toggle tabbed split
-
-# toggle floating/tiled window focus:
-bindsym $mod+i focus mode_toggle
 
 # focus next output:
 bindsym $mod+m focus output right, focus output down

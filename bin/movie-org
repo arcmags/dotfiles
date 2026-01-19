@@ -1,0 +1,377 @@
+#!/bin/bash
+## movie-org ::
+# shellcheck disable=SC2034
+
+[[ $0 != ${BASH_SOURCE[0]} ]] && return 0
+print_help() { cat <<'HELPDOC'
+Usage:
+  movie-org [option...] [arg...]
+
+Organize movie files and download metadata.
+
+movie-org searches omdb (Open Movie Database) for movie metadata, attempts
+to download poster art and create a thumbnail image, creates a new movie
+directory, and moves/renames all movie files to new directory.
+
+Options:
+  -o, --out             output directory
+  -M, --nocolor         disable colored output
+  -V, --verbose         print more verbose information
+  -H, --help            print help and exit
+
+Environment:
+  EDITOR        editor to open subtitles in
+  NO_COLOR      disable colored output
+  VERBOSE       run verbosely
+HELPDOC
+exit "${1:-0}" ;}; [[ $1 =~ ^(-H|--help)$ ]] && print_help
+
+# TODO: manual metadata/tag writing (like vidir with yaml?)
+# TODO: redo with tmdb?
+# TODO: require arg?
+# TODO: rescan for subs option?
+# TODO: fix blank thumb issue
+
+## settings ::
+debug=0 nocolor=0 quiet=0 verbose=0
+dir_out=.
+dirs_subs=(Subs subs .) exts_subs=(.srt .eng.srt .en.srt)
+editor="${EDITOR:-vim}"
+edit_subs=1
+file_omdbkey="$HOME/.config/omdb/apikey.txt"
+format_date='%F_%H%M%S'
+height_thumb=500
+quality_thumb=84
+poster_min_h=1500
+poster_min_w=1000
+jq_json='del(.Response,.DVD,.Type,.Production,.Website,.BoxOffice,.Poster)'
+jq_txt='"\(.Title) (\(.Year))\n\n\(.Plot)\n\n\(.Runtime) - \(.Rated) - \(.Genre)'
+jq_txt+='\n\(.Director) - \(.Writer)\n\(.Actors)"'
+
+## internal functions/variables ::
+readonly -a args=("$@"); args_options=() args_positionals=()
+readonly -a deps=("$editor" curl date exiftool ffmpeg iconv identify img-upscale jq magick yq)
+readonly -a opts=(-o: --out: -M --nocolor -V --verbose -H --help)
+readonly -a cmd_iconv=(iconv -f utf-8 -t ascii//TRANSLIT) cmd_tr=(tr -cd 'A-Za-z0-9 ()')
+regex_video='.*\.(avi|mkv|mp4|mpeg|mpg|mov|webm)$'
+cmd_sed=(sed -E -e 's/([^ ^])([A-Z])/\1+\2/g' -e 's/\s*\([0-9]+\)$//')
+cmd_sed+=(-e 's/([^ 0-9^])([0-9])/\1 \2/g' -e 's/ /+/g')
+cmd_sed1=(sed -E 's/&/and/g')
+info=() files=() lines=() tmp_posters=()
+ans= arg= date= dir= file_subs= json= key_omdb= line= msg= name=
+sep= txt_info= txt_poster= url_poster=
+jq_arr='"\(.Title)\n\(.Year)\n\(.Plot)\n\(.Runtime)\n\(.Rated)\n\(.Genre)'
+jq_arr+='\n\(.Director)\n\(.Writer)\n\(.Actors)\n\(.imdbID)"'
+omdb=
+
+# colors, control sequences:
+readonly clear_line=$'\e[2K'
+black=$'\e[38;5;0m' blue=$'\e[38;5;12m' blue2=$'\e[38;5;4m' cyan=$'\e[38;5;14m'
+cyan2=$'\e[38;5;6m' green=$'\e[38;5;10m' green2=$'\e[38;5;2m' grey=$'\e[38;5;8m'
+magenta=$'\e[38;5;13m' magenta2=$'\e[38;5;5m' orange=$'\e[38;5;3m' red=$'\e[38;5;9m'
+red2=$'\e[38;5;1m' white=$'\e[38;5;15m' white2=$'\e[38;5;7m' yellow=$'\e[38;5;11m'
+bold=$'\e[1m' off=$'\e[0m'
+clear_colors() {
+    export NO_COLOR=1 nocolor=1
+    unset black blue blue2 cyan cyan2 green green2 grey magenta magenta2
+    unset orange red red2 white white2 yellow bold off
+}
+
+# messages:
+bin_printf() { printf "$@" ;}
+[[ -f /usr/bin/printf ]] && bin_printf() { /usr/bin/printf "$@" ;}
+msg() { printf "$bold$blue=> $off$white%s$off\n" "$*" ;}
+msg2() { printf "$bold$blue > $off$white%s$off\n" "$*" ;}
+msg2_warn() { printf "$bold${yellow} > $off$white%s$off\n" "$*" >&2 ;}
+msg_error() { printf "$bold${red}E: $off$white%s$off\n" "$*" >&2 ;}
+msg_good() { printf "$bold$green=> $off$white%s$off\n" "$*" ;}
+msg_plain() { printf "$off$white   %s$off\n" "$*" ;}
+msg_warn() { printf "$bold${yellow}W: $off$white%s$off\n" "$*" >&2 ;}
+msg_cmd() { [[ $EUID -eq 0 ]] && printf "$bold$red:#" || printf "$bold$blue:$"
+    printf "$off$white"; bin_printf ' %q' "$@"; printf "$off\n" ;}
+
+# utils:
+check_deps() {
+    local _dep= _deps=("${deps[@]}") _errs=(); (($#)) && _deps=("$@")
+    for _dep in "${_deps[@]}"; do is_cmd "$_dep" || _errs+=("$_dep"); done
+    ((${#_errs[@]})) && msg_error "missing deps: ${_errs[*]}"
+    return ${#_errs[@]}
+}
+check_internet() { ping -q -c1 -W2 google.com &>/dev/null ;}
+is_cmd() { command -v "$1" &>/dev/null ;}
+is_img() { [[ -f $1 ]] && identify "$1" &>/dev/null ;}
+is_port() { [[ $1 =~ ^[1-9][0-9]*$ && $1 -lt 65536 ]] ;}
+
+parse_args() {
+    local _a=0 _opt= _sflgs= _sopts= _arg="${args[0]}" _nobreak=0
+    local -a _lflgs=() _lopts=()
+    args_options=() args_positionals=()
+    [[ $1 == nobreak ]] && _nobreak=1
+    _eopt() { msg_error "unrecognized option: -${_arg:2:1}" ;}
+    _eoptarg() { msg_error "option requires an argument: $_arg" ;}
+    _eflg() { msg_error "option does not take argument: ${_arg%%=*}" ;}
+    for _opt in "${opts[@]}"; do case "$_opt" in
+        -?) _sflgs="$_sflgs${_opt:1}" ;;
+        -?:) _sopts="$_sopts${_opt:1:1}" ;;
+        *:) _lopts+=("${_opt:0:-1}") ;;
+        *) _lflgs+=("$_opt") ;;
+    esac; done
+    while [[ -n $_arg ]]; do case "$_arg" in
+        --) ((_a++)); break ;;
+        -[$_sflgs]) args_options+=("$_arg") ;;
+        -[$_sflgs]*) [[ ! $_sflgs$_sopts =~ ${_arg:2:1} ]] && { _eopt; return 3 ;}
+            args_options+=("${_arg:0:2}") _arg="-${_arg:2}"; continue ;;
+        -[$_sopts]) [[ $((${#args[@]}-_a)) -le 1 ]] && { _eoptarg; return 3 ;}
+            args_options+=("$_arg" "${args[((++_a))]}") ;;
+        -[$_sopts]*) args_options+=("${_arg:0:2}" "${_arg:2}") ;;
+        *=*) [[ " ${_lflgs[*]} " =~ " ${_arg%%=*} " ]] && { _eflg; return 3 ;}
+            [[ " ${_lopts[*]} " =~ " ${_arg%%=*} " ]] || break
+            args_options+=("${_arg%%=*}" "${_arg#*=}") ;;
+        *) if [[ " ${_lflgs[*]} " =~ " $_arg " ]]; then
+                args_options+=("$_arg")
+            elif [[ " ${_lopts[*]} " =~ " $_arg " ]]; then
+                [[ ${#args[@]} -le $((_a+1)) ]] && { _eoptarg; return 3 ;}
+                args_options+=("$_arg" "${args[((++_a))]}")
+            elif ((_nobreak)); then args_options+=("$_arg")
+            else break; fi ;;
+    esac; _arg="${args[((++_a))]}"; done
+    args_positionals+=("${args[@]:_a}")
+}
+
+# error, exit, trap, cleanup:
+error() { msg_error "$*"; exit 3 ;}
+trap_exit() { cleanup; ((debug)) && msg_warn '[exit]' ;}
+trap_int() { printf '\n'; ((debug)) && msg_warn '[sigint]'; exit 99 ;}
+
+cleanup() {
+    # delete tmp files and clear variables:
+    for tmp in "${tmp_posters[@]}" "$tmp_file" "$tmp_thumb"; do [[ -f "$tmp" ]] && rm "$tmp"; done
+    info=() tmp_posters=()
+    ans= cli_files= cli_info='[no response]' file_subs= json= msg= name=
+    omdb= tmp_file= tmp_thumb= txt_info= txt_info="$cli_info" url_poster=
+}
+
+## main ::
+trap trap_int INT
+trap trap_exit EXIT
+
+# set from env:
+[[ -n $DEBUG ]] && debug=1
+[[ -n $NO_COLOR || ! -t 1 || ! -t 2 ]] && clear_colors
+[[ -n $VERBOSE ]] && quiet=0 verbose=1
+
+# parse args:
+parse_args || exit
+set -- "${args_options[@]}"
+while [[ -n $1 ]]; do case "$1" in
+    -o|--out) shift; dir_out="$1" ;;
+    -V|--verbose) quiet=0 verbose=1 ;;
+    -M|--nocolor) clear_colors ;;
+    -h|-H|--help) print_help ;;
+esac; shift; done
+
+# check for errors:
+check_deps || exit
+[[ -z $file_omdbkey ]] && error "omdb api key file error"
+[[ -f $file_omdbkey ]] || error "$file_omdbkey: no such file"
+
+# read omdb api key from $file_omdbkey:
+key_omdb="$(sed -E '/^(\s*#.*|\s*)$/d' "$file_omdbkey" | head -n1)"
+
+# check internet:
+check_internet || error 'no internet'
+
+# set vars:
+readonly dash=" $bold$grey-$off "
+readonly comma="$bold$grey,$off "
+
+# search current directory in no positional args given:
+((${#args_positionals[@]})) || args_positionals=(.)
+
+# check if args are valid files:
+for arg in "${args_positionals[@]}"; do
+    if [[ -f $arg ]]; then
+        if [[ ${arg,,} =~ $regex_video ]]; then
+            files+=("$arg")
+        elif ((verbose)); then
+            msg2 "$arg: not a video file"
+        fi
+    elif [[ -d $arg ]]; then
+        # search directory for valid video file:
+        file="$(find "$arg" -maxdepth 1 -regextype egrep -iregex "$regex_video" | sort | head -n1)"
+        if [[ -n $file ]]; then
+            files+=("$file")
+        elif ((verbose)); then
+            msg2 "$arg: no video files found"
+        fi
+    elif ((verbose)); then
+        msg2 "$arg: file/directory does not exist"
+    fi
+done
+
+for file in "${files[@]}"; do
+    cleanup
+
+    # check for subtitles:
+    for dir in "${dirs_subs[@]}" "$(dirname "$file")"; do for ext in "${exts_subs[@]}"; do
+        [[ -f "$dir/${file%.*}$ext" ]] && file_subs="$dir/${file%.*}$ext"
+    done; done
+
+    # print status:
+    msg "$magenta${file##*/}"
+    [[ -n $file_subs ]] && msg2 "${file_subs##*/}"
+
+    # attempt to download movie info from omdb:
+    omdb="${file##*/}" omdb="${omdb%.*}"
+
+    # TODO: make array of possible matches, iterate search over them:
+    json="$(curl -s "http://www.omdbapi.com/?t=$omdb&apikey=$key_omdb" | jq)"
+    if [[ -z $json || $(jq -r '.Response' <<<"$json") == False ]]; then
+        omdb="$(printf '%s' "$omdb" | "${cmd_sed[@]}")"
+        json="$(curl -s "http://www.omdbapi.com/?t=$omdb&apikey=$key_omdb" | jq)"
+        if [[ -z $json || $(jq -r '.Response' <<<"$json") == False ]]; then
+            ((verbose)) && msg2 'failed to find metadata automatically'
+            json=
+        fi
+    fi
+
+    ans=n
+    while [[ $ans == n ]]; do
+        # prompt for omdb search term, download json from omdb:
+        if [[ -z $json ]]; then
+            read -erp "$bold$green:$off${white} omdb: $off" omdb
+            # query imdbid (number only):
+            if [[ $omdb =~ ^[0-9]+$ ]]; then
+                json="$(curl -s "http://www.omdbapi.com/?i=tt$omdb&apikey=$key_omdb")"
+            # query imdbid (tt prefix):
+            elif [[ $omdb =~ ^tt[0-9]+$ ]]; then
+                json="$(curl -s "http://www.omdbapi.com/?i=$omdb&apikey=$key_omdb")"
+            # query title and year:
+            elif [[ $omdb =~ ^(.*)\ +\(?([12][0-9][0-9][0-9])\)?$ ]]; then
+                omdb_title="${BASH_REMATCH[1]}" omdb_title="${omdb_title// /+}"
+                omdb_year="${BASH_REMATCH[2]}"
+                json="$(curl -s "http://www.omdbapi.com/?t=$omdb_title&y=$omdb_year&apikey=$key_omdb")"
+            # query title:
+            else
+                omdb_title="${omdb// /+}"
+                json="$(curl -s "http://www.omdbapi.com/?t=$omdb_title&apikey=$key_omdb")"
+            fi
+            jq &>/dev/null <<<"$json" || json=
+        fi
+
+        # parse json:
+        info=() cli_info='[no response]' txt_info="$cli_info"
+        if [[ -n $json && $(jq -r '.Response' <<<"$json") == True ]]; then
+            # get poster url:
+            url_poster="$(jq -r '.Poster' <<<"$json")"
+            # delete unwanted keys, add Updated key:
+            [[ -n $format_date ]] && date="$(date +"$format_date")" || date="$(date)"
+            json="$(jq "$jq_json + {Updated: \"$date\"}" <<<"$json")"
+            # parse json into short, human readable text:
+            txt_info="$(jq -r "$jq_txt" <<<"$json")"
+            # print formatted info text:
+            mapfile -t info < <(jq -r "$jq_arr" <<<"$json")
+            cli_info="  $bold$green${info[0]} $blue(${info[1]})"
+            cli_info+=" $grey[$off$grey${info[9]}$bold]$off$white\n"
+            while read t; do cli_info+="  $t\n"; done < <(fold -s -w $((COLUMNS-4)) <<<"${info[2]}")
+            cli_info+="  $orange${info[3]}$dash$red${info[4]}$dash$yellow"
+            cli_info+="$(sed "s/, /$comma$yellow/g" <<<"${info[5]}")\n  $cyan${info[6]}$dash$cyan2"
+            cli_info+="$(sed "s/, /$comma$cyan2/g" <<<"${info[7]}")\n  $blue"
+            cli_info+="$(sed "s/, /$comma$blue/g" <<<"${info[8]}")"
+        fi
+        printf "$cli_info\n"
+
+        # prompt to keep, retry, skip, quit:
+        read -rsn1 -p "$bold$green::$off${white} keep? [Y/n/s/q] $off" ans
+        ans="${ans,,}"
+        if [[ -z $ans || $ans == y ]]; then
+            name="$("${cmd_sed1[@]}" <<<"${info[0]} (${info[1]})" | "${cmd_iconv[@]}" | "${cmd_tr[@]}")"
+            ans=y; printf 'yes\n'
+        elif [[ $ans == n ]]; then
+            name= json= txt_info=; printf 'no/retry\n'
+        elif [[ $ans == r ]]; then
+            name= json= txt_info=; printf 'no/retry\n'
+        elif [[ $ans == s ]]; then
+            name= json= txt_info=; printf 'skip\n'; break
+        elif [[ $ans == q ]]; then
+            printf 'quit\n'; exit
+        else
+            ans=n name= json= txt_info=; printf 'no\n'
+    fi; done
+
+    [[ -n $json ]] && ((verbose)) && msg2 "[json]: info parsed"
+    [[ -n $txt_info ]] && ((verbose)) && msg2 "[text]: info parsed"
+
+    # prompt for movie name (year):
+    read -eri "$name" -p "$bold$green:$off${white} name (year): $off" name
+    # skip: movie name is blank:
+    [[ -z $name ]] && { msg_warn "$file: skipped"; continue ;}
+    # skip: movie name directory already exists:
+    [[ -d $name ]] && { msg_warn "$name/: already exists"; continue ;}
+
+    # open subtitle file in editor, delete if saved empty:
+    if [[ -n $file_subs ]]; then
+        if ((edit_subs)); then
+            "$editor" "$file_subs"
+            [[ -s "$file_subs" ]] || { rm "$file_subs"; file_subs= ;}
+    fi; fi
+
+    # download poster:
+    [[ $url_poster =~ ^(.*media-amazon.*SX)300\.jpg ]] && url_poster="${BASH_REMATCH[1]}2000.jpg"
+    if [[ -n $url_poster ]]; then
+        tmp_posters=("$(mktemp -t XXX.jpg)")
+        tmp_thumb="$(mktemp -t XXX.jpg)"
+        if curl -s -o "${tmp_posters[0]}" "$url_poster" && identify "${tmp_posters[0]}" &>/dev/null; then
+            ((verbose)) && msg2 "${tmp_posters[0]}: poster found"
+            # convert poster to jpg:
+            if [[ ! $(file --mime-type "${tmp_posters[0]}") =~ image/jpeg ]]; then
+                tmp_posters+=("$(mktemp -t XXX.jpg)")
+                magick "${tmp_posters[0]}" "${tmp_posters[1]}" &&
+                mv "${tmp_posters[1]}" "${tmp_posters[0]}" &&
+                ((verbose)) && msg2 "${tmp_posters[0]}: poster converted to jpeg"
+            fi
+            # upscale poster:
+            wxh="$(identify -format '%wx%h' "${tmp_posters[0]}")"
+            if [[ ${wxh%x*} -lt $poster_min_w || ${wxh#*x} -lt $poster_min_h ]]; then
+                img-upscale -Q "${tmp_posters[0]}" &&
+                mv "${tmp_posters[0]%.*}_u"* "${tmp_posters[0]}" &&
+                ((verbose)) && msg2 "${tmp_posters[0]}: poster upscaled"
+            fi
+            # TODO: don't create if no poster
+            # create thumbnail:
+            magick "${tmp_posters[0]}" -scale "x$height_thumb" -quality "$quality_thumb" "$tmp_thumb" &&
+            ((verbose)) && msg2 "$tmp_thumb: thumbnail created"
+            # remove image metadata:
+            exiftool -overwrite_original -m -q -all= "${tmp_posters[0]}" "$tmp_thumb" &>/dev/null
+        else
+            rm "${tmp_posters[0]}"; tmp_posters=()
+    fi; fi
+
+    # prompt to create directory, move files, write info:
+    dir="$dir_out/$name"; [[ $dir =~ ^\./+(.*) ]] && dir="${BASH_REMATCH[1]}"
+    cli_files="  $magenta$name.${file##*.}$off\n"
+    [[ -n $file_subs ]] && cli_files+="  $white$name.en.srt$off\n"
+    [[ -n $json ]] && cli_files+="  $white$name.info.json\n  $name.info.txt$off\n"
+    if [[ -f ${tmp_posters[0]} ]]; then
+        cli_files+="  $cyan$name.poster.jpg $grey$(identify -format '[%wx%h]' "${tmp_posters[0]}")\n"
+        cli_files+="  $cyan$name.thumb.jpg $grey$(identify -format '[%wx%h]' "$tmp_thumb")$off\n"
+    fi
+    printf "$cli_files"
+    ans=y
+    read -rsn1 -p "$bold$green::$off${white} move files? [Y/n] $off" ans
+    ans="${ans,,}"
+    if [[ -z $ans || $ans == y ]]; then
+        printf 'yes\n'
+        mkdir -p "$dir"
+        mv "$file" "$dir/$name.${file##*.}"
+        [[ -n $file_subs ]] && mv "$file_subs" "$dir/$name.en.srt"
+        [[ -n $json ]] && printf '%s\n' "$json" > "$dir/$name.info.json"
+        [[ -n $txt_info ]] && printf '%s\n' "$txt_info" > "$dir/$name.info.txt"
+        [[ -f ${tmp_posters[0]} ]] && mv "${tmp_posters[0]}" "$dir/$name.poster.jpg"
+        [[ -f $tmp_thumb ]] && mv "$tmp_thumb" "$dir/$name.thumb.jpg"
+    else
+        printf 'no\n'
+    fi
+done
+
+# vim:ft=bash

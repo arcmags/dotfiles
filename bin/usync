@@ -35,7 +35,7 @@ Options:
   -N, --nodelete            don't use rsync --delete option
   -Q, --quiet               print nothing to stdout
   -V, --verbose             print more verbose information
-  -H, -h, --help            print help text
+  -H, --help                print help text
 
 Configuration:
   delete        use rsync --delete option (default: true)
@@ -72,7 +72,7 @@ readonly -a opts=(
     init pull push
     -c: --config: -d: --dir: -e: --exclude: -p: --port: -r: --remote:
     -s: --source: -u: --user: -D --dryrun -N --nodelete
-    -H -h --help -M --nocolor -Q --quiet -V --verbose)
+    -H --help -M --nocolor -Q --quiet -V --verbose)
 args_options=() args_positionals=()
 declare opt_dir opt_port opt_remote opt_user opt_exclude=() opt_source=()
 dir= port= remote= user= exclude=() source=()
@@ -221,7 +221,7 @@ while [[ -n "$1" ]]; do case "$1" in
     -Q|--quiet) quiet=1; verbose=0 ;;
     -V|--verbose) quiet=0; verbose=1 ;;
     -M|--nocolor) nocolor=1; clear_colors ;;
-    -H|-h|--help) print_help; exit 0 ;;
+    -H|--help) print_help; exit 0 ;;
 esac; shift; done
 
 # check for errors:
@@ -270,10 +270,13 @@ if ((init)); then
     [[ -z "$opt_port" ]] && conf_txt+='#'; conf_txt+="port: $opt_port\n"
     [[ -z "$opt_user" ]] && conf_txt+='#'; conf_txt+="user: $opt_user\n"
     conf_txt+='\n# vim:ft=yaml'
-    ((dryrun)) || printf "$conf_txt\n" > "$conf"
-    msg "usync config created: $conf"
     ((verbose)) && printf "$conf_txt\n"
-    ((dryrun)) && msg_warn 'dryrun'
+    if ((dryrun)); then
+        msg_warn 'dryrun'
+    else
+        printf "$conf_txt\n" > "$conf"
+        msg "usync config created: $conf"
+    fi
     exit 0
 fi
 

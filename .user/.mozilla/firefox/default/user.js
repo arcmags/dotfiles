@@ -21,6 +21,7 @@ user_pref("datareporting.healthreport.uploadEnabled", false);
 user_pref("datareporting.usage.uploadEnabled", false);
 user_pref("font.size.variable.x-western", 14);
 user_pref("layout.testing.overlay-scrollbars.always-visible", true);
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 user_pref("widget.gtk.overlay-scrollbars.enabled", false);
 user_pref("widget.non-native-theme.scrollbar.size.override", 16);
 user_pref("widget.non-native-theme.scrollbar.style", 4);

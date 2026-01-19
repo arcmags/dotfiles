@@ -13,7 +13,7 @@ COMMANDS                                                *srt-commands*
                 blank subtitles, renumber all subtitles.
 
                 Optionally convert file to unix, change encoding to utf-8,
-                replace tabs with spaces, and remove font colors.
+                replace tabs with spaces, and remove various formatting tags.
 
                                                         *:SRTNumber*
 :SRTNumber      Renumber subtitles.
@@ -32,7 +32,7 @@ COMMANDS                                                *srt-commands*
                 If [!] is specified, the skew function is calculated using
                 {timecode1} and {timecode2} as video times, not subtitle times.
 
-:[range]SRTToAscii                                      *:SRTToAscii*
+:[range]TextToAscii                                     *:TextToAscii*
                 Convert lines in [range] to ASCII with transliteration.
                 Requires external iconv command.
 
@@ -44,14 +44,20 @@ MAPS                                                    *srt-maps*
 
 SETTINGS                                                *srt-settings*
 
-*g:srt_colors*    Remove font colors wth :SRTClean.  default: true
+*g:srt_maps*                Create default mappings.  default: true
 
-*g:srt_maps*      Create default mappings.  default: true
+SRTClean Settings ~
 
-*g:srt_tabs*      Keep tabs with :SRTClean.  default: false
+*g:srt_clear_alignment*     Remove alignment tags.  default: true
 
-*g:srt_unix*      Convert file to unix with :SRTClean.  default: true
+*g:srt_clear_bold*          Remove bold tags.  default: true
 
-*g:srt_utf8*      Set encoding to utf-8 with :SRTClean.  default: true
+*g:srt_clear_font*          Remove font tags.  default: true
+
+*g:srt_clear_italic*        Remove italic tags.  default: false
+
+*g:srt_to_unix*             Convert file to unix.  default: true
+
+*g:srt_to_utf8*             Set encoding to utf-8.  default: true
 
  vim:ts=4:et:ft=help:

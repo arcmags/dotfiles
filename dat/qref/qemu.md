@@ -4,43 +4,53 @@
 
 Create image:
 
-    # qemu-img create -f raw <IMAGE_FILE> <SIZE>G
+    # qemu-img create -f raw <image_file> <size>G
 
-Boot image and install iso:
+Boot install iso with drive image loaded:
 
-    # qemu-system-x86_64 -cdrom <ISO_FILE> -boot order=d -m 4G -drive file=<IMAGE_FILE>,format=raw
+    # qemu-system-x86_64 -cdrom <iso_file> -boot order=d -m 4G -drive file=<image_file>,format=raw
 
-Boot image:
+Boot drive image:
 
-    # qemu-system-x86_64 -m 4G -drive file=<IMAGE_FILE>,format=raw
+    # qemu-system-x86_64 -m 4G -drive file=<image_file>,format=raw
+
+Boot usb:
+
+    # qemu-system-x86_64 -m 4G -drive file=</dev/sdx>
 
 ## Options
 
-    -vga virtio
+`-vga virtio`
+: Use Virtio VGA card. Allows display resizing.
 
-        Use Virtio VGA card.  Allows display resizing.
-        2023-12-30: broken, see https://gitlab.com/qemu-project/qemu/-/issues/2051
+`-enable-kvm`
+: Start QEMU in KVM mode.
 
-    -enable-kvm
+`-m <memory>G`
+: Set machine RAM size.
 
-        Start QEMU in KVM mode.
-
-    -m <MEMORY>G
-
-        Set machine RAM size.
-
-    -display gtk,show-cursor=yes
-
-        GTK display window, always show the mouse cursor.
+`-display gtk,show-cursor=yes`
+: Enable GTK display window, always show the mouse cursor.
 
 ## GUI Control
 
-    C-M-g   release focus
-    C-M-q   quit (WARNING: equal to pulling plug, be careful mashing hotkeys!)
-    C-M-1   show guest operating system
-    C-M-2   show qemu monitor
-    C-M-f   fullscreen
-    C-M-m   toggle menubar
+`<c-m-g>`
+: release focus
+
+`<c-m-q>`
+: quit (warning: equal to pulling plug)
+
+`<c-m-1>`
+: show guest operating system
+
+`<c-m-2>`
+: show qemu monitor
+
+`<c-m-f>`
+: fullscreen
+
+`<c-m-m>`
+: toggle menubar
 
 ## networking
 
@@ -63,7 +73,7 @@ network manager). Then add the bridge to */etc/qemu/bridge.conf*:
 
     allow br0
 
-Use qemu option with root privileges:
+Use qemu option:
 
     -nic bridge,model=virtio-net-pci
 

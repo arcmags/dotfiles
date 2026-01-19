@@ -149,6 +149,7 @@ noremap! <m-w> <s-right>
 cnoremap <c-j> <down>
 cnoremap <c-k> <up>
 cnoremap <expr> <m-y> repeat("\<right>\<bs>", len(getcmdline()) - getcmdpos() + 1)
+cnoremap <m-k> <c-k>
 cnoremap <m-t> <c-u>
 cnoremap <m-v> <c-q>
 
@@ -170,7 +171,7 @@ nnoremap <leader>E <cmd>exec 'FZF ' .. g:UDIR<cr><cmd>redraw!<cr>
 
 # modes:
 nnoremap <leader><c-w> <scriptcmd>WinMode()<cr>
-nnoremap <leader>wQ Q
+nnoremap <leader>Q Q
 nnoremap R gR
 nnoremap gR R
 
@@ -186,8 +187,11 @@ tnoremap <c-w><c-;> <scriptcmd>TermBuf()<cr>
 
 # make:
 nnoremap <leader>m <cmd>update<cr><cmd>sil lmake<cr><cmd>redraw!<cr>
+noremap <f2> <esc><cmd>update<cr><cmd>sil lmake<cr><cmd>redraw!<cr>
+noremap! <f2> <esc><cmd>update<cr><cmd>sil lmake<cr><cmd>redraw!<cr>
 
 # make/quickfix:
+# TODO: f prefix instead of q?
 nnoremap <expr> <leader>qg '<cmd>cc ' .. (v:count > 0 ? v:count : '') .. '<cr>'
 nnoremap [Q <cmd>cfirst<cr>
 nnoremap ]Q <cmd>clast<cr>
@@ -229,8 +233,11 @@ tnoremap <c-w>e <cmd>enew<bar>Explore<cr>
 tnoremap <expr> <c-w>E '<cmd>Explore<cr><cmd>BufWipe! ' .. bufnr() .. '<cr>'
 
 # remove trailing whitespace and leading/trailing blank lines, save buffer if modified:
-noremap <c-s> <esc><scriptcmd>TextTrim()<cr><cmd>update<cr>
-noremap! <c-s> <esc><scriptcmd>TextTrim()<cr><cmd>update<cr>
+noremap <leader>s <esc><scriptcmd>Write()<cr>
+noremap <c-s> <esc><scriptcmd>Write()<cr>
+noremap! <c-s> <esc><scriptcmd>Write()<cr>
+noremap <f1> <esc><scriptcmd>Write()<cr>
+noremap! <f1> <esc><scriptcmd>Write()<cr>
 
 # show alternate buffer in current window:
 nnoremap <c-w><c-u> <cmd>sil! b#<cr>
@@ -299,6 +306,8 @@ tnoremap <expr> <c-w>q '<cmd>' .. (winnr('$') > 1 ? 'clo!' : (tabpagenr('$') > 1
 ## mappings: tabs ::
 nnoremap <c-w><c-t> <cmd>tab split<cr>
 nnoremap <c-w>t <cmd>tab split<cr>
+#nnoremap <c-j> gt
+#nnoremap <c-k> gT
 nnoremap [t gT
 nnoremap ]t gt
 nnoremap [T 1gt
@@ -309,6 +318,8 @@ tnoremap <c-w>t <cmd>tab split<cr>
 # move tab:
 nnoremap <c-w>Gt <scriptcmd>TabMove()<cr>
 nnoremap <c-w>GT <scriptcmd>TabMove('-')<cr>
+nnoremap g<c-j> <scriptcmd>TabMove()<cr>
+nnoremap g<c-k> <scriptcmd>TabMove('-')<cr>
 
 ## mappings: search ::
 nnoremap <leader>/A /[^ -~]<cr>
@@ -330,7 +341,7 @@ nnoremap <leader>Fa <scriptcmd>TextToAscii('n', 1, line('$'))<cr>
 nnoremap <leader>Fj <scriptcmd>TextJoinBlankLines()<cr>
 
 # convert all tabs to spaces, use &tabstop for width calculation:
-nnoremap <leader>Fs <cmd>setl et<bar>retab<cr>
+nnoremap <leader>F<space> <cmd>setl et<bar>retab<cr>
 
 # remove trailing whitespace and leading/trailing blank lines:
 nnoremap <leader>ft mz<cmd>keepp s/\s\s\+/ /ge<bar>keepp s/\s$//ge<cr>`z
@@ -342,12 +353,12 @@ nnoremap <leader>FT <scriptcmd>TextTrim('!')<cr>
 nnoremap <leader>Fu <scriptcmd>TextToUnix()<cr>
 
 # sort lines:
-nnoremap <leader>S mzvip<esc><cmd>'<,'>sort l<cr>`z
-vnoremap <leader>S <esc><cmd>'<,'>sort l<cr>
+nnoremap <leader>fS mzvip<esc><cmd>'<,'>sort l<cr>`z
+vnoremap <leader>fS <esc><cmd>'<,'>sort l<cr>
 
 # sort lines starting from first alphanumeric character:
-nnoremap <leader>s mzvip<esc><cmd>'<,'>sort l /^[^A-Za-z0-9]*/<cr>`z
-vnoremap <leader>s <esc><cmd>'<,'>sort l /^[^a-za-z0-9]*/<cr>
+nnoremap <leader>fs mzvip<esc><cmd>'<,'>sort l /^[^A-Za-z0-9]*/<cr>`z
+vnoremap <leader>fs <esc><cmd>'<,'>sort l /^[^a-za-z0-9]*/<cr>
 
 # join lines:
 nnoremap <leader>J vipJ
@@ -627,7 +638,7 @@ def BufWipe(bang = '', args = [])
     for buf in bufs
         if !bufexists(buf) | continue | endif
         if empty(bang) && getbufvar(buf, '&modified')
-            Msg('E: unsaved buffer modified: ' .. bufname(buf)) | continue
+            Msg('E: ' .. bufname(buf) .. ': unsaved buffer modified') | continue
         endif
         for tab in range(1, tabpagenr('$'))
             for win in filter(range(1, winnr('$')), 'winbufnr(v:val) == ' .. buf)
@@ -652,7 +663,7 @@ def BufWipeHidden(bang = '')
         if getbufvar(buf, '&buftype') == 'terminal'
             exec 'bwipeout! ' .. buf
         elseif empty(bang) && getbufvar(buf, '&modified')
-            Msg('E: unsaved buffer modified: ' .. buf)
+            Msg('E: ' .. buf .. ': unsaved buffer modified') | continue
         else
             exec 'bwipeout' .. bang .. ' ' .. buf
         endif
@@ -1060,13 +1071,20 @@ enddef
 
 def Write(bang = '')
     call TextTrim()
-    if ! &modified | return | endif
-    if bang == '!'
-        exec "silent w !sudo tee > /dev/null %"
-        edit!
-    else
-        silent update
+    if &modified
+        if bang == '!'
+            if executable('sudo')
+                exec "silent w !sudo tee > /dev/null %"
+                edit!
+            else
+                Msg('E: sudo not found')
+            endif
+        else
+            silent update
+        endif
     endif
 enddef
+
+# TODO: spell mode
 
 defcompile

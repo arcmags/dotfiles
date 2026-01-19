@@ -35,7 +35,7 @@ ffmpeg_caption-delogo-fade() {
 }
 
 # Remove all metadata/tags from  all formats:
-#   $  ffmpeg_metadata-clear <FILES>
+#   $ ffmpeg_metadata-clear <FILES>
 ffmpeg_metadata-clear() {
     for arg in "$@"; do
         file_ext="${arg##*.}"
@@ -45,6 +45,18 @@ ffmpeg_metadata-clear() {
         rm "$arg" &&
         mv "$tmp_file" "$arg"
     done
+}
+
+ffmpeg_metadata-set() {
+    local file="$1"; shift
+    local file_base="${file%.*}"
+    local file_ext="${file##*.}"
+    local tmp_file="$(mktemp -t "XXXX.$file_ext")"
+    local cmd_ffmpeg=(ffmpeg -loglevel 8 -i "$file" -map_chapters -1 -map_metadata -1 -c:a copy -c:v copy
+        -fflags +bitexact -flags:a +bitexact -flags:v +bitexact)
+    while [[ -n $1 ]]; do cmd_ffmpeg+=(-metadata "$1"); shift; done
+    cmd_ffmpeg+=("$tmp_file")
+    "${cmd_ffmpeg[@]}" && mv "$file" "$file_base.org.$file_ext" && cp "$tmp_file" "$file" && rm "$tmp_file"
 }
 
 ffmpeg_srt-add() {

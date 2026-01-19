@@ -44,14 +44,18 @@ text-gen() {
 }
 
 ## commands ::
-anon-reload() { source "$ADIR/.anonrc"; }
+anon-reload() { reload; source "$ADIR/.anonrc"; }
 anon-update() {
     cd "$ADIR"
-    mkdir -p "$ADIR/bin" "$ADIR/img" "$ADIR/.config"
+    mkdir -p "$ADIR/.config" "$ADIR/bin" "$ADIR/img" "$ADIR/vid"
     cp "$UDIR/dat/bash/.anonrc" "$ADIR"
     cp "$UDIR/dat/bash/gdl" "$UDIR/dat/bash/vdl" "$ADIR/bin"
-    [[ -f "$ADIR/.config/text-gen.yml" ]] || cp "$UDIR/.user/.config/text-gen.yml" "$ADIR/.config"
+    [[ -f "$UDIR/.config/text-gen.yml" ]] || cp "$UDIR/.user/.config/text-gen.yml" "$ADIR/.config"
+    reload
     source "$ADIR/.anonrc"
 }
+
+## sources ::
+[[ -f "$UDIR/dat/bash/img-tools.bash" ]] && source "$UDIR/dat/bash/img-tools.bash"
 
 # vim:ft=bash

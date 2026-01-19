@@ -30,7 +30,7 @@ if [[ $(xrandr | grep -c ' connected ') -gt 1 ]]; then
     else
         img_tmp="$(mktemp -t "XXX.${img##*.}")"
         magick "$img" -flop "$img_tmp"
-        feh --bg-fill "$img_tmp" "$img"
+        feh --bg-fill "$img" "$img_tmp"
         rm "$img_tmp"
     fi
 else

@@ -1,14 +1,15 @@
 #!/bin/bash
 ## dl-watch ::
 
-[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+[[ $0 != ${BASH_SOURCE[0]} ]] && return 0
 print_help() { cat <<'HELPDOC'
 Usage:
-  dl-watch [option...] [<dir>]
+  dl-watch [option...] [dir]
 
 dlwatch is an inotify wrapper script that renames newly created files in a
-watched directory. File checksums are logged, and duplicate files are skipped.
-New unique files are sequentially numbered and moved to the output directory.
+watched directory (current directory if not given). File checksums are logged,
+and duplicate files are skipped. New unique files are sequentially numbered and
+moved to the output directory.
 
 Options:
   -l, --log <name>      checksum log filename (default: dl-watch.log)

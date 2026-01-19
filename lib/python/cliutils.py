@@ -134,6 +134,7 @@ class Message:
     """
 
     def __init__(self, nocolor=False) -> None:
+        self.clearline = '\033[2K'
         if not sys.stdout.isatty() or not sys.stderr.isatty() or get_env_bool('NO_COLOR'):
             self.nocolor = True
         else:
@@ -202,6 +203,11 @@ class Message:
         """Print warning  message."""
         print(f'{self.bold}{self.yellow}W: {self.off}{self.white}{to_str(
               *args)}{self.off}', end=end, flush=True, file=sys.stderr)
+
+    def input(self, *args, end=' ') -> str:
+        """Print prompt message, return reply."""
+        if (prompt := to_str(*args)) != '': prompt += end
+        return input(f'{self.green}: {self.white}{prompt}{self.off}')
 
 
 class HelpFormatter(argparse.RawDescriptionHelpFormatter):

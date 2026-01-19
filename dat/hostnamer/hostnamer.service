@@ -1,3 +1,5 @@
+## /etc/systemd/system/hostnamer.service ::
+
 [Unit]
 Description=Hostname Setting Service
 Before=network-pre.target
@@ -10,3 +12,5 @@ ExecStart=/usr/local/bin/hostnamer
 
 [Install]
 WantedBy=multi-user.target
+
+# vim: ft=systemd

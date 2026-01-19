@@ -10,16 +10,16 @@ import subprocess
 dir_dl = '/tmp/in'
 cmd_xterm = ['xterm', '-T', 'xterm_float', '-e']
 
-def bind_hint(key, command):
+def bind_hint(key, command) -> None:
     config.bind(',' + key, command)
     config.bind(key, command, mode='hint')
 
-def hex_to_rgba(hex, alpha):
+def hex_to_rgba(hex, alpha) -> str:
     hex = hex.strip('#')
     return 'rgba(' + str(int('0x' + hex[0:2], 0)) + ',' + str(int('0x' + \
         hex[2:4], 0)) + ',' + str(int('0x' + hex[4:6], 0)) + ',' + str(alpha) + ')'
 
-def read_xresources(prefix):
+def read_xresources(prefix) -> dict:
     xresources = {}
     output = subprocess.run(['xrdb', '-query'], stdout=subprocess.PIPE)
     lines = output.stdout.decode().split('\n')
@@ -380,6 +380,7 @@ c.url.searchengines = {
     'g': 'https://google.com/search?q={}',
     'gh': 'https://github.com/search?q={}',
     'imdb': 'https://www.imdb.com/find?q={}',
+    'img': 'https://www.bing.com/images/search?qft=+filterui:imagesize-wallpaper&q={}',
     'irc': 'https://netsplit.de/channels/?chat={}',
     'man': 'https://www.google.com/search?q={}&sitesearch=man7.org%2Flinux%2Fman-pages',
     'mc': 'https://minecraft.fandom.com/wiki/Special:Search?query={}',
@@ -418,7 +419,6 @@ config.set('content.register_protocol_handler', True, 'https://mail.google.com?e
 
 # TODO: fix this to open largest image if setsrc is used
 config.bind(';I', ':hint images run open -t -- {hint-url}')
-
 
 # unbind defaults:
 keys_unbind = [

@@ -4,8 +4,6 @@
 --output '%(title)s.%(ext)s'
 --output 'chapter:%(title)s_%(section_number)02d_%(section_title)s.%(ext)s'
 --restrict-filenames
---sub-lang 'en.*'
 --write-sub
---write-auto-sub
 
 # vim: set ft=config:

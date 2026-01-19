@@ -1,22 +1,26 @@
 vim9script
 ## srt.vim - filetype plugin for working with subtitle files ::
 # maintainer: Chris Magyar <c.magyar.ec@gmail.com>
-# updated: 2024-11-17
+# updated: 2025-12-23
 
-if !exists('g:srt_maps') || g:srt_maps
+var create_maps = exists('g:srt_create_maps') ? g:srt_create_maps : true
+if create_maps
     nnoremap <buffer> <localleader>m <scriptcmd>SRTClean()<cr>
     nnoremap <buffer> <localleader>n <scriptcmd>SRTNumber()<cr>
 endif
 
-command! -nargs=1 MsToTime MsToTimeCmd(<f-args>)
-command! -nargs=1 TimeToMs TimeToMsCmd(<f-args>)
+# music note digraph:
+digraphs mn 9834
+
 command! SRTClean SRTClean()
 command! SRTNumber SRTNumber()
 command! -nargs=1 SRTShift SRTShift(<f-args>)
 command! -bang -nargs=* SRTSkew SRTSkew(<q-bang>, <f-args>)
-command! -range SRTToAscii SRTToAscii('n', <line1>, <line2>)
+command! -range TextToAscii TextToAscii('n', <line1>, <line2>)
 
-# TODO: functions to remove: <b>, <i>, alignments?
+# TODO: operate on ranges
+# TODO: scan for common errors and populate quickfix window
+# TODO: OOP?
 
 def MsToTime(ms: number): string
     # convert milliseconds to timestamp:
@@ -27,10 +31,6 @@ def MsToTime(ms: number): string
         tmp_ms = tmp_ms % n
     endfor
     return printf('%02d:%02d:%02d,%03d', parts[0], parts[1], parts[2], tmp_ms)
-enddef
-
-def MsToTimeCmd(arg: string)
-    echo MsToTime(str2nr(arg))
 enddef
 
 def TimeToMs(time: string): number
@@ -54,33 +54,47 @@ def TimeToMs(time: string): number
     return ms
 enddef
 
-def TimeToMsCmd(arg: string)
-    echo TimeToMs(arg)
-enddef
-
 def SRTClean()
+    # clean up subtitles:
     const pos = getpos('.')
-    if !exists('g:srt_unix') || g:srt_unix
-        # remove carriage returns, convert to unix:
+    const clear_alignment = exists('g:srt_clear_alignment') ? g:srt_clear_alignment : true
+    const clear_bold = exists('g:srt_clear_bold') ? g:srt_clear_bold : true
+    const clear_font = exists('g:srt_clear_font') ? g:srt_clear_font : true
+    const clear_italic = exists('g:srt_clear_italic') ? g:srt_clear_italic : false
+    const clear_tabs = exists('g:srt_clear_tabs') ? g:srt_clear_tabs : true
+    const to_unix = exists('g:srt_to_unix') ? g:srt_to_unix : true
+    const to_utf8 = exists('g:srt_to_utf8') ? g:srt_to_utf8 : true
+    # remove carriage returns, convert to unix:
+    if to_unix
         sil keepp :%s/\r//e
         sil setlocal fileformat=unix nobomb
     endif
-    if !exists('g:srt_utf8') || g:srt_utf8
-        # convert to utf-8:
+    # convert to utf-8:
+    if to_utf8
         sil keepp :%s/\r//e
         sil setlocal fileencoding=utf-8
     endif
-    if !exists('g:srt_tabs') || !g:srt_tabs
-        # replace tabs with spaces:
+    # remove alignment markers:
+    if clear_alignment
+        sil keepp :%s/{\\an8}//ge
+    endif
+    # remove bold tags:
+    if clear_bold
+        sil keepp :%s/<\/\?b>//ge
+    endif
+    # remove font tags:
+    if clear_font
+        sil keepp :%s/<\/\?font[^>]*>//ge
+    endif
+    # remove italic tags:
+    if clear_italic
+        sil keepp :%s/<\/\?i>//ge
+    endif
+    # replace tabs with spaces:
+    if clear_tabs
         setlocal expandtab
         retab
     endif
-    if !exists('g:srt_colors') || g:srt_colors
-        # remove font colors:
-        sil keepp :%s/<\/\?font[^>]*>//ge
-    endif
-    # TODO: instead of all this, parse subtitles as objects?
-    # TODO: populate scan/warn/error results in quickfix window?
     # strip trailing whitespaces:
     sil keepp :%s/\s\+$//e
     # merge repeated blank lines:
@@ -89,7 +103,7 @@ def SRTClean()
     sil keepp :%s/\($\n\s*\)\+\%$//e
     # remove leading blank lines:
     sil keepp :%s/\%^\n\+//e
-    # fix incorrect timestamp arrows:
+    # fix timestamp arrows:
     sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d\)\s*\(\|-\|---\+\)>\+\s*\(\d\+:\d\d:\d\d,\d\d\d\)$/\1 --> \3/e
     # remove blank lines between indexes and timecodes:
     sil keepp :%s/\(\%^\|\n\)\(\d\+\n\)\n\+/\1\2/e
@@ -97,8 +111,6 @@ def SRTClean()
     sil keepp :%s/^\(\d\+:\d\d:\d\d,\d\d\d --> \d\+:\d\d:\d\d,\d\d\d\n\)\n\+\([^0-9]\+\)$/\1\2/e
     # remove blank lines between text:
     sil keepp :%s/\(\n\)\n\+\([^0-9]\)/\1\2/e
-    # add missing space after leading dashes:
-    sil keepp :%s/^-\([^ -]\)/- \1/e
     # make every utf-8 note character an eighth note:
     sil keepp :%s/[\u2669\u266b\u266c]\+/\=nr2char(0x266a)/ge
     # merge repeated eighth notes and pound symbols, remove extra spaces:
@@ -112,6 +124,10 @@ def SRTClean()
     sil keepp :%s/^\(.\+\)\([^ ]\)\([\u266a#]\)$/\1\2 \3/ge
     # remove lines with only eigth notes or pound symbols:
     sil! keepp g/^[#\u266a]$/d
+    # add missing space after leading dashes:
+    sil keepp :%s/^-\([^ -]\)/- \1/e
+    # replace dots with ...:
+    sil keepp :%s/[\u2026]\+/.../ge
     # remove blank subtitles:
     sil! keepp g/^\d\+\n\d\d:\d\d:\d\d,\d\d\d --> \d\d:\d\d:\d\d,\d\d\d\n^$/d 3
     # strip trailing whitespaces:
@@ -160,6 +176,7 @@ def SRTShift(ms: string)
 enddef
 
 def SRTSkew(bang: string, st1: string, ss1: string, st2: string, ss2: string)
+    # skew subtitle timecodes:
     const t1 = TimeToMs(st1)
     const s1 = str2nr(ss1)
     const t2 = TimeToMs(st2)
@@ -184,7 +201,7 @@ def SRTSkew(bang: string, st1: string, ss1: string, st2: string, ss2: string)
     endfor
 enddef
 
-def SRTToAscii(mode = 'n', start = -1, end = -1)
+def TextToAscii(mode = 'n', start = -1, end = -1)
     # convert to ASCII with transliteration:
     if !executable('iconv')
         echohl WarningMsg

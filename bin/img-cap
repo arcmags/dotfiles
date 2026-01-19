@@ -1,7 +1,7 @@
 #!/bin/bash
 ## img-cap ::
 
-[[ $0 != "${BASH_SOURCE[0]}" ]] && return 0
+[[ $0 != ${BASH_SOURCE[0]} ]] && return 0
 print_help() { cat <<'HELPDOC'
 Usage:
   img-cap <image> [option...] [caption...]
@@ -67,7 +67,7 @@ bgalpha=66
 bgcolor='black'
 fontcolor='DodgerBlue'
 font='ComicBook-Bold'
-fontsize=36
+fontsize=32
 gravity=sw
 height=100
 linespacing=-40
@@ -321,8 +321,8 @@ make_caption_box() {
     _box_filled="fill $bgcolor fill-opacity $bgalpha% $_box"
     _cmd_magick=(
         magick -size "$((_box_w+100))x$((_box_h+100))" xc:none
-        -stroke "$strokecolor" -strokewidth $((_strokewidth*4)) -draw "$_box_filled"
-        -fill none -stroke "$fontcolor" -strokewidth $((_strokewidth*2)) -draw "$_box"
+        -stroke "$strokecolor" -strokewidth $((_strokewidth*3)) -draw "$_box_filled"
+        -fill none -stroke "$fontcolor" -strokewidth $((_strokewidth*3/2)) -draw "$_box"
         -trim box.png
     )
     ((verbose)) && msg_cmd "${_cmd_magick[@]}"
@@ -416,30 +416,18 @@ make_caption() {
         cp text.png "$_img_cap"
     fi
 
-    # adjust overlay caption positions:
+    # calculate caption position and adjust overlay caption positions:
     case "$gravity" in
         w|e|c)
             _y=$(((img_h-_h)/2))
-            _regex="^${gravity}_[^:]+:[0-9]+:([0-9]+):-?[0-9]+:-?[0-9]+$"
-            if [[ $_c -gt 1 ]]; then
-                _h_total=0
-                for ((_i=0;_i<${#caps[@]};_i++)); do
-                    if [[ "${caps[_i]}" =~ $_regex ]]; then
-                        _h_total=$((BASH_REMATCH[1] + _h_total +padding))
-                    fi
-                done
-                _h_total=$((_h_total + _h + padding))
-            fi
-            _y_next=$(((img_h-_h_total)/2))
             _regex="^(${gravity}_[^:]+:[0-9]+:)([0-9]+)(:-?[0-9]+:)(-?[0-9]+)$"
             if [[ $_c -gt 1 ]]; then
                 for ((_i=0;_i<${#caps[@]};_i++)); do
                     if [[ "${caps[_i]}" =~ $_regex ]]; then
-                        caps[_i]="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}${_y_next}"
-                        _y_next=$((BASH_REMATCH[2] +_y_next+padding))
+                        caps[_i]="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}$((BASH_REMATCH[4] - _h / 2))"
+                        _y=$((BASH_REMATCH[2] + BASH_REMATCH[4] - _h / 2 + padding))
                     fi
                 done
-                _y=$((_y_next+_h+padding))
             fi
             case "$gravity" in
                 c) _x=$(((img_w-_w)/2)) ;;
@@ -458,6 +446,7 @@ make_caption() {
                 nw) _x=$padding ;;
                 ne) _x=$((img_w-_w-padding)) ;;
             esac ;;
+
         s|sw|se)
             _y=$((img_h-_h-padding))
             _regex="^(${gravity}_[^:]+:[0-9]+:[0-9]+:-?[0-9]+:)(-?[0-9]+)$"
